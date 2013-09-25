@@ -19,6 +19,7 @@ module Control.Eff( Eff
                   , Member
                   , MemberU
                   , MemberU2
+                  , MemberL
                   , run
                   , send
                   , admin
@@ -65,6 +66,10 @@ import Data.Typeable
 
 -- A monadic library for communication between a handler and
 -- its client, the administered computation
+
+-- | Convenience typeclass to instantiate lift typeclasses.
+class (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
+instance (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
 
 -- Status of a coroutine (client): done with the value of type w,
 -- or sending a request of type Union r
