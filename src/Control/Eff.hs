@@ -57,7 +57,8 @@ module Control.Eff( Eff
                   , cutfalse
                   ) where
 
-import Control.Monad (join)
+import Control.Applicative (Applicative (..))
+import Control.Monad (join, ap)
 import Data.OpenUnion1
 import Data.Typeable
 -- import OpenUnion3
@@ -85,6 +86,10 @@ newtype Eff r a = Eff{runEff :: forall w. (a -> VE w r) -> VE w r}
 -- standard instances for a continuation monad
 instance Functor (Eff r) where
     fmap f m = Eff $ \k -> runEff m (k . f)
+
+instance Applicative (Eff r) where
+    pure = return
+    (<*>) = ap
 
 instance Monad (Eff r) where
     {-# INLINE return #-}
