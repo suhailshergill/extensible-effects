@@ -36,6 +36,7 @@ module Control.Eff( Eff
                   , State
                   , get
                   , put
+                  , state'
                   , runState
                   , Choose
                   , choose
@@ -240,11 +241,14 @@ data State s w = State (s->s) (s -> w)
 
 -- The signature is inferred
 put :: (Typeable s, Member (State s) r) => s -> Eff r ()
-put s = send (\k -> inj (State (const s) (\_ -> k ())))
+put = state' . const
 
 -- The signature is inferred
 get :: (Typeable s, Member (State s) r) => Eff r s
 get = send (\k -> inj (State id k))
+
+state' :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
+state' f = send (\k -> inj (State f (\_ -> k ())))
 
 runState :: Typeable s => Eff (State s :> r) w -> s -> Eff r (w,s)
 runState m s0 = loop s0 (admin m) where
