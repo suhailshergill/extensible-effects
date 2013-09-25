@@ -1,7 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE GADTs #-}
+{-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
@@ -24,34 +23,39 @@ module Data.OpenUnion1( Union
                       , weaken
                       ) where
 
+import Control.Applicative ((<$>))
 import Data.Typeable
 
 -- parameter r is phantom: it just tells what could be in the union
 -- This encoding is quite like that in the HList paper.
 -- The data constructor Union is not exported
 
-data Union r v where                      -- r is of a kind [*->*]
-  Union :: (Functor t, Typeable1 t) => Id (t v) -> Union r v
+data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
 
-newtype Id x = Id x                     -- for the sake of gcast1
+-- for the sake of gcast1
+newtype Id x = Id { runId :: x }
 
 instance Functor (Union r) where
     {-# INLINE fmap #-}
-    fmap f (Union (Id v)) = Union (Id (fmap f v))
+    fmap f (Union v) = Union (fmap f v)
+
+infixl 4 <?>
+
+(<?>) :: Maybe a -> a -> a
+(Just x) <?> _ = x
+_ <?> x = x
 
 {-# INLINE inj #-}
 inj :: (Functor t, Typeable1 t, Member t r) => t v -> Union r v
-inj x = Union (Id x)
+inj = Union
 
 {-# INLINE prj #-}
 prj :: (Functor t, Typeable1 t, Member t r) => Union r v -> Maybe (t v)
-prj (Union v) | Just (Id x) <- gcast1 v = Just x
-prj _ = Nothing
+prj (Union v) = runId <$> gcast1 (Id v)
 
 {-# INLINE decomp #-}
 decomp :: Typeable1 t => Union (t :> r) v -> Either (Union r v) (t v)
-decomp (Union v) | Just (Id x) <- gcast1 v = Right x
-decomp (Union v) = Left (Union v)
+decomp (Union v) = Right . runId <$> gcast1 (Id v) <?> Left (Union v)
 
 weaken :: (Typeable1 t, Functor t) => Union r w -> Union (t :> r) w
 weaken (Union x) = Union x
