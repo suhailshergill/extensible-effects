@@ -6,11 +6,10 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
--- | Original work at http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs
-
--- Open unions (type-indexed co-products) for extensible effects
+-- | Original work at: http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs.
+-- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ overlapping instances
--- (or closed type function overlapping soon to be added to GHC)
+-- (or closed type function overlapping soon to be added to GHC).
 
 module Data.OpenUnion1( Union
                       , inj
@@ -21,15 +20,16 @@ module Data.OpenUnion1( Union
                       , MemberU2
                       , (:>)
                       , weaken
+                      , (<?>)
                       ) where
 
 import Control.Applicative ((<$>))
 import Data.Typeable
 
--- parameter r is phantom: it just tells what could be in the union
--- This encoding is quite like that in the HList paper.
--- The data constructor Union is not exported
+-- | Where `r` is `t1 :> t2 ... :> tn`, `Union r v` can be constructed with a
+-- value of type `ti v`.
 
+-- Ideally, we should be be able to add the constraint `Member t r`.
 data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
 
 -- for the sake of gcast1
@@ -50,12 +50,12 @@ inj :: (Functor t, Typeable1 t, Member t r) => t v -> Union r v
 inj = Union
 
 {-# INLINE prj #-}
-prj :: (Functor t, Typeable1 t, Member t r) => Union r v -> Maybe (t v)
+prj :: (Typeable1 t, Member t r) => Union r v -> Maybe (t v)
 prj (Union v) = runId <$> gcast1 (Id v)
 
 {-# INLINE decomp #-}
-decomp :: Typeable1 t => Union (t :> r) v -> Either (Union r v) (t v)
-decomp (Union v) = Right . runId <$> gcast1 (Id v) <?> Left (Union v)
+decomp :: (Typeable1 t, Member t (t :> r)) => Union (t :> r) v -> Either (Union r v) (t v)
+decomp u@(Union v) = Right <$> prj u <?> Left (Union v)
 
 weaken :: (Typeable1 t, Functor t) => Union r w -> Union (t :> r) w
 weaken (Union x) = Union x

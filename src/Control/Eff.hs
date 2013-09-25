@@ -1,6 +1,6 @@
-{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, DeriveFunctor #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -11,21 +11,22 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
--- | Original work available at http://okmij.org/ftp/Haskell/extensible/Eff.hs
+-- | Original work available at: http://okmij.org/ftp/Hgetell/extensible/Eff.hs.
 -- This module implements extensible effects as an alternative to monad transformers,
--- as described in http://okmij.org/ftp/Haskell/extensible/exteff.pdf.
+-- as described in http://okmij.org/ftp/Hgetell/extensible/exteff.pdf.
 
 module Control.Eff( Eff
                   , Member
                   , MemberU
                   , MemberU2
                   , MemberL
+                  , (:>)
                   , run
                   , send
                   , admin
                   , Reader
                   , runReader
-                  , ask
+                  , getReader
                   , local
                   , Trace
                   , trace
@@ -35,8 +36,8 @@ module Control.Eff( Eff
                   , runC
                   , Y (..)
                   , State
-                  , get
-                  , put
+                  , getState
+                  , putState
                   , state'
                   , runState
                   , Choose
@@ -58,37 +59,31 @@ module Control.Eff( Eff
                   , cutfalse
                   ) where
 
-import Control.Applicative (Applicative (..))
+import Control.Applicative (Applicative (..), (<$>))
 import Control.Monad (join, ap)
 import Data.OpenUnion1
 import Data.Typeable
--- import OpenUnion3
 
--- A monadic library for communication between a handler and
--- its client, the administered computation
-
--- | Convenience typeclass to instantiate lift typeclasses.
+-- | Convenience typeclass to instantiate Lift typeclasses.
 class (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
 instance (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
 
--- Status of a coroutine (client): done with the value of type w,
--- or sending a request of type Union r
+-- | A `VE` is either a value, or an effect of type `Union r` producing another `VE`.
+-- The result is that a `VE` can produce an arbitrarily long chain of `Union r`
+-- effects, terminated with a pure value.
 data VE w r = Val w | E !(Union r (VE w r))
 
 fromVal :: VE w r -> w
 fromVal (Val w) = w
 fromVal _ = error "fromVal E"
 
--- The Eff monad (not a transformer!)
--- It is actually
---     type Eff r = forall w. Cont (VE w r)
--- We inline it into Cont to put forall under newtype;
--- it is awkward otherwise in Haskell.
--- Also, in MTL, Cont is defined via transformers. We want to
--- avoid transformers!
-newtype Eff r a = Eff{runEff :: forall w. (a -> VE w r) -> VE w r}
+-- | A `Request w r a` consumes values of type `a`, and produces `VE w r`,
+-- i.e. a `w` value embedded arbitrarily deep in `Union r` effects.
+type Request w r a = a -> VE w r
 
--- standard instances for a continuation monad
+-- Eff r a can consume a request (i.e. a -> VE w r)
+newtype Eff r a = Eff { runEff :: forall w. Request w r a -> VE w r }
+
 instance Functor (Eff r) where
     fmap f m = Eff $ \k -> runEff m (k . f)
 
@@ -125,54 +120,44 @@ run = fromVal . admin
 
 -- A convenient pattern: given a request (open union), either
 -- handle it or relay it.
-handle_relay :: Typeable1 t =>
+handleRelay :: Typeable1 t =>
      Union (t :> r) v -> (v -> Eff r a) -> (t v -> Eff r a) -> Eff r a
-handle_relay u loop h = case decomp u of
-  Right x -> h x
-  Left u'  -> send (\k -> fmap k u') >>= loop
+handleRelay u loop h = either passOn h $ decomp u
+  where passOn u' = send (<$> u') >>= loop
   -- perhaps more efficient:
-  -- Left u  -> send (\k -> fmap (\w -> runEff (loop w) k) u)
+  -- passOn u' = send (\k -> fmap (\w -> runEff (loop w) k) u')
 
 -- Add something like Control.Exception.catches? It could be useful
 -- for control with cut.
 
 interpose :: (Typeable1 t, Functor t, Member t r) =>
      Union r v -> (v -> Eff r a) -> (t v -> Eff r a) -> Eff r a
-interpose u loop h = case prj u of
-  Just x -> h x
-  _       -> send (\k -> fmap k u) >>= loop
+interpose u loop h = h <$> prj u <?> (send (<$> u) >>= loop)
 
 -- ------------------------------------------------------------------------
 -- The Reader monad
 
--- The request for a value of type e from the current environment
+-- | The request for a value of type e from the current environment.
+-- This environment is analogous to a parameter of type e.
 newtype Reader e v = Reader (e -> v)
     deriving (Typeable, Functor)
 
-{--
-instance Functor ((->) e) where
-    fmap = (.)
---}
+getReader :: Typeable e => Member (Reader e) r => Eff r e
+getReader = send (inj . Reader)
 
--- The signature is inferred
-ask :: (Typeable e, Member (Reader e) r) => Eff r e
-ask = send (inj . Reader)
-
--- The handler of Reader requests. The return type shows that
+-- | The handler of Reader requests. The return type shows that
 -- all Reader requests are fully handled.
 runReader :: Typeable e => Eff (Reader e :> r) w -> e -> Eff r w
 runReader m e = loop (admin m) where
  loop (Val x) = return x
- loop (E u) = handle_relay u loop (\(Reader k) -> loop (k e))
+ loop (E u) = handleRelay u loop (\(Reader k) -> loop (k e))
 
--- Locally rebind the value in the dynamic environment
--- This function is like a relay; it is both an admin for Reader requests,
--- and a requestor of them
+-- | Locally rebind the value in the dynamic environment.
+-- This function both requests and admins Reader requests.
 local :: (Typeable e, Member (Reader e) r) =>
      (e -> e) -> Eff r a -> Eff r a
 local f m = do
-  e0 <- ask
-  let e = f e0
+  e <- f <$> getReader
   let loop (Val x) = return x
       loop (E u) = interpose u loop (\(Reader k) -> loop (k e))
   loop (admin m)
@@ -191,15 +176,15 @@ throwError e = send (\_ -> inj $ Exc e)
 
 runError :: Typeable e => Eff (Exc e :> r) a -> Eff r (Either e a)
 runError m = loop (admin m)
- where 
+ where
  loop (Val x)  = return (Right x)
- loop (E u)    = handle_relay u loop (\(Exc e) -> return (Left e))
+ loop (E u)    = handleRelay u loop (\(Exc e) -> return (Left e))
 
 -- The handler is allowed to rethrow the exception
 catchError :: (Typeable e, Member (Exc e) r) =>
         Eff r a -> (e -> Eff r a) -> Eff r a
 catchError m handle = loop (admin m)
- where 
+ where
  loop (Val x)  = return x
  loop (E u)    = interpose u loop (\(Exc e) -> handle e)
 
@@ -216,7 +201,7 @@ instance Functor Choose where
     fmap f (Choose lst k) = Choose lst (f . k)
 
 choose :: Member Choose r => [a] -> Eff r a
-choose lst = send (\k -> inj $ Choose lst k)
+choose lst = send (inj . Choose lst)
 
 -- MonadPlus-like operators are expressible via choose
 
@@ -232,38 +217,33 @@ runChoice :: forall a r. Eff (Choose :> r) a -> Eff r [a]
 runChoice m = loop (admin m)
  where
  loop (Val x)  = return [x]
- loop (E u)    = handle_relay u loop (\(Choose lst k) -> handle lst k)
+ loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
  -- Need the signature since local bindings aren't polymorphic any more
  handle :: [t] -> (t -> VE a (Choose :> r)) -> Eff r [a]
  handle [] _  = return []
  handle [x] k = loop (k x)
- handle lst k = fmap concat $ mapM (loop . k) lst
- 
+ handle lst k = concat <$> mapM (loop . k) lst
 
--- ------------------------------------------------------------------------
--- Combining exceptions and non-determinism
 
 -- ------------------------------------------------------------------------
 -- State, strict
 
-data State s w = State (s->s) (s -> w)
-  deriving (Typeable, Functor) 
+data State s w = State (s -> s) (s -> w)
+  deriving (Typeable, Functor)
 
--- The signature is inferred
-put :: (Typeable s, Member (State s) r) => s -> Eff r ()
-put = state' . const
+putState :: Typeable e => Member (State e) r => e -> Eff r ()
+putState = state' . const
 
--- The signature is inferred
-get :: (Typeable s, Member (State s) r) => Eff r s
-get = send (\k -> inj (State id k))
+getState :: Typeable e => Member (State e) r => Eff r e
+getState = send (inj . State id)
 
 state' :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
 state' f = send (\k -> inj (State f (\_ -> k ())))
 
 runState :: Typeable s => s -> Eff (State s :> r) w -> Eff r (w, s)
 runState s0 = loop s0 . admin where
- loop s (Val x) = return (x,s)
- loop s (E u)   = handle_relay u (loop s) $
+ loop s (Val x) = return (x, s)
+ loop s (E u)   = handleRelay u (loop s) $
                        \(State t k) -> let s' = t s in s' `seq` loop s' (k s')
 
 -- Examples
@@ -289,7 +269,7 @@ See EncapsMTL.hs for the complete code.
 -}
 
 -- There are three possible implementations
--- The first one uses State Fresh where 
+-- The first one uses State Fresh where
 --    newtype Fresh = Fresh Int
 -- We get the `private' effect layer (State Fresh) that does not interfere
 -- with with other layers.
@@ -308,7 +288,7 @@ runFresh' :: Eff (Fresh :> r) w -> Int -> Eff r w
 runFresh' m s0 = loop s0 (admin m)
   where
     loop _ (Val x) = return x
-    loop s (E u)   = handle_relay u (loop s) $
+    loop s (E u)   = handleRelay u (loop s) $
                           \(Fresh k) -> (loop $! (s+1)) (k s)
 
 -- Finally, the worst implementation but the one that answers
@@ -316,22 +296,15 @@ runFresh' m s0 = loop s0 (admin m)
 -- but not revealing that fact.
 
 runFresh :: Eff (Fresh :> r) w -> Int -> Eff r w
-runFresh m s = runState s (loop $ admin m) >>= return . fst
+runFresh m s = fst <$> runState s (loop $ admin m)
  where
   loop (Val x) = return x
   loop (E u)   = case decomp u of
     Right (Fresh k) -> do
-                      n <- get
-                      put (n+1::Int)
+                      n <- getState
+                      putState (n + 1)
                       loop (k n)
-    Left u' -> send (\k -> weaken $ fmap k u') >>= loop
-
-{-
-If we try to meddle with the encapsulated state, by uncommenting the
-get statement above, we get:
-    No instance for (Member (State Int) Void)
-      arising from a use of `get'
--}
+    Left u' -> send (\k -> weaken $ k <$> u') >>= loop
 
 
 -- ------------------------------------------------------------------------
@@ -367,7 +340,7 @@ Eff.hs:465:29: Warning:
     Deprecated: "either derive Typeable, or use mkTyCon3 instead"
 --}
 instance Typeable1 m => Typeable1 (Lift m) where
-    typeOf1 _ = 
+    typeOf1 _ =
      mkTyConApp (mkTyCon3 "" "Eff" "Lift") [typeOf1 (undefined:: m ())]
 
 instance Functor (Lift m) where
@@ -381,15 +354,15 @@ lift m = send (inj . Lift m)
 runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> Void) w -> m w
 runLift m = loop (admin m) where
  loop (Val x) = return x
- loop (E u)   = case prj u of
-                  Just (Lift m' k) -> m' >>= loop . k
-                  Nothing -> error "Nothing cannot occur"
+ loop (E u) = case prj u of
+                Just (Lift m' k) -> m' >>= loop . k
+                Nothing -> error "Nothing cannot occur"
 
 -- ------------------------------------------------------------------------
 -- Co-routines
 -- The interface is intentionally chosen to be the same as in transf.hs
 
--- The yield request: reporting the value of type e and suspending 
+-- The yield request: reporting the value of type e and suspending
 -- the coroutine
 -- (For simplicity, a co-routine reports a value but accepts unit)
 data Yield a v = Yield a (() -> v)
@@ -407,7 +380,7 @@ data Y r a = Done | Y a (() -> Eff r (Y r a))
 runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a)
 runC m = loop (admin m) where
  loop (Val _) = return Done
- loop (E u)   = handle_relay u loop $ 
+ loop (E u)   = handleRelay u loop $
                  \(Yield x k) -> return (Y x (loop . k))
 
 
@@ -427,7 +400,7 @@ runC m = loop (admin m) where
 -- In other words, cutfalse is the left zero of both bind and mplus.
 --
 -- Hinze also introduces the operation call :: m a -> m a that
--- delimits the effect of cut: call m executes m. If the cut is 
+-- delimits the effect of cut: call m executes m. If the cut is
 -- invoked in m, it discards only the choices made since m was called.
 -- Hinze postulates the axioms of call:
 --
@@ -440,7 +413,7 @@ runC m = loop (admin m) where
 -- he says.
 
 -- Hinze noted a problem with the `mechanical' derivation of backtracing
--- monad transformer with cut: no axiom specifying the interaction of 
+-- monad transformer with cut: no axiom specifying the interaction of
 -- call with bind; no way to simplify nested invocations of call.
 
 -- We use exceptions for cutfalse
@@ -472,7 +445,7 @@ call m = loop [] (admin m) where
  check jq u | Just (Choose [] _) <- prj u  = next jq  -- (C1)
  check jq u | Just (Choose [x] k) <- prj u = loop jq (k x)  -- (C3), optim
  check jq u | Just (Choose lst k) <- prj u = next $ map k lst ++ jq -- (C3)
- check jq u = send (\k -> fmap k u) >>= loop jq      -- (C4)
+ check jq u = send (<$> u) >>= loop jq      -- (C4)
 
  next []    = mzero'
  next (h:t) = loop t h
