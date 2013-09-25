@@ -1,0 +1,8 @@
+*.sw[a-z]
+*~
+*.ignore
+*.ignore.*
+
+dist
+docs
+scripts

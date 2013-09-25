@@ -1,0 +1,16 @@
+Name:                extensible-effects
+Version:             0.1
+Description:         http://okmij.org/ftp/Haskell/extensible/exteff.pdf
+Category:            Control
+Maintainer:          benjamin.foppa@gmail.com
+Build-Type:          Simple
+Cabal-Version:       >= 1.9.2
+
+library
+    hs-source-dirs:    src/
+    ghc-options:       -Wall -Werror
+    exposed-modules:   Control.Eff
+                       Data.OpenUnion1
+
+    build-depends: 
+                    base
