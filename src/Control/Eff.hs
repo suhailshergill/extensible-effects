@@ -260,8 +260,8 @@ get = send (\k -> inj (State id k))
 state' :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
 state' f = send (\k -> inj (State f (\_ -> k ())))
 
-runState :: Typeable s => Eff (State s :> r) w -> s -> Eff r (w,s)
-runState m s0 = loop s0 (admin m) where
+runState :: Typeable s => s -> Eff (State s :> r) w -> Eff r (w, s)
+runState s0 = loop s0 . admin where
  loop s (Val x) = return (x,s)
  loop s (E u)   = handle_relay u (loop s) $
                        \(State t k) -> let s' = t s in s' `seq` loop s' (k s')
@@ -316,7 +316,7 @@ runFresh' m s0 = loop s0 (admin m)
 -- but not revealing that fact.
 
 runFresh :: Eff (Fresh :> r) w -> Int -> Eff r w
-runFresh m s = runState (loop $ admin m) s >>= return . fst
+runFresh m s = runState s (loop $ admin m) >>= return . fst
  where
   loop (Val x) = return x
   loop (E u)   = case decomp u of
