@@ -53,7 +53,6 @@ module Control.Eff( Eff
                   , Fresh
                   , fresh
                   , runFresh
-                  , runFresh'
                   , CutFalse
                   , call
                   , cutfalse
@@ -277,34 +276,18 @@ See EncapsMTL.hs for the complete code.
 
 -- The second implementation defines a new effect Fresh
 
-newtype Fresh v = Fresh (Int -> v)
+newtype Fresh i v = Fresh (i -> v)
     deriving (Functor, Typeable)
 
-fresh :: Member Fresh r => Eff r Int
+fresh :: (Typeable i, Enum i, Member (Fresh i) r) => Eff r i
 fresh = send (inj . Fresh)
 
--- And a handler for it
-runFresh' :: Eff (Fresh :> r) w -> Int -> Eff r w
-runFresh' m s0 = loop s0 (admin m)
+runFresh :: (Typeable i, Enum i) => Eff (Fresh i :> r) w -> i -> Eff r w
+runFresh m s0 = loop s0 (admin m)
   where
     loop _ (Val x) = return x
     loop s (E u)   = handleRelay u (loop s) $
-                          \(Fresh k) -> (loop $! (s+1)) (k s)
-
--- Finally, the worst implementation but the one that answers
--- reviewer's question: implementing Fresh in terms of State
--- but not revealing that fact.
-
-runFresh :: Eff (Fresh :> r) w -> Int -> Eff r w
-runFresh m s = fst <$> runState s (loop $ admin m)
- where
-  loop (Val x) = return x
-  loop (E u)   = case decomp u of
-    Right (Fresh k) -> do
-                      n <- getState
-                      putState (n + 1)
-                      loop (k n)
-    Left u' -> send (\k -> weaken $ k <$> u') >>= loop
+                          \(Fresh k) -> (loop $! succ s) (k s)
 
 
 -- ------------------------------------------------------------------------
