@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE EmptyDataDecls #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, DeriveFunctor #-}
@@ -227,8 +228,19 @@ runChoice m = loop (admin m)
 
 
 -- ------------------------------------------------------------------------
--- State, strict
-
+-- | Strict state.
+-- Example:
+-- Implementing Fresh in terms of State but not revealing that fact.
+-- runFresh' :: (Typeable i, Enum i, Num i) => Eff (Fresh i :> r) w -> i -> Eff r w
+-- runFresh' m s = fst <$> runState s (loop $ admin m)
+--  where
+--   loop (Val x) = return x
+--   loop (E u)   = case decomp u of
+--     Right (Fresh k) -> do
+--                       n <- getState
+--                       putState (n + 1)
+--                       loop (k n)
+--     Left u' -> send (\k -> unsafeReUnion $ k <$> u') >>= loop
 data State s w = State (s -> s) (s -> w)
   deriving (Typeable, Functor)
 
@@ -246,37 +258,6 @@ runState s0 = loop s0 . admin where
  loop s (Val x) = return (x, s)
  loop s (E u)   = handleRelay u (loop s) $
                        \(State t k) -> let s' = t s in s' `seq` loop s' (k s')
-
--- Examples
-
-
--- Encapsulation of effects
--- The example suggested by a reviewer
-
-{- The reviewer outlined an MTL implementation below, writing
-  ``This hides the state effect and I can layer another state effect on
-  top without getting into conflict with the class system.''
-
-class Monad m => MonadFresh m where
-    fresh :: m Int
-
-newtype FreshT m a = FreshT { unFreshT :: State Int m a }
-      deriving (Functor, Monad, MonadTrans)
-
-    instance Monad m => MonadFresh (FreshT m) where
-      fresh = FreshT $ do n <- get; put (n+1); return n
-
-See EncapsMTL.hs for the complete code.
--}
-
--- There are three possible implementations
--- The first one uses State Fresh where
---    newtype Fresh = Fresh Int
--- We get the `private' effect layer (State Fresh) that does not interfere
--- with with other layers.
--- This is the easiest implementation.
-
--- The second implementation defines a new effect Fresh
 
 newtype Fresh i v = Fresh (i -> v)
     deriving (Functor, Typeable)
