@@ -10,7 +10,6 @@ library
     hs-source-dirs:    src/
     ghc-options:       -Wall -Werror
     exposed-modules:   Control.Eff
-                       Data.OpenUnion1
 
     build-depends: 
                     base
