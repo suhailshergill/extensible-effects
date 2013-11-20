@@ -1,5 +1,5 @@
 Name:                extensible-effects
-Version:             0.1
+Version:             1.0
 Description:         Extensible Effects: An Alternative to Monad Transformers (http://okmij.org/ftp/Haskell/extensible/exteff.pdf)
 Category:            Control
 Maintainer:          benjamin.foppa@gmail.com
