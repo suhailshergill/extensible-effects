@@ -17,9 +17,6 @@
 
 module Control.Eff( Eff
                   , Member
-                  , MemberU
-                  , MemberU2
-                  , MemberL
                   , (:>)
                   , run
                   , send
@@ -62,10 +59,6 @@ import Control.Applicative (Applicative (..), (<$>))
 import Control.Monad (join, ap)
 import Data.OpenUnion1
 import Data.Typeable
-
--- | Convenience typeclass to instantiate Lift typeclasses.
-class (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
-instance (Member (Lift m) s, MemberU2 Lift (Lift m) s) => MemberL m s
 
 -- | A `VE` is either a value, or an effect of type `Union r` producing another `VE`.
 -- The result is that a `VE` can produce an arbitrarily long chain of `Union r`
@@ -329,8 +322,8 @@ instance Typeable1 m => Typeable1 (Lift m) where
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)
 
--- We make the Lift layer to be unique, using MemberU2
-lift :: (Typeable1 m, MemberU2 Lift (Lift m) r) => m a -> Eff r a
+-- | Lift a Monad to an Effect.
+lift :: (Typeable1 m, Member (Lift m) r) => m a -> Eff r a
 lift m = send (inj . Lift m)
 
 -- The handler of Lift requests. It is meant to be terminal

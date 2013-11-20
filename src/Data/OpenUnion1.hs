@@ -4,7 +4,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE UndecidableInstances #-}
 
 -- | Original work at: http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs.
 -- Open unions (type-indexed co-products) for extensible effects.
@@ -16,8 +16,6 @@ module Data.OpenUnion1( Union
                       , prj
                       , decomp
                       , Member
-                      , MemberU
-                      , MemberU2
                       , (:>)
                       , weaken
                       , (<?>)
@@ -69,16 +67,3 @@ instance Member t r => Member t (t' :> r)
 -- (:>) :: (* -> *) -> (* -> List) -> List
 infixr 1 :>
 data ((a :: * -> *) :> b)
-
--- This class is used for emulating monad transformers
-class Member t r => MemberU (tag :: * -> * -> *) (t :: * -> *) r | tag r -> t
-instance MemberU tag (tag e) (tag e :> r)
-instance MemberU tag t r => MemberU tag t (t' :> r)
-
--- A version of MemberU for argument of a different kind.
--- Latest GHC has well-functioning PolyKind extension; therefore,
--- MemberU2 can be merged with MemberU.
-class Member t r => 
-      MemberU2 (tag :: (* -> *) -> * -> *) (t :: * -> *) r | tag r -> t
-instance MemberU2 tag (tag e) (tag e :> r)
-instance MemberU2 tag t r => MemberU2 tag t (t' :> r)
