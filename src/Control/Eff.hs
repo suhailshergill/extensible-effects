@@ -14,7 +14,16 @@
 -- | Original work available at: http://okmij.org/ftp/Hgetell/extensible/Eff.hs.
 -- This module implements extensible effects as an alternative to monad transformers,
 -- as described in http://okmij.org/ftp/Hgetell/extensible/exteff.pdf.
-
+--
+-- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
+-- A contrived example is:
+--
+--   -- Print a list of numbers, then print their sum.
+--   printAndSum :: (Member (Lift IO) e, Member State e) => [Integer] -> Eff e Integer
+--   printAndSum (x:xs) = do
+--        lift $ putStrLn $ show x
+--        onState (+ x)
+--   printAndSum [] = getState >>= lift . putStrLn
 module Control.Eff( Eff
                   , Member
                   , (:>)
@@ -35,7 +44,7 @@ module Control.Eff( Eff
                   , State
                   , getState
                   , putState
-                  , state'
+                  , onState
                   , runState
                   , Choose
                   , choose
@@ -224,13 +233,13 @@ data State s w = State (s -> s) (s -> w)
   deriving (Typeable, Functor)
 
 putState :: Typeable e => Member (State e) r => e -> Eff r ()
-putState = state' . const
+putState = onState . const
 
 getState :: Typeable e => Member (State e) r => Eff r e
 getState = send (inj . State id)
 
-state' :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
-state' f = send (\k -> inj (State f (\_ -> k ())))
+onState :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
+onState f = send (\k -> inj (State f (\_ -> k ())))
 
 runState :: Typeable s => s -> Eff (State s :> r) w -> Eff r (w, s)
 runState s0 = loop s0 . admin where
@@ -297,9 +306,7 @@ trace x = send (inj . Trace x)
 runTrace :: Eff (Trace :> Void) w -> IO w
 runTrace m = loop (admin m) where
  loop (Val x) = return x
- loop (E u)   = case prj u of
-                  Just (Trace s k) -> putStrLn s >> loop (k ())
-                  Nothing -> error "Nothing cannot occur"
+ loop (E u)   = prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ())
 
 -- ------------------------------------------------------------------------
 -- Lifting: emulating monad transformers
@@ -326,33 +333,32 @@ instance Functor (Lift m) where
 lift :: (Typeable1 m, Member (Lift m) r) => m a -> Eff r a
 lift m = send (inj . Lift m)
 
--- The handler of Lift requests. It is meant to be terminal
+-- | The handler of Lift requests. It is meant to be terminal: we only allow
+-- a single Lifted Monad because Monads aren't commutative
+-- (e.g. Maybe (IO a) is functionally different from IO (Maybe a)).
 runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> Void) w -> m w
 runLift m = loop (admin m) where
  loop (Val x) = return x
- loop (E u) = case prj u of
-                Just (Lift m' k) -> m' >>= loop . k
-                Nothing -> error "Nothing cannot occur"
+ loop (E u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k
 
 -- ------------------------------------------------------------------------
 -- Co-routines
 -- The interface is intentionally chosen to be the same as in transf.hs
 
--- The yield request: reporting the value of type e and suspending
+-- | The yield request: reporting the value of type e and suspending
 -- the coroutine
 -- (For simplicity, a co-routine reports a value but accepts unit)
 data Yield a v = Yield a (() -> v)
     deriving (Typeable, Functor)
 
--- The signature is inferred
 yield :: (Typeable a, Member (Yield a) r) => a -> Eff r ()
 yield x = send (inj . Yield x)
 
--- Status of a thread: done or reporting the value of the type a
+-- | Status of a thread: done or reporting the value of the type a
 -- (For simplicity, a co-routine reports a value but accepts unit)
 data Y r a = Done | Y a (() -> Eff r (Y r a))
 
--- Launch a thread and report its status
+-- | Launch a thread and report its status.
 runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a)
 runC m = loop (admin m) where
  loop (Val _) = return Done
