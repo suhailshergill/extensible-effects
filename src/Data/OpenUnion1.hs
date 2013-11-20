@@ -18,7 +18,6 @@ module Data.OpenUnion1( Union
                       , decomp
                       , Member
                       , (:>)
-                      , (<?>)
                       , unsafeReUnion
                       ) where
 

@@ -134,7 +134,7 @@ handleRelay u loop h = either passOn h $ decomp u
 
 interpose :: (Typeable1 t, Functor t, Member t r) =>
      Union r v -> (v -> Eff r a) -> (t v -> Eff r a) -> Eff r a
-interpose u loop h = h <$> prj u <?> (send (<$> u) >>= loop)
+interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
 
 -- ------------------------------------------------------------------------
 -- The Reader monad
