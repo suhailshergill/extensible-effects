@@ -1,16 +1,24 @@
 Name:                extensible-effects
 Version:             1.0
-Description:         Extensible Effects: An Alternative to Monad Transformers (http://okmij.org/ftp/Haskell/extensible/exteff.pdf)
+Synopsis:            Extensible Effects: An Alternative to Monad Transformers
+                     (http://okmij.org/ftp/Haskell/extensible/exteff.pdf)
+Description:         This package introduces datatypes for typeclass-constrained effects,
+                     as an alternative to monad-transformer based (datatype-constrained)
+                     approach of multi-layered effects.
+                     For more information, see the original paper at
+                     http://okmij.org/ftp/Haskell/extensible/exteff.pdf.
 Category:            Control
 Maintainer:          benjamin.foppa@gmail.com
+License:             MIT
 Build-Type:          Simple
 Cabal-Version:       >= 1.9.2
 
 library
     hs-source-dirs:    src/
-    ghc-options:       -Wall -Werror
+    ghc-options:       -Wall
     exposed-modules:   Control.Eff
                        Data.OpenUnion1
 
     build-depends: 
-                    base
+                    base >= 4,
+                    base < 5
