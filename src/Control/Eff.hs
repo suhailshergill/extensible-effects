@@ -12,21 +12,32 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 
--- | Original work available at: http://okmij.org/ftp/Hgetell/extensible/Eff.hs.
+-- | Original work available at <http://okmij.org/ftp/Hgetell/extensible/Eff.hs>.
 -- This module implements extensible effects as an alternative to monad transformers,
--- as described in http://okmij.org/ftp/Hgetell/extensible/exteff.pdf.
+-- as described in <http://okmij.org/ftp/Hgetell/extensible/exteff.pdf>.
 --
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example is:
 --
---   -- Print a list of numbers, then print their sum.
---   printAndSum :: (Member (Lift IO) e, Member State e) => [Integer] -> Eff e Integer
---   printAndSum (x:xs) = do
---        lift $ putStrLn $ show x
---        onState (+ x)
---   printAndSum [] = getState >>= lift . putStrLn
+-- >   {-# LANGUAGE FlexibleContexts #-}
+-- >   import Control.Eff
+-- >   import Control.Monad (void)
+-- >
+-- >   -- Print a list of numbers, then print their sum.
+-- >   printAndSum :: (Member (Lift IO) e, Member (State Integer) e) => [Integer] -> Eff e ()
+-- >   printAndSum (x:xs) = do
+-- >        lift $ putStrLn $ show x
+-- >        onState (+ x)
+-- >        printAndSum xs
+-- >   printAndSum [] = getState >>= lift . putStrLn . (show :: Integer -> String)
+-- >
+-- >   -- printAndSum [1..5]
+-- >   main :: IO ()
+-- >   main = void $ runLift $ runState (0 :: Integer) $ printAndSum [1..5]
 module Control.Eff( Eff
+                  , VE (..)
                   , Member
+                  , Request
                   , (:>)
                   , run
                   , send
@@ -83,7 +94,9 @@ fromVal _ = error "fromVal E"
 -- i.e. a `w` value embedded arbitrarily deep in `Union r` effects.
 type Request w r a = a -> VE w r
 
--- Eff r a can consume a request (i.e. a -> VE w r)
+-- | Basic datatype returned by all computations with extensible effects.
+-- The type `r` is the type of effects that can be handled,
+-- and `a` is the type of value that is returned.
 newtype Eff r a = Eff { runEff :: forall w. Request w r a -> VE w r }
 
 instance Functor (Eff r) where
@@ -99,25 +112,23 @@ instance Monad (Eff r) where
     return x = Eff $ \k -> k x
     m >>= f  = Eff $ \k -> runEff m (\v -> runEff (f v) k)
 
--- send a request and wait for a reply
-send :: (forall w. (a -> VE w r) -> Union r (VE w r)) -> Eff r a
+-- | Given a method of turning Requests into results,
+-- we produce an effectful computation.
+send :: (forall w. Request w r a -> Union r (VE w r)) -> Eff r a
 send f = Eff (E . f)
 
--- administer a client: launch a coroutine and wait for it
--- to send a request or terminate with a value
+-- | Tell an effectful computation that you're ready to start running effects
+-- and return a value.
 admin :: Eff r w -> VE w r
 admin (Eff m) = m Val
 
 -- ------------------------------------------------------------------------
 -- The initial case, no effects
 
-data Void -- no constructors
-
--- The type of run ensures that all effects must be handled:
--- only pure computations may be run.
-run :: Eff Void w -> w
+-- | Get the result from a pure computation.
+run :: Eff () w -> w
 run = fromVal . admin
--- the other case is unreachable since Void has no constructors
+-- the other case is unreachable since () has no constructors
 -- Therefore, run is a total function if m Val terminates.
 
 -- A convenient pattern: given a request (open union), either
@@ -144,7 +155,8 @@ interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
 newtype Reader e v = Reader (e -> v)
     deriving (Typeable, Functor)
 
-getReader :: Typeable e => Member (Reader e) r => Eff r e
+-- | Get the current value from a Reader.
+getReader :: (Typeable e, Member (Reader e) r) => Eff r e
 getReader = send (inj . Reader)
 
 -- | The handler of Reader requests. The return type shows that
@@ -192,16 +204,15 @@ catchError m handle = loop (admin m)
 
 
 -- ------------------------------------------------------------------------
--- Non-determinism (choice)
-
--- choose lst non-deterministically chooses one value from the lst
--- choose [] thus corresponds to failure
+-- | Non-determinism (choice)
 data Choose v = forall a. Choose [a] (a -> v)
               deriving (Typeable)
 
 instance Functor Choose where
     fmap f (Choose lst k) = Choose lst (f . k)
 
+-- | choose lst non-deterministically chooses one value from the lst
+-- choose [] thus corresponds to failure
 choose :: Member Choose r => [a] -> Eff r a
 choose lst = send (inj . Choose lst)
 
@@ -218,13 +229,13 @@ mplus' m1 m2 = join $ choose [m1,m2]
 runChoice :: forall a r. Eff (Choose :> r) a -> Eff r [a]
 runChoice m = loop (admin m)
  where
- loop (Val x)  = return [x]
- loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
- -- Need the signature since local bindings aren't polymorphic any more
- handle :: [t] -> (t -> VE a (Choose :> r)) -> Eff r [a]
- handle [] _  = return []
- handle [x] k = loop (k x)
- handle lst k = concat <$> mapM (loop . k) lst
+  loop (Val x)  = return [x]
+  loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
+
+  handle :: [t] -> Request a (Choose :> r) t -> Eff r [a]
+  handle [] _  = return []
+  handle [x] k = loop (k x)
+  handle lst k = concat <$> mapM (loop . k) lst
 
 
 -- ------------------------------------------------------------------------
@@ -284,7 +295,7 @@ trace :: Member Trace r => String -> Eff r ()
 trace x = send (inj . Trace x)
 
 -- The handler for IO request: a terminal handler
-runTrace :: Eff (Trace :> Void) w -> IO w
+runTrace :: Eff (Trace :> ()) w -> IO w
 runTrace m = loop (admin m) where
  loop (Val x) = return x
  loop (E u)   = prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ())
@@ -317,7 +328,7 @@ lift m = send (inj . Lift m)
 -- | The handler of Lift requests. It is meant to be terminal: we only allow
 -- a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally different from IO (Maybe a)).
-runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> Void) w -> m w
+runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
 runLift m = loop (admin m) where
  loop (Val x) = return x
  loop (E u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k

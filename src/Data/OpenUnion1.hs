@@ -6,18 +6,17 @@
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Original work at: http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs.
+-- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ overlapping instances
 -- (or closed type function overlapping soon to be added to GHC).
-
 module Data.OpenUnion1( Union
+                      , (:>)
                       , inj
                       , prj
                       , prjForce
                       , decomp
                       , Member
-                      , (:>)
                       , unsafeReUnion
                       ) where
 
@@ -43,9 +42,7 @@ instance Functor (Union r) where
     {-# INLINE fmap #-}
     fmap f (Union v) = Union (fmap f v)
 
--- | A sum data type, for `composing' effects
--- In GHC 7.4, we should make it a list
--- (:>) :: (* -> *) -> (* -> List) -> List
+-- | A sum data type, for composing effects
 infixr 1 :>
 data ((a :: * -> *) :> b)
 
@@ -59,16 +56,19 @@ inj :: (Functor t, Typeable1 t, Member t r) => t v -> Union r v
 inj = Union
 
 {-# INLINE prj #-}
--- | Try extracting the contents of a Union as a specific type.
+-- | Try extracting the contents of a Union as a given type.
 prj :: (Typeable1 t, Member t r) => Union r v -> Maybe (t v)
 prj (Union v) = runId <$> gcast1 (Id v)
 
 {-# INLINE prjForce #-}
--- Like `prj`, but returns an error if the cast fails.
+-- | Extract the contents of a Union as a given type.
+-- If the Union isn't of that type, a runtime error occurs.
 prjForce :: (Typeable1 t, Member t r) => Union r v -> (t v -> a) -> a
-prjForce u f = f <$> prj u <?> error "prjForce Nothing"
+prjForce u f = f <$> prj u <?> error "prjForce with an invalid type"
 
 {-# INLINE decomp #-}
+-- | Try extracting the contents of a Union as a given type.
+-- If we can't, return a reduced Union that excludes the type we just checked.
 decomp :: (Typeable1 t, Member t (t :> r)) => Union (t :> r) v -> Either (Union r v) (t v)
 decomp u = Right <$> prj u <?> Left (unsafeReUnion u)
 
