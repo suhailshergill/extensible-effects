@@ -19,22 +19,50 @@
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example is:
 --
--- >   {-# LANGUAGE FlexibleContexts #-}
--- >   import Control.Eff
--- >   import Control.Monad (void)
+-- > {-# LANGUAGE FlexibleContexts #-}
+-- > import Control.Eff
+-- > import Control.Eff.Lift
+-- > import Control.Eff.State
+-- > import Control.Monad (void)
+-- > import Data.Typeable
 -- >
--- >   -- Print a list of numbers, then print their sum.
--- >   printAndSum :: (Member (Lift IO) e, Member (State Integer) e) => [Integer] -> Eff e ()
--- >   printAndSum (x:xs) = do
--- >        lift $ putStrLn $ show x
--- >        onState (+ x)
--- >        printAndSum xs
--- >   printAndSum [] = getState >>= lift . putStrLn . (show :: Integer -> String)
+-- > -- Write the elements of a list of numbers, in order.
+-- > writeAll :: (Typeable a, Member (Writer a) e)
+-- >          => [a]
+-- >          -> Eff e ()
+-- > writeAll = mapM_ putWriter
 -- >
--- >   -- printAndSum [1..5]
--- >   main :: IO ()
--- >   main = void $ runLift $ runState (0 :: Integer) $ printAndSum [1..5]
-module Control.Eff( Eff
+-- > -- Add a list of numbers to the current state.
+-- > sumAll :: (Typeable a, Num a, Member (State a) e)
+-- >        => [a]
+-- >        -> Eff e ()
+-- > sumAll = mapM_ (onState . (+))
+-- >
+-- > -- Write a list of numbers and add them to the current state.
+-- > writeAndAdd :: (Member (Writer Integer) e, Member (State Integer) e)
+-- >             => [Integer]
+-- >             -> Eff e ()
+-- > writeAndAdd l = do
+-- >     writeAll l
+-- >     sumAll l
+-- >
+-- > -- Sum a list of numbers.
+-- > sumEff :: (Num a, Typeable a) => [a] -> a
+-- > sumEff l = let (s, ()) = run $ runState 0 $ sumAll l
+-- >            in s
+-- >
+-- > -- Safely get the last element of a list.
+-- > -- Nothing for empty lists; Just the last element otherwise.
+-- > lastEff :: Typeable a => [a] -> Maybe a
+-- > lastEff l = let (a, ()) = run $ runWriter $ writeAll l
+-- >             in a
+-- >
+-- > -- Get the last element and sum of a list
+-- > lastAndSum :: (Typeable a, Num a) => [a] -> (Maybe a, a)
+-- > lastAndSum l = let (lst, (total, ())) = run $ runWriter $ runState 0 $ writeAndAdd l
+-- >                in (lst, total)
+module Control.Eff(
+                    Eff
                   , VE (..)
                   , Member
                   , Union
@@ -55,8 +83,8 @@ import Control.Monad (ap)
 import Data.OpenUnion1
 import Data.Typeable
 
--- | A `VE` is either a value, or an effect of type `Union r` producing another `VE`.
--- The result is that a `VE` can produce an arbitrarily long chain of `Union r`
+-- | A `VE` is either a value, or an effect of type @`Union` r@ producing another `VE`.
+-- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
 -- effects, terminated with a pure value.
 data VE w r = Val w | E !(Union r (VE w r))
 
@@ -65,8 +93,8 @@ fromVal (Val w) = w
 fromVal _ = error "fromVal E"
 
 -- | Basic datatype returned by all computations with extensible effects.
--- The type `r` is the type of effects that can be handled,
--- and `a` is the type of value that is returned.
+-- The type @r@ is the type of effects that can be handled,
+-- and @a@ is the type of value that is returned.
 newtype Eff r a = Eff { runEff :: forall w. (a -> VE w r) -> VE w r }
 
 instance Functor (Eff r) where
@@ -92,27 +120,28 @@ send f = Eff (E . f)
 admin :: Eff r w -> VE w r
 admin (Eff m) = m Val
 
--- ------------------------------------------------------------------------
--- The initial case, no effects
-
 -- | Get the result from a pure computation.
 run :: Eff () w -> w
 run = fromVal . admin
 -- the other case is unreachable since () has no constructors
 -- Therefore, run is a total function if m Val terminates.
 
--- A convenient pattern: given a request (open union), either
--- handle it or relay it.
-handleRelay :: Typeable1 t =>
-     Union (t :> r) v -> (v -> Eff r a) -> (t v -> Eff r a) -> Eff r a
+-- | Given a request, either handle it or relay it.
+handleRelay :: Typeable1 t
+            => Union (t :> r) v -- ^ Request
+            -> (v -> Eff r a)   -- ^ Relay the request
+            -> (t v -> Eff r a) -- ^ Handle the request of type t
+            -> Eff r a
 handleRelay u loop h = either passOn h $ decomp u
   where passOn u' = send (<$> u') >>= loop
   -- perhaps more efficient:
   -- passOn u' = send (\k -> fmap (\w -> runEff (loop w) k) u')
 
--- Add something like Control.Exception.catches? It could be useful
--- for control with cut.
-
-interpose :: (Typeable1 t, Functor t, Member t r) =>
-     Union r v -> (v -> Eff r a) -> (t v -> Eff r a) -> Eff r a
+-- | Given a request, either handle it or relay it. Both the handler
+-- and the relay can produce the same type of request that was handled.
+interpose :: (Typeable1 t, Functor t, Member t r)
+          => Union r v
+          -> (v -> Eff r a)
+          -> (t v -> Eff r a)
+          -> Eff r a
 interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u

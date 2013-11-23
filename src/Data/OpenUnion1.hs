@@ -33,9 +33,9 @@ _ <?> a = a
 -- for the sake of gcast1
 newtype Id a = Id { runId :: a }
 
--- | Where `r` is `t1 :> t2 ... :> tn`, `Union r v` can be constructed with a
--- value of type `ti v`.
--- Ideally, we should be be able to add the constraint `Member t r`.
+-- | Where @r@ is @t1 :> t2 ... :> tn@, @`Union` r v@ can be constructed with a
+-- value of type @ti v@.
+-- Ideally, we should be be able to add the constraint @`Member` t r@.
 data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
 
 instance Functor (Union r) where
@@ -46,6 +46,7 @@ instance Functor (Union r) where
 infixr 1 :>
 data ((a :: * -> *) :> b)
 
+-- | There's a @`Member` t r@ instance if t is an element of the sum datatype r.
 class Member (t :: * -> *) r
 instance Member t (t :> r)
 instance Member t r => Member t (t' :> r)

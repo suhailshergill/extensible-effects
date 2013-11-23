@@ -5,7 +5,7 @@ Description:         This package introduces datatypes for typeclass-constrained
                      as an alternative to monad-transformer based (datatype-constrained)
                      approach of multi-layered effects.
                      For more information, see the original paper at
-                     http:\/\/okmij.org\/ftp\/Haskell\/extensible\/exteff.pdf.
+                     <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>.
 Category:            Control
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
