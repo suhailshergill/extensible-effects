@@ -33,6 +33,20 @@ library
     build-depends: 
                     base == 4.*
 
+test-suite extensible-effects-tests
+  type: exitcode-stdio-1.0
+  main-is: Test.hs
+  hs-source-dirs: test/
+
+  ghc-options: -rtsopts=all -threaded
+
+  build-depends:
+    base == 4.*,
+    QuickCheck == 2.*,
+    test-framework == 0.8.*,
+    test-framework-quickcheck2 == 0.3.*,
+    extensible-effects
+
 source-repository head
   type: git
   location: https://github.com/RobotGymnast/extensible-effects
