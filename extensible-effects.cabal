@@ -1,5 +1,5 @@
 Name:                extensible-effects
-Version:             1.0
+Version:             1.1.0
 Synopsis:            An Alternative to Monad Transformers
 Description:         This package introduces datatypes for typeclass-constrained effects,
                      as an alternative to monad-transformer based (datatype-constrained)
@@ -20,8 +20,19 @@ library
     hs-source-dirs:    src/
     ghc-options:       -Wall
     exposed-modules:   Control.Eff
-                       Data.OpenUnion1
+                       Control.Eff.Choose
+                       Control.Eff.Coroutine
+                       Control.Eff.Cut
+                       Control.Eff.Exception
+                       Control.Eff.Fresh
+                       Control.Eff.Lift
+                       Control.Eff.State
+                       Control.Eff.Trace
+    other-modules:     Data.OpenUnion1
 
     build-depends: 
-                    base >= 4,
-                    base < 5
+                    base == 4.*
+
+source-repository head
+  type: git
+  location: https://github.com/RobotGymnast/extensible-effects
