@@ -29,10 +29,14 @@ module Control.Eff.State(
                         , getReader
                         , runReader
                         , local
+                        -- * Writer
+                        , Writer
+                        , putWriter
+                        , runWriter
+                        , runPusher
                         ) where
 
 import Control.Applicative ((<$>), (<|>))
-import Data.Maybe (fromMaybe)
 import Data.Typeable
 
 import Control.Eff
@@ -91,3 +95,29 @@ local f m = do
   let loop (Val x) = return x
       loop (E u) = interpose u loop (\(Reader k) -> loop (k e))
   loop (admin m)
+
+-- ------------------------------------------------------------------------
+-- | The request to remember a value of type e in the current environment
+data Writer e v = Writer e v
+    deriving (Typeable, Functor)
+
+putWriter :: (Typeable e, Member (Writer e) r) => e -> Eff r ()
+putWriter e = send $ \f -> inj $ Writer e $ f ()
+
+-- | Handle Writer requests by overwriting previous values.
+-- If no value of type @e@ was returned, Nothing is returned;
+-- otherwise return Just the most recent value written.
+runWriter :: Typeable e => Eff (Writer e :> r) w -> Eff r (Maybe e, w)
+runWriter = loop . admin
+  where
+    correctVal f = fmap $ \(x, y) -> (f x, y)
+
+    loop (Val x) = return (Nothing, x)
+    loop (E u) = handleRelay u loop (\(Writer e v) -> correctVal (<|> Just e) $ loop v)
+
+-- | Handle Writer requests by stacking written values on to a list.
+runPusher :: Typeable e => Eff (Writer e :> r) w -> Eff r ([e], w)
+runPusher = loop . admin
+  where
+    loop (Val x) = return ([], x)
+    loop (E u) = handleRelay u loop (\(Writer e v) -> (\(es, v') -> (e:es, v')) <$> loop v)
