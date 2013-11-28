@@ -1,11 +1,13 @@
 Name:                extensible-effects
-Version:             1.1.0
+Version:             1.2.0
 Synopsis:            An Alternative to Monad Transformers
 Description:         This package introduces datatypes for typeclass-constrained effects,
                      as an alternative to monad-transformer based (datatype-constrained)
                      approach of multi-layered effects.
                      For more information, see the original paper at
                      <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>.
+
+                     Any help is appreciated!
 Category:            Control
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
@@ -26,7 +28,9 @@ library
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Lift
-                       Control.Eff.State
+                       Control.Eff.Reader.Lazy
+                       Control.Eff.State.Strict
+                       Control.Eff.Writer.Lazy
                        Control.Eff.Trace
     other-modules:     Data.OpenUnion1
 
@@ -43,7 +47,9 @@ test-suite extensible-effects-tests
   build-depends:
     base == 4.*,
     QuickCheck == 2.*,
+    HUnit == 1.2.*,
     test-framework == 0.8.*,
+    test-framework-hunit == 0.3.*,
     test-framework-quickcheck2 == 0.3.*,
     extensible-effects
 
