@@ -65,6 +65,7 @@ module Control.Eff(
                     Eff
                   , VE (..)
                   , Member
+                  , SetMember
                   , Union
                   , (:>)
                   , inj

@@ -2,6 +2,8 @@
 {-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE KindSignatures #-}
+{-# LANGUAGE FunctionalDependencies #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
@@ -11,12 +13,13 @@
 -- This implementation relies on _closed_ overlapping instances
 -- (or closed type function overlapping soon to be added to GHC).
 module Data.OpenUnion1( Union
+                      , SetMember
+                      , Member
                       , (:>)
                       , inj
                       , prj
                       , prjForce
                       , decomp
-                      , Member
                       , unsafeReUnion
                       ) where
 
@@ -46,10 +49,27 @@ instance Functor (Union r) where
 infixr 1 :>
 data ((a :: * -> *) :> b)
 
--- | There's a @`Member` t r@ instance if t is an element of the sum datatype r.
-class Member (t :: * -> *) r
+-- | The @`Member` t r@ determines whether @t@ is anywhere in the sum type @r@.
+class Member t r
 instance Member t (t :> r)
 instance Member t r => Member t (t' :> r)
+
+-- | There's a @`SetMember` as t r@ instance if @t@ is an element of the sum
+-- datatype @r@. The @as@ type parameter allows types to qualify themselves as
+-- members of various "sets", by taking advantage of the @r as -> t@ fundep:
+--
+-- > -- Terminal effects (effects which must be run last)
+-- > data Terminal
+-- >
+-- > -- Make Lifts part of the Terminal effects set.
+-- > -- The fundep assures that there can only be one Terminal effect for any r.
+-- > instance Member (Lift m) r => SetMember Terminal (Lift m) r
+-- >
+-- > -- Only allow a single unique Lift effect, by making a "Lift" set.
+-- > instance Member (Lift m) r => SetMember Lift (Lift m) r
+class Member t r => SetMember as (t :: * -> *) r | r as -> t
+instance SetMember t t (t :> r)
+instance SetMember as t r => SetMember as t (t' :> r)
 
 {-# INLINE inj #-}
 -- | Construct a Union.
@@ -70,7 +90,7 @@ prjForce u f = f <$> prj u <?> error "prjForce with an invalid type"
 {-# INLINE decomp #-}
 -- | Try extracting the contents of a Union as a given type.
 -- If we can't, return a reduced Union that excludes the type we just checked.
-decomp :: (Typeable1 t, Member t (t :> r)) => Union (t :> r) v -> Either (Union r v) (t v)
+decomp :: Typeable1 t => Union (t :> r) v -> Either (Union r v) (t v)
 decomp u = Right <$> prj u <?> Left (unsafeReUnion u)
 
 {-# INLINE unsafeReUnion #-}

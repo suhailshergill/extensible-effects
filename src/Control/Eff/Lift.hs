@@ -1,5 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
@@ -24,8 +26,10 @@ instance Typeable1 m => Typeable1 (Lift m) where
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)
 
+instance Member (Lift m) r => SetMember Lift (Lift m) r
+
 -- | Lift a Monad to an Effect.
-lift :: (Typeable1 m, Member (Lift m) r) => m a -> Eff r a
+lift :: (Typeable1 m, Member (Lift m) r, SetMember Lift (Lift m) r) => m a -> Eff r a
 lift m = send (inj . Lift m)
 
 -- | The handler of Lift requests. It is meant to be terminal:
