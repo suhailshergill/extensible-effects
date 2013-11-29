@@ -45,13 +45,13 @@ runWriter accum b = loop . admin
     loop (E u) = handleRelay u loop
                  $ \(Writer w v) -> first (accum w) <$> loop v
 
--- | Handle Writer requests by overwriting previous values.
-runLastWriter :: Typeable w => Eff (Writer w :> r) a -> Eff r (Maybe w, a)
-runLastWriter = runWriter (\w b -> b <|> Just w) Nothing
-
 -- | Handle Writer requests by taking the first value provided.
 runFirstWriter :: Typeable w => Eff (Writer w :> r) a -> Eff r (Maybe w, a)
 runFirstWriter = runWriter (\w b -> Just w <|> b) Nothing
+
+-- | Handle Writer requests by overwriting previous values.
+runLastWriter :: Typeable w => Eff (Writer w :> r) a -> Eff r (Maybe w, a)
+runLastWriter = runWriter (\w b -> b <|> Just w) Nothing
 
 -- | Handle Writer requests, using a Monoid instance to accumulate values.
 runMonoidWriter :: (Monoid w, Typeable w) => Eff (Writer w :> r) a -> Eff r (w, a)

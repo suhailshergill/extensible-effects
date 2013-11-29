@@ -54,9 +54,8 @@ class Member t r
 instance Member t (t :> r)
 instance Member t r => Member t (t' :> r)
 
--- | There's a @`SetMember` as t r@ instance if @t@ is an element of the sum
--- datatype @r@. The @as@ type parameter allows types to qualify themselves as
--- members of various "sets", by taking advantage of the @r as -> t@ fundep:
+-- | `SetMember` is similar to `Member`, but it allows types to belong to a
+-- "set", by taking advantage of the @r set -> t@ fundep:
 --
 -- > -- Terminal effects (effects which must be run last)
 -- > data Terminal
@@ -67,9 +66,9 @@ instance Member t r => Member t (t' :> r)
 -- >
 -- > -- Only allow a single unique Lift effect, by making a "Lift" set.
 -- > instance Member (Lift m) r => SetMember Lift (Lift m) r
-class Member t r => SetMember as (t :: * -> *) r | r as -> t
+class  Member t r => SetMember set (t :: * -> *) r | r set -> t
 instance SetMember t t (t :> r)
-instance SetMember as t r => SetMember as t (t' :> r)
+instance SetMember set t r => SetMember set t (t' :> r)
 
 {-# INLINE inj #-}
 -- | Construct a Union.
