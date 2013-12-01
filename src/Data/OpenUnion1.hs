@@ -5,6 +5,7 @@
 {-# LANGUAGE FunctionalDependencies #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
 
@@ -35,6 +36,7 @@ _ <?> a = a
 
 -- for the sake of gcast1
 newtype Id a = Id { runId :: a }
+  deriving Typeable
 
 -- | Where @r@ is @t1 :> t2 ... :> tn@, @`Union` r v@ can be constructed with a
 -- value of type @ti v@.

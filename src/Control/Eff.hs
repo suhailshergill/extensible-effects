@@ -88,6 +88,7 @@ import Data.Typeable
 -- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
 -- effects, terminated with a pure value.
 data VE w r = Val w | E !(Union r (VE w r))
+  deriving Typeable
 
 fromVal :: VE w r -> w
 fromVal (Val w) = w
@@ -97,6 +98,7 @@ fromVal _ = error "fromVal E"
 -- The type @r@ is the type of effects that can be handled,
 -- and @a@ is the type of value that is returned.
 newtype Eff r a = Eff { runEff :: forall w. (a -> VE w r) -> VE w r }
+  deriving Typeable
 
 instance Functor (Eff r) where
     fmap f m = Eff $ \k -> runEff m (k . f)
