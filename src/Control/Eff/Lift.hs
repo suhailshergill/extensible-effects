@@ -26,7 +26,7 @@ instance Typeable1 m => Typeable1 (Lift m) where
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)
 
-instance Member (Lift m) r => SetMember Lift (Lift m) r
+instance SetMember Lift (Lift m) (Lift m :> ())
 
 -- | Lift a Monad to an Effect.
 lift :: (Typeable1 m, Member (Lift m) r, SetMember Lift (Lift m) r) => m a -> Eff r a

@@ -67,7 +67,6 @@ instance Member t r => Member t (t' :> r)
 -- > -- Only allow a single unique Lift effect, by making a "Lift" set.
 -- > instance Member (Lift m) r => SetMember Lift (Lift m) r
 class  Member t r => SetMember set (t :: * -> *) r | r set -> t
-instance SetMember t t (t :> r)
 instance SetMember set t r => SetMember set t (t' :> r)
 
 {-# INLINE inj #-}
