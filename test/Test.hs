@@ -2,7 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 import Control.Eff
 import Control.Eff.Lift
-import Control.Eff.State.Strict
+import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy
 
 import Control.Monad (void)
@@ -70,8 +70,23 @@ testFirstWriterLaziness :: Assertion
 testFirstWriterLaziness = let (m, ()) = run $ runFirstWriter $ mapM_ tell [(), undefined]
                           in m @?= Just ()
 
+testStateLaziness :: Assertion
+testStateLaziness = let (r, ()) = run
+                                $ runState undefined
+                                $ getVoid
+                               >> putVoid undefined
+                               >> putVoid ()
+                    in r @?= ()
+  where
+    getVoid :: Member (State ()) r => Eff r ()
+    getVoid = get
+
+    putVoid :: Member (State ()) r => () -> Eff r ()
+    putVoid = put
+
 tests =
   [ testProperty "Documentation example." testDocs
   , testCase "Test runLastWriter laziness." testLastWriterLaziness
   , testCase "Test runFirstWriter laziness." testFirstWriterLaziness
+  , testCase "Test runState laziness." testStateLaziness
   ]

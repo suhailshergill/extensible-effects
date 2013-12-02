@@ -1,0 +1,44 @@
+{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE DeriveDataTypeable #-}
+{-# LANGUAGE DeriveFunctor #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE FlexibleContexts #-}
+-- | Lazy state effect
+module Control.Eff.State.Lazy( State
+                             , get
+                             , put
+                             , modify
+                             , runState
+                             ) where
+
+import Data.Typeable
+
+import Control.Eff
+
+-- | Strict state effect
+data State s w = State (s -> s) (s -> w)
+  deriving (Typeable, Functor)
+
+-- | Write a new value of the state.
+put :: (Typeable e, Member (State e) r) => e -> Eff r ()
+put = modify . const
+
+-- | Return the current value of the state.
+get :: (Typeable e, Member (State e) r) => Eff r e
+get = send (inj . State id)
+
+-- | Transform the state with a function.
+modify :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
+modify f = send $ \k -> inj $ State f $ \_ -> k ()
+
+-- | Run a State effect.
+runState :: Typeable s
+         => s                     -- ^ Initial state
+         -> Eff (State s :> r) w  -- ^ Effect incorporating State
+         -> Eff r (s, w)          -- ^ Effect containing final state and a return value
+runState s0 = loop s0 . admin where
+ loop s (Val x) = return (s, x)
+ loop s (E u)   = handleRelay u (loop s) $
+                       \(State t k) -> let s' = t s
+                                       in loop s' (k s')

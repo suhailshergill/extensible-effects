@@ -29,6 +29,7 @@ library
                        Control.Eff.Fresh
                        Control.Eff.Lift
                        Control.Eff.Reader.Lazy
+                       Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Writer.Lazy
                        Control.Eff.Trace
