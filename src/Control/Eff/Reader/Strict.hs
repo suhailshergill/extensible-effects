@@ -1,15 +1,16 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
--- | Lazy read-only state
-module Control.Eff.Reader.Lazy( Reader
-                              , ask
-                              , local
-                              , reader
-                              , runReader
-                              ) where
+-- | Strict read-only state
+module Control.Eff.Reader.Strict( Reader
+                                , ask
+                                , local
+                                , reader
+                                , runReader
+                                ) where
 
 import Control.Applicative ((<$>))
 import Data.Typeable
@@ -44,7 +45,6 @@ reader f = f <$> ask
 -- | The handler of Reader requests. The return type shows that
 -- all Reader requests are fully handled.
 runReader :: Typeable e => Eff (Reader e :> r) w -> e -> Eff r w
-runReader m e = loop (admin m)
-  where
-    loop (Val x) = return x
-    loop (E u) = handleRelay u loop (\(Reader k) -> loop (k e))
+runReader m !e = loop (admin m) where
+ loop (Val x) = return x
+ loop (E u) = handleRelay u loop (\(Reader k) -> loop (k e))
