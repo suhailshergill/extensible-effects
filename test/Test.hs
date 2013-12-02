@@ -43,7 +43,7 @@ testDocs l = let
     sumAll :: (Typeable a, Num a, Member (State a) e)
            => [a]
            -> Eff e ()
-    sumAll = mapM_ (onState . (+))
+    sumAll = mapM_ (modify . (+))
     
     writeAndAdd :: (Member (Writer Integer) e, Member (State Integer) e)
                 => [Integer]

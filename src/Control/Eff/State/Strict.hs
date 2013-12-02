@@ -14,14 +14,14 @@
 -- >   loop (Val x) = return x
 -- >   loop (E u)   = case decomp u of
 -- >     Right (Fresh k) -> do
--- >                       n <- getState
--- >                       putState (n + 1)
+-- >                       n <- get
+-- >                       put (n + 1)
 -- >                       loop (k n)
 -- >     Left u' -> send (\k -> unsafeReUnion $ k <$> u') >>= loop
 module Control.Eff.State.Strict( State
-                               , getState
-                               , putState
-                               , onState
+                               , get
+                               , put
+                               , modify
                                , runState
                                ) where
 
@@ -34,16 +34,16 @@ data State s w = State (s -> s) (s -> w)
   deriving (Typeable, Functor)
 
 -- | Write a new value of the state.
-putState :: Typeable e => Member (State e) r => e -> Eff r ()
-putState !s = onState $ const s
+put :: (Typeable e, Member (State e) r) => e -> Eff r ()
+put !s = modify $ const s
 
 -- | Return the current value of the state.
-getState :: Typeable e => Member (State e) r => Eff r e
-getState = send (inj . State id)
+get :: (Typeable e, Member (State e) r) => Eff r e
+get = send (inj . State id)
 
 -- | Transform the state with a function.
-onState :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
-onState f = send $ \k -> inj $ State f $ \_ -> k ()
+modify :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
+modify f = send $ \k -> inj $ State f $ \_ -> k ()
 
 -- | Run a State effect.
 runState :: Typeable s
