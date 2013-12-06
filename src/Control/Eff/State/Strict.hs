@@ -23,6 +23,8 @@ module Control.Eff.State.Strict( State
                                , put
                                , modify
                                , runState
+                               , evalState
+                               , execState
                                ) where
 
 import Data.Typeable
@@ -55,3 +57,11 @@ runState s0 = loop s0 . admin where
  loop !s (E u)   = handleRelay u (loop s) $
                        \(State t k) -> let s' = t s
                                        in loop s' (k s')
+
+-- | Run a State effect, discarding the final state.
+evalState :: Typeable s => s -> Eff (State s :> r) w -> Eff r w
+evalState s = fmap snd . runState s
+
+-- | Run a State effect and return the final state.
+execState :: Typeable s => s -> Eff (State s :> r) w -> Eff r s
+execState s = fmap fst . runState s
