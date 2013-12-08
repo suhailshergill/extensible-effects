@@ -1,17 +1,18 @@
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
--- | Lazy write-only state.
-module Control.Eff.Writer.Lazy( Writer
-                              , tell
-                              , censor
-                              , runWriter
-                              , runFirstWriter
-                              , runLastWriter
-                              , runMonoidWriter
-                              ) where
+-- | Strict write-only state.
+module Control.Eff.Writer.Strict( Writer
+                                , tell
+                                , censor
+                                , runWriter
+                                , runFirstWriter
+                                , runLastWriter
+                                , runMonoidWriter
+                                ) where
 
 import Control.Applicative ((<$>), (<|>))
 import Data.Monoid
@@ -20,12 +21,12 @@ import Data.Typeable
 import Control.Eff
 
 -- | The request to remember a value of type w in the current environment
-data Writer w v = Writer w v
+data Writer w v = Writer !w v
     deriving (Typeable, Functor)
 
 -- | Write a new value.
 tell :: (Typeable w, Member (Writer w) r) => w -> Eff r ()
-tell w = send $ \f -> inj $ Writer w $ f ()
+tell !w = send $ \f -> inj $ Writer w $ f ()
 
 -- | Transform the state being produced.
 censor :: (Typeable w, Member (Writer w) r) => (w -> w) -> Eff r a -> Eff r a
@@ -37,7 +38,7 @@ censor f = loop . admin
 
 -- | Handle Writer requests, using a user-provided function to accumulate values.
 runWriter :: Typeable w => (w -> b -> b) -> b -> Eff (Writer w :> r) a -> Eff r (b, a)
-runWriter accum b = loop . admin
+runWriter accum !b = loop . admin
   where
     first f (x, y) = (f x, y)
 

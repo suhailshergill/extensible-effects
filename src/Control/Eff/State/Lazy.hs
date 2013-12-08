@@ -4,26 +4,13 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
--- | Strict state effect
---
--- Example: implementing `Control.Eff.Fresh`
---
--- > runFresh' :: (Typeable i, Enum i, Num i) => Eff (Fresh i :> r) w -> i -> Eff r w
--- > runFresh' m s = fst <$> runState s (loop $ admin m)
--- >  where
--- >   loop (Val x) = return x
--- >   loop (E u)   = case decomp u of
--- >     Right (Fresh k) -> do
--- >                       n <- get
--- >                       put (n + 1)
--- >                       loop (k n)
--- >     Left u' -> send (\k -> unsafeReUnion $ k <$> u') >>= loop
-module Control.Eff.State.Strict( State
-                               , get
-                               , put
-                               , modify
-                               , runState
-                               ) where
+-- | Lazy state effect
+module Control.Eff.State.Lazy( State
+                             , get
+                             , put
+                             , modify
+                             , runState
+                             ) where
 
 import Data.Typeable
 
@@ -35,7 +22,7 @@ data State s w = State (s -> s) (s -> w)
 
 -- | Write a new value of the state.
 put :: (Typeable e, Member (State e) r) => e -> Eff r ()
-put !s = modify $ const s
+put = modify . const
 
 -- | Return the current value of the state.
 get :: (Typeable e, Member (State e) r) => Eff r e
@@ -51,7 +38,7 @@ runState :: Typeable s
          -> Eff (State s :> r) w  -- ^ Effect incorporating State
          -> Eff r (s, w)          -- ^ Effect containing final state and a return value
 runState s0 = loop s0 . admin where
- loop !s (Val x) = return (s, x)
- loop !s (E u)   = handleRelay u (loop s) $
+ loop s (Val x) = return (s, x)
+ loop s (E u)   = handleRelay u (loop s) $
                        \(State t k) -> let s' = t s
                                        in loop s' (k s')

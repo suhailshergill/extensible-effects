@@ -77,6 +77,7 @@ module Control.Eff(
                   , run
                   , interpose
                   , handleRelay
+                  , unsafeReUnion
                   ) where
 
 import Control.Applicative (Applicative (..), (<$>))

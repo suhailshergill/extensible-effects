@@ -29,8 +29,11 @@ library
                        Control.Eff.Fresh
                        Control.Eff.Lift
                        Control.Eff.Reader.Lazy
+                       Control.Eff.Reader.Strict
+                       Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Writer.Lazy
+                       Control.Eff.Writer.Strict
                        Control.Eff.Trace
     other-modules:     Data.OpenUnion1
 
