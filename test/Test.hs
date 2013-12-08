@@ -12,6 +12,7 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import Control.Eff
+import Control.Eff.Fail
 import Control.Eff.Lift
 import Control.Eff.Reader.Lazy as LazyR
 import Control.Eff.State.Lazy as LazyS
@@ -132,6 +133,20 @@ testFirstWriterLaziness :: Assertion
 testFirstWriterLaziness = let (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ LazyW.tell [(), undefined]
                           in assertNoUndefined (m :: ())
 
+testFailure :: Assertion
+testFailure =
+  let go :: Eff (Fail :> StrictW.Writer Int :> ()) ()
+         -> Int
+      go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
+      ret = go $ do
+        StrictW.tell 1
+        StrictW.tell 2
+        StrictW.tell 3
+        die
+        StrictW.tell 4
+        return 5
+   in assertEqual "Fail should stop writing" 6 ret
+
 tests =
   [ testProperty "Documentation example." testDocs
   , testCase "Test runReader laziness." testReaderLaziness
@@ -141,4 +156,5 @@ tests =
   , testCase "Test runLastWriter laziness." testLastWriterLaziness
   , testCase "Test runLastWriter strictness." testLastWriterStrictness
   , testCase "Test runFirstWriter laziness." testFirstWriterLaziness
+  , testCase "Test failure effect." testFailure
   ]
