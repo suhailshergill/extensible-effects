@@ -135,15 +135,15 @@ testFirstWriterLaziness = let (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ 
 
 testFailure :: Assertion
 testFailure =
-  let go :: Eff (Fail :> StrictW.Writer Int :> ()) ()
+  let go :: Eff (Fail :> StrictW.Writer Int :> ()) Int
          -> Int
       go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
       ret = go $ do
-        StrictW.tell 1
-        StrictW.tell 2
-        StrictW.tell 3
+        StrictW.tell (1 :: Int)
+        StrictW.tell (2 :: Int)
+        StrictW.tell (3 :: Int)
         die
-        StrictW.tell 4
+        StrictW.tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
 

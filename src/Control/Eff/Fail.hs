@@ -26,8 +26,7 @@ die = send (const (inj Fail))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
-runFail :: Member Fail r
-        => Eff (Fail :> r) a
+runFail :: Eff (Fail :> r) a
         -> Eff r (Maybe a)
 runFail m = loop (admin m)
  where
@@ -39,8 +38,7 @@ runFail m = loop (admin m)
 --   this function runs the computation that can fail, and if it fails, gets
 --   the return value from the other computation. This hides the fact that a
 --   failure even happened, and returns a default value for when it does.
-onFail :: Member Fail r
-       => Eff r a           -- ^ The computation to run on failure.
+onFail :: Eff r a           -- ^ The computation to run on failure.
        -> Eff (Fail :> r) a -- ^ The computation which can fail.
        -> Eff r a
 onFail sideshow mainEvent = do
@@ -52,8 +50,7 @@ onFail sideshow mainEvent = do
 
 -- | Ignores a failure event. Since the event can fail, you cannot inspect its
 --   return type, because it has none on failure. To inspect it, use 'runFail'.
-ignoreFail :: Member Fail r
-           => Eff (Fail :> r) a
+ignoreFail :: Eff (Fail :> r) a
            -> Eff r ()
 ignoreFail = onFail (return ()) . void
 {-# INLINE ignoreFail #-}
