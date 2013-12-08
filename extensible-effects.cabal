@@ -26,6 +26,7 @@ library
                        Control.Eff.Coroutine
                        Control.Eff.Cut
                        Control.Eff.Exception
+                       Control.Eff.Fail
                        Control.Eff.Fresh
                        Control.Eff.Lift
                        Control.Eff.Reader.Lazy
