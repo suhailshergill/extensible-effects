@@ -24,13 +24,21 @@ yield :: (Typeable a, Member (Yield a) r) => a -> Eff r ()
 yield x = send (inj . Yield x)
 
 -- | Status of a thread: done or reporting the value of the type a
--- (For simplicity, a co-routine reports a value but accepts unit)
-data Y r a = Done | Y a (() -> Eff r (Y r a))
+--   (For simplicity, a co-routine reports a value but accepts unit)
+--
+--   Type parameter @r@ is the effect we're yielding from.
+--
+--   Type parameter @a@ is the type that is yielded.
+--
+--   Type parameter @w@ is the type of the value returned from the
+--   coroutine when it has completed.
+data Y r a w = Y a (() -> Eff r (Y r a w))
+             | Done w
 
 -- | Launch a thread and report its status.
-runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a)
+runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a w)
 runC m = loop (admin m)
   where
-    loop (Val _) = return Done
+    loop (Val x) = return (Done x)
     loop (E u)   = handleRelay u loop $
                     \(Yield x k) -> return (Y x (loop . k))

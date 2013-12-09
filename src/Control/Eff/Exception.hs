@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Exception-producing and exception-handling effects
-module Control.Eff.Exception( Exc (..)
+module Control.Eff.Exception( Exc(..)
                             , throwExc
                             , runExc
                             , catchExc
