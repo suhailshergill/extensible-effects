@@ -94,6 +94,7 @@ data VE w r = Val w | E !(Union r (VE w r))
 fromVal :: VE w r -> w
 fromVal (Val w) = w
 fromVal _ = error "fromVal E"
+{-# INLINE fromVal #-}
 
 -- | Basic datatype returned by all computations with extensible effects.
 -- The type @r@ is the type of effects that can be handled,
@@ -103,6 +104,7 @@ newtype Eff r a = Eff { runEff :: forall w. (a -> VE w r) -> VE w r }
 
 instance Functor (Eff r) where
     fmap f m = Eff $ \k -> runEff m (k . f)
+    {-# INLINE fmap #-}
 
 instance Applicative (Eff r) where
     pure = return
@@ -118,15 +120,19 @@ instance Monad (Eff r) where
 -- we produce an effectful computation.
 send :: (forall w. (a -> VE w r) -> Union r (VE w r)) -> Eff r a
 send f = Eff (E . f)
+{-# INLINE send #-}
 
 -- | Tell an effectful computation that you're ready to start running effects
 -- and return a value.
 admin :: Eff r w -> VE w r
 admin (Eff m) = m Val
+{-# INLINE admin #-}
 
 -- | Get the result from a pure computation.
 run :: Eff () w -> w
 run = fromVal . admin
+{-# INLINE run #-}
+
 -- the other case is unreachable since () has no constructors
 -- Therefore, run is a total function if m Val terminates.
 
@@ -140,6 +146,7 @@ handleRelay u loop h = either passOn h $ decomp u
   where passOn u' = send (<$> u') >>= loop
   -- perhaps more efficient:
   -- passOn u' = send (\k -> fmap (\w -> runEff (loop w) k) u')
+{-# INLINE handleRelay #-}
 
 -- | Given a request, either handle it or relay it. Both the handler
 -- and the relay can produce the same type of request that was handled.
@@ -149,3 +156,4 @@ interpose :: (Typeable1 t, Functor t, Member t r)
           -> (t v -> Eff r a)
           -> Eff r a
 interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
+{-# INLINE interpose #-}
