@@ -93,7 +93,7 @@ data VE w r = Val w | E !(Union r (VE w r))
 
 fromVal :: VE w r -> w
 fromVal (Val w) = w
-fromVal _ = error "fromVal E"
+fromVal _ = error "extensible-effects: fromVal was called on a non-terminal effect."
 {-# INLINE fromVal #-}
 
 -- | Basic datatype returned by all computations with extensible effects.
