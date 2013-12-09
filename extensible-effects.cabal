@@ -8,7 +8,7 @@ Description:         This package introduces datatypes for typeclass-constrained
                      <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>.
 
                      Any help is appreciated!
-Category:            Control
+Category:            Control, Effect
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
 Homepage:            https://github.com/RobotGymnast/extensible-effects
