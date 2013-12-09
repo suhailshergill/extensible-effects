@@ -2,12 +2,12 @@ extensible-effects is based on the work
 [Extensible Effects: An Alternative to Monad Transformers](http://okmij.org/ftp/Haskell/extensible/).
 Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for details.
 
-# Advantages
+## Advantages
 
   * Effects can be added, removed, and interwoven without changes to code not
     dealing with those effects.
 
-# Disadvantages
+## Disadvantages
 
   * Common functions can't be grouped using typeclasses, e.g.
     the `ask` and `getState` functions can't be grouped with some
@@ -21,4 +21,5 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
     of having the grouping in the first place.
 
   * Requires a `Typeable` instance on the return type.
-  * Neither Eff nor (:>) has a Typeable instance, and thus, cannot be returned.
+  * Neither `Eff` nor `(:>)` has a `Typeable` instance, and can thus often not
+    be used as a return type (e.g. `State` type) for other `Eff`s.
