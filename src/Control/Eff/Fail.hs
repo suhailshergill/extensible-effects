@@ -9,11 +9,15 @@ module Control.Eff.Fail( Fail
                        , runFail
                        , ignoreFail
                        , onFail
+                       , excToFail
+                       , failToExc
                        ) where
 
-import Data.Typeable
-import Control.Eff
 import Control.Monad
+import Data.Typeable
+
+import Control.Eff
+import Control.Eff.Exception
 
 -- | 'Fail' represents effects which can fail. This is akin to the Maybe monad.
 data Fail v = Fail
@@ -63,3 +67,11 @@ ignoreFail :: Eff (Fail :> r) a
            -> Eff r ()
 ignoreFail = onFail (return ()) . void
 {-# INLINE ignoreFail #-}
+
+excToFail :: (Typeable e, Member Fail r) => Eff (Exc e :> r) a -> Eff r a
+excToFail e = runExc e >>= either (\_-> die) return
+{-# INLINE excToFail #-}
+
+failToExc :: (Typeable e, Member (Exc e) r) => e -> Eff (Fail :> r) a -> Eff r a
+failToExc e m = runFail m >>= maybe (throwExc e) return
+{-# INLINE failToExc #-}
