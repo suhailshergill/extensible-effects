@@ -5,6 +5,7 @@
 -- | Effects which fail.
 module Control.Eff.Fail( Fail
                        , die
+                       , mayFail
                        , runFail
                        , ignoreFail
                        , onFail
@@ -20,9 +21,17 @@ data Fail v = Fail
 
 -- | Makes an effect fail, preventing future effects from happening.
 die :: Member Fail r
-    => Eff r ()
+    => Eff r a
 die = send (const (inj Fail))
 {-# INLINE die #-}
+
+-- | Lift a maybe into the 'Fail' effect, causing failure if it's 'Nothing'.
+mayFail :: Member Fail r
+        => Maybe a
+        -> Eff r a
+mayFail Nothing  = die
+mayFail (Just x) = return x
+{-# INLINE mayFail #-}
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
