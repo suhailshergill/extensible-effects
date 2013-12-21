@@ -12,7 +12,7 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import Control.Eff
-import Control.Eff.Fail
+import Control.Eff.Exception
 import Control.Eff.Lift
 import Control.Eff.Reader.Lazy as LazyR
 import Control.Eff.State.Lazy as LazyS
@@ -135,7 +135,7 @@ testFirstWriterLaziness = let (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ 
 
 testFailure :: Assertion
 testFailure =
-  let go :: Eff (Fail :> StrictW.Writer Int :> ()) Int
+  let go :: Eff (Exc () :> StrictW.Writer Int :> ()) Int
          -> Int
       go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
       ret = go $ do
