@@ -39,7 +39,7 @@ library
     other-modules:     Data.OpenUnion1
 
     build-depends: 
-                    base == 4.*
+                    base >= 4.6 && < 5
 
 test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
@@ -49,7 +49,7 @@ test-suite extensible-effects-tests
   ghc-options: -rtsopts=all -threaded
 
   build-depends:
-    base == 4.*,
+    base >= 4.6 && < 5,
     QuickCheck == 2.*,
     HUnit == 1.2.*,
     test-framework == 0.8.*,
