@@ -8,7 +8,11 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE CPP #-}
 
+#if MIN_VERSION_base(4,7,0)
+#define Typeable1 Typeable
+#endif
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ overlapping instances

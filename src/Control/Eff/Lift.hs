@@ -5,6 +5,8 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE DeriveDataTypeable #-}
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
@@ -15,13 +17,20 @@ module Control.Eff.Lift( Lift
 
 import Control.Eff
 import Data.Typeable
+#if MIN_VERSION_base(4,7,0)
+#define Typeable1 Typeable
+#endif
 
 -- | Lift a Monad m to an effect.
 data Lift m v = forall a. Lift (m a) (a -> v)
+#if MIN_VERSION_base(4,7,0)
+	 deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
+#else
 
 instance Typeable1 m => Typeable1 (Lift m) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "" "Eff" "Lift")
                            [typeOf1 (undefined :: m ())]
+#endif
 
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)

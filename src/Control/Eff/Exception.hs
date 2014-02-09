@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 -- | Exception-producing and exception-handling effects
 module Control.Eff.Exception( Exc(..)
                             , Fail
@@ -23,6 +24,10 @@ import Data.Typeable
 
 import Control.Eff
 import Control.Eff.Lift
+
+#if MIN_VERSION_base(4,7,0)
+#define Typeable1 Typeable
+#endif
 
 -- | These are exceptions of the type e. This is akin to the error monad.
 newtype Exc e v = Exc e

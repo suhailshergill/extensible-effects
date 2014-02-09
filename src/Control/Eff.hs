@@ -11,6 +11,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE CPP #-}
 
 -- | Original work available at <http://okmij.org/ftp/Hgetell/extensible/Eff.hs>.
 -- This module implements extensible effects as an alternative to monad transformers,
@@ -84,6 +85,10 @@ import Control.Applicative (Applicative (..), (<$>))
 import Control.Monad (ap)
 import Data.OpenUnion1
 import Data.Typeable
+
+#if MIN_VERSION_base(4,7,0)
+#define Typeable1 Typeable
+#endif
 
 -- | A `VE` is either a value, or an effect of type @`Union` r@ producing another `VE`.
 -- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
