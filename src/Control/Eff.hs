@@ -13,9 +13,9 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE CPP #-}
 
--- | Original work available at <http://okmij.org/ftp/Hgetell/extensible/Eff.hs>.
+-- | Original work available at <http://okmij.org/ftp/Haskell/extensible/Eff.hs>.
 -- This module implements extensible effects as an alternative to monad transformers,
--- as described in <http://okmij.org/ftp/Hgetell/extensible/exteff.pdf>.
+-- as described in <http://okmij.org/ftp/Haskell/extensible/exteff.pdf>.
 --
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example is:
