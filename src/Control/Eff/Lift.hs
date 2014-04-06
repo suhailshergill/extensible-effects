@@ -7,6 +7,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
+{-# OPTIONS -fno-warn-orphans #-}
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
@@ -16,7 +17,9 @@ module Control.Eff.Lift( Lift
                        ) where
 
 import Control.Eff
+import Control.Monad.IO.Class (MonadIO (..))
 import Data.Typeable
+
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable
 #endif
@@ -37,8 +40,11 @@ instance Functor (Lift m) where
 
 instance SetMember Lift (Lift m) (Lift m :> ())
 
+instance SetMember Lift (Lift IO) r => MonadIO (Eff r) where
+    liftIO = lift
+
 -- | Lift a Monad to an Effect.
-lift :: (Typeable1 m, Member (Lift m) r, SetMember Lift (Lift m) r) => m a -> Eff r a
+lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a
 lift m = send (inj . Lift m)
 
 -- | The handler of Lift requests. It is meant to be terminal:
