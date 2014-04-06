@@ -40,8 +40,8 @@ instance Functor (Lift m) where
 
 instance SetMember Lift (Lift m) (Lift m :> ())
 
-instance SetMember Lift (Lift IO) r => MonadIO (Eff r) where
-    liftIO = lift
+instance (Typeable1 m, MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
+    liftIO = lift . liftIO
 
 -- | Lift a Monad to an Effect.
 lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a
