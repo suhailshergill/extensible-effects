@@ -35,13 +35,16 @@ instance Typeable1 m => Typeable1 (Lift m) where
                            [typeOf1 (undefined :: m ())]
 #endif
 
+instance SetMember Lift (Lift m) (Lift m :> ())
+
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)
-
-instance SetMember Lift (Lift m) (Lift m :> ())
+    {-# INLINE fmap #-}
 
 instance (Typeable1 m, MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
     liftIO = lift . liftIO
+    {-# INLINE liftIO #-}
+
 
 -- | Lift a Monad to an Effect.
 lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a

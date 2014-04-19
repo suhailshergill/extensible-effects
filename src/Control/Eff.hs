@@ -116,10 +116,11 @@ instance Applicative (Eff r) where
     (<*>) = ap
 
 instance Monad (Eff r) where
-    {-# INLINE return #-}
-    {-# INLINE (>>=) #-}
     return x = Eff $ \k -> k x
-    m >>= f  = Eff $ \k -> runEff m (\v -> runEff (f v) k)
+    {-# INLINE return #-}
+
+    m >>= f = Eff $ \k -> runEff m (\v -> runEff (f v) k)
+    {-# INLINE (>>=) #-}
 
 -- | Given a method of turning requests into results,
 -- we produce an effectful computation.

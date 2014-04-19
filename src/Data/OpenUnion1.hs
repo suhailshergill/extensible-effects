@@ -55,7 +55,9 @@ instance Functor (Union r) where
 infixr 1 :>
 data ((a :: * -> *) :> b)
 
--- | The @`Member` t r@ determines whether @t@ is anywhere in the sum type @r@.
+-- | The @`Member` t r@ specifies whether @t@ is present anywhere in the sum
+-- type @r@, where @t@ is some effectful type,
+-- e.g. @`Lift` `IO`@, @`State` Int`@.
 class Member t r
 instance Member t (t :> r)
 instance Member t r => Member t (t' :> r)

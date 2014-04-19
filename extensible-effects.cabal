@@ -40,6 +40,7 @@ library
 
     build-depends: 
                     base >= 4.6 && < 5
+                    -- For MonadIO instance
                   , transformers == 0.3.0.*
 
 test-suite extensible-effects-tests
