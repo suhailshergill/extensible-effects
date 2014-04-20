@@ -17,6 +17,7 @@ module Control.Eff.Lift( Lift
                        ) where
 
 import Control.Eff
+import Control.Monad.Base
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.Typeable
 
@@ -45,6 +46,9 @@ instance (Typeable1 m, MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) 
     liftIO = lift . liftIO
     {-# INLINE liftIO #-}
 
+instance (MonadBase b m, Typeable1 m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
+    liftBase = lift . liftBase
+    {-# INLINE liftBase #-}
 
 -- | Lift a Monad to an Effect.
 lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a
