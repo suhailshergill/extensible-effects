@@ -147,6 +147,13 @@ testFailure =
         return 5
    in assertEqual "Fail should stop writing" 6 ret
 
+-- | Ensure that https://github.com/RobotGymnast/extensible-effects/issues/11 stays resolved.
+testLift :: Assertion
+testLift = runLift possiblyAmbiguous
+  where
+    possiblyAmbiguous :: (Typeable1 m, Monad m, SetMember Lift (Lift m) r) => Eff r ()
+    possiblyAmbiguous = lift $ return ()
+
 tests =
   [ testProperty "Documentation example." testDocs
   , testCase "Test runReader laziness." testReaderLaziness
