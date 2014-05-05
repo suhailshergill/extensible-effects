@@ -1,5 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE CPP #-}
 import Control.Exception (Exception, ErrorCall, catch)
 import Control.Monad (void)
 import Data.Typeable
@@ -146,6 +147,10 @@ testFailure =
         StrictW.tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
+
+#if MIN_VERSION_base(4,7,0)
+#define Typeable1 Typeable
+#endif
 
 -- | Ensure that https://github.com/RobotGymnast/extensible-effects/issues/11 stays resolved.
 testLift :: Assertion

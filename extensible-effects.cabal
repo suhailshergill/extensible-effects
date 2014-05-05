@@ -1,5 +1,5 @@
 Name:                extensible-effects
-Version:             1.4.1
+Version:             1.4.1.0
 Synopsis:            An Alternative to Monad Transformers
 Description:         This package introduces datatypes for typeclass-constrained effects,
                      as an alternative to monad-transformer based (datatype-constrained)
@@ -14,7 +14,7 @@ Stability:           Experimental
 Homepage:            https://github.com/RobotGymnast/extensible-effects
 Maintainer:          benjamin.foppa@gmail.com
 License:             MIT
-Tested-With:         GHC==7.6.3
+Tested-With:         GHC==7.8.2
 Build-Type:          Simple
 Cabal-Version:       >= 1.9.2
 
