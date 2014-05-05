@@ -15,5 +15,5 @@ install:
     - cabal build
 
 script:
-    - cabal test --show-details=always --test-options="-a 10000 --color"
+    - cabal test --show-details=always --test-options="-a 1000 --color"
     - cabal bench || true
