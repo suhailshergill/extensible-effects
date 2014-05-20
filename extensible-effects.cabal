@@ -41,7 +41,7 @@ library
     build-depends: 
                     base >= 4.6 && < 5
                     -- For MonadIO instance
-                  , transformers == 0.3.0.*
+                  , transformers >= 0.3 && < 0.5
                     -- For MonadBase instance
                   , transformers-base == 0.4.1.*
 
