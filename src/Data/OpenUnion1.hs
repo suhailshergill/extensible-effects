@@ -17,7 +17,7 @@
 -- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ overlapping instances
 -- (or closed type function overlapping soon to be added to GHC).
-module Data.OpenUnion1( Union
+module Data.OpenUnion1( Union (..)
                       , SetMember
                       , Member
                       , (:>)
