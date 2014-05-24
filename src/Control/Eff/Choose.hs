@@ -43,7 +43,7 @@ runChoice m = loop (admin m)
   loop (Val x)  = return [x]
   loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
 
-  handle :: [t] -> (t -> VE a (Choose :> r)) -> Eff r [a]
+  handle :: [t] -> (t -> VE (Choose :> r) a) -> Eff r [a]
   handle [] _  = return []
   handle [x] k = loop (k x)
   handle lst k = concat <$> mapM (loop . k) lst

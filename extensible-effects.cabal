@@ -1,5 +1,5 @@
 Name:                extensible-effects
-Version:             1.4.1.0
+Version:             1.7.0
 Synopsis:            An Alternative to Monad Transformers
 Description:         This package introduces datatypes for typeclass-constrained effects,
                      as an alternative to monad-transformer based (datatype-constrained)

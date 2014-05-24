@@ -93,10 +93,10 @@ import Data.Typeable
 -- | A `VE` is either a value, or an effect of type @`Union` r@ producing another `VE`.
 -- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
 -- effects, terminated with a pure value.
-data VE w r = Val w | E !(Union r (VE w r))
+data VE r w = Val w | E !(Union r (VE r w))
   deriving Typeable
 
-fromVal :: VE w r -> w
+fromVal :: VE r w -> w
 fromVal (Val w) = w
 fromVal _ = error "extensible-effects: fromVal was called on a non-terminal effect."
 {-# INLINE fromVal #-}
@@ -104,7 +104,7 @@ fromVal _ = error "extensible-effects: fromVal was called on a non-terminal effe
 -- | Basic datatype returned by all computations with extensible effects.
 -- The type @r@ is the type of effects that can be handled,
 -- and @a@ is the type of value that is returned.
-newtype Eff r a = Eff { runEff :: forall w. (a -> VE w r) -> VE w r }
+newtype Eff r a = Eff { runEff :: forall w. (a -> VE r w) -> VE r w }
   deriving Typeable
 
 instance Functor (Eff r) where
@@ -124,13 +124,13 @@ instance Monad (Eff r) where
 
 -- | Given a method of turning requests into results,
 -- we produce an effectful computation.
-send :: (forall w. (a -> VE w r) -> Union r (VE w r)) -> Eff r a
+send :: (forall w. (a -> VE r w) -> Union r (VE r w)) -> Eff r a
 send f = Eff (E . f)
 {-# INLINE send #-}
 
 -- | Tell an effectful computation that you're ready to start running effects
 -- and return a value.
-admin :: Eff r w -> VE w r
+admin :: Eff r w -> VE r w
 admin (Eff m) = m Val
 {-# INLINE admin #-}
 
