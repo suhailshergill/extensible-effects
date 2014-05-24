@@ -50,7 +50,7 @@ test-suite extensible-effects-tests
   main-is: Test.hs
   hs-source-dirs: test/
 
-  ghc-options: -rtsopts=all -threaded
+  ghc-options: -Wall
 
   build-depends:
     base >= 4.6 && < 5,

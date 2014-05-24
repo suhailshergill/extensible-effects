@@ -1,11 +1,11 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
-import Control.Exception (Exception, ErrorCall, catch)
-import Control.Monad (void)
+{-# OPTIONS -fno-warn-missing-signatures #-}
+import Control.Exception (ErrorCall, catch)
 import Data.Typeable
 
-import Test.Framework (defaultMain, testGroup)
+import Test.Framework (defaultMain)
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
 
@@ -64,9 +64,9 @@ testDocs l = let
     writeAndAdd :: (Member (LazyW.Writer Integer) e, Member (LazyS.State Integer) e)
                 => [Integer]
                 -> Eff e ()
-    writeAndAdd l = do
-        writeAll l
-        sumAll l
+    writeAndAdd lst = do
+        writeAll lst
+        sumAll lst
 
 testCensor :: [Integer] -> Property
 testCensor l = property
@@ -143,7 +143,7 @@ testFailure =
         StrictW.tell (1 :: Int)
         StrictW.tell (2 :: Int)
         StrictW.tell (3 :: Int)
-        die
+        () <- die
         StrictW.tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
@@ -161,6 +161,7 @@ testLift = runLift possiblyAmbiguous
 
 tests =
   [ testProperty "Documentation example." testDocs
+  , testProperty "Test Writer.Lazy.censor." testCensor
   , testCase "Test runReader laziness." testReaderLaziness
   , testCase "Test runReader strictness." testReaderStrictness
   , testCase "Test runState laziness." testStateLaziness
@@ -169,4 +170,5 @@ tests =
   , testCase "Test runLastWriter strictness." testLastWriterStrictness
   , testCase "Test runFirstWriter laziness." testFirstWriterLaziness
   , testCase "Test failure effect." testFailure
+  , testCase "Test lift building." testLift
   ]
