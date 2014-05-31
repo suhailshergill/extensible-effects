@@ -4,7 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
 -- | Exception-producing and exception-handling effects
-module Control.Eff.Exception( Exc(..)
+module Control.Eff.Exception( Exc (..)
                             , Fail
                             , throwExc
                             , die

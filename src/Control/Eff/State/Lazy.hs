@@ -5,7 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Lazy state effect
-module Control.Eff.State.Lazy( State
+module Control.Eff.State.Lazy( State (..)
                              , get
                              , put
                              , modify

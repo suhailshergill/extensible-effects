@@ -40,7 +40,7 @@
 -- We use exceptions for cutfalse
 -- Therefore, the law @cutfalse >>= k = cutfalse@
 -- is satisfied automatically since all exceptions have the above property.
-module Control.Eff.Cut( CutFalse
+module Control.Eff.Cut( CutFalse (..)
                       , call
                       , cutfalse
                       ) where

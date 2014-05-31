@@ -18,7 +18,7 @@ import Control.Eff
 
 -- | Nondeterministic choice
 data Choose v = forall a. Choose [a] (a -> v)
-              deriving (Typeable)
+    deriving (Typeable)
 
 instance Functor Choose where
     fmap f (Choose lst k) = Choose lst (f . k)

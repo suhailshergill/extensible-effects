@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | A Trace effect for debugging
-module Control.Eff.Trace( Trace
+module Control.Eff.Trace( Trace (..)
                         , trace
                         , runTrace
                         ) where

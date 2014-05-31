@@ -18,7 +18,7 @@
 -- >                       put (n + 1)
 -- >                       loop (k n)
 -- >     Left u' -> send (\k -> unsafeReUnion $ k <$> u') >>= loop
-module Control.Eff.State.Strict( State
+module Control.Eff.State.Strict( State (..)
                                , get
                                , put
                                , modify

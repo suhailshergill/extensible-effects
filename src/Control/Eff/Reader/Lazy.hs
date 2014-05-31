@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Lazy read-only state
-module Control.Eff.Reader.Lazy( Reader
+module Control.Eff.Reader.Lazy( Reader (..)
                               , ask
                               , local
                               , reader

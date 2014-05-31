@@ -5,7 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Strict write-only state.
-module Control.Eff.Writer.Strict( Writer
+module Control.Eff.Writer.Strict( Writer (..)
                                 , tell
                                 , censor
                                 , runWriter

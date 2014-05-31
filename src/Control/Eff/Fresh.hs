@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Create unique Enumerable values.
-module Control.Eff.Fresh( Fresh
+module Control.Eff.Fresh( Fresh (..)
                         , fresh
                         , runFresh
                         ) where

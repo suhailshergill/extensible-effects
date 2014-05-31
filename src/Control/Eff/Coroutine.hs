@@ -3,7 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Coroutines implemented with extensible effects
-module Control.Eff.Coroutine( Yield
+module Control.Eff.Coroutine( Yield (..)
                             , yield
                             , runC
                             , Y (..)

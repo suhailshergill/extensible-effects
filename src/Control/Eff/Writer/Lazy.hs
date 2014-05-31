@@ -4,7 +4,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Lazy write-only state.
-module Control.Eff.Writer.Lazy( Writer
+module Control.Eff.Writer.Lazy( Writer (..)
                               , tell
                               , censor
                               , runWriter

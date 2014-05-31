@@ -5,7 +5,7 @@
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 -- | Strict read-only state
-module Control.Eff.Reader.Strict( Reader
+module Control.Eff.Reader.Strict( Reader (..)
                                 , ask
                                 , local
                                 , reader

@@ -63,7 +63,7 @@
 -- > lastAndSum l = let (lst, (total, ())) = run $ runWriter $ runState 0 $ writeAndAdd l
 -- >                in (lst, total)
 module Control.Eff(
-                    Eff
+                    Eff (..)
                   , VE (..)
                   , Member
                   , SetMember

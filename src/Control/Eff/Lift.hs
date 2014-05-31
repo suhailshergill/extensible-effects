@@ -11,7 +11,7 @@
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
-module Control.Eff.Lift( Lift
+module Control.Eff.Lift( Lift (..)
                        , lift
                        , runLift
                        ) where
