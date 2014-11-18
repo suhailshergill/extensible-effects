@@ -1,5 +1,5 @@
 Name:                extensible-effects
-Version:             1.7.1.0
+Version:             1.7.1.1
 Synopsis:            An Alternative to Monad Transformers
 Description:         This package introduces datatypes for typeclass-constrained effects,
                      as an alternative to monad-transformer based (datatype-constrained)
@@ -11,7 +11,8 @@ Description:         This package introduces datatypes for typeclass-constrained
 Category:            Control, Effect
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
-Maintainer:          benjamin.foppa@gmail.com
+Homepage:            https://github.com/RobotGymnast/extensible-effects
+Maintainer:          suhailshergill@gmail.com
 License:             MIT
 Tested-With:         GHC==7.8.2
 Build-Type:          Simple
