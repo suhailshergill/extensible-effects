@@ -12,7 +12,7 @@ Category:            Control, Effect
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
 Homepage:            https://github.com/RobotGymnast/extensible-effects
-Maintainer:          benjamin.foppa@gmail.com
+Maintainer:          suhailshergill@gmail.com
 License:             MIT
 Tested-With:         GHC==7.8.2
 Build-Type:          Simple
