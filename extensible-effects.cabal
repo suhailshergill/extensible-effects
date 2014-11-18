@@ -11,6 +11,7 @@ Description:         This package introduces datatypes for typeclass-constrained
 Category:            Control, Effect
 Author:              Oleg Kiselyov, Amr Sabry, Cameron Swords, Ben Foppa
 Stability:           Experimental
+Homepage:            https://github.com/RobotGymnast/extensible-effects
 Maintainer:          benjamin.foppa@gmail.com
 License:             MIT
 Tested-With:         GHC==7.8.2
