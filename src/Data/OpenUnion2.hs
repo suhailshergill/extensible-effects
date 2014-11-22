@@ -12,7 +12,7 @@
 -- to GHC 7.8
 -- It has NO overlapping instances
 
-module OpenUnion2 (Union, inj, prj, decomp, 
+module OpenUnion2 (Union, inj, prj, decomp,
                    Member, MemberU2, (:>), weaken
                   ) where
 
@@ -71,7 +71,7 @@ data ((a :: * -> *) :> b)
 type family EQU (a :: k) (b :: k) :: Bool where
   EQU a a = True
   EQU a b = False
-  
+
 -- This class is used for emulating monad transformers
 class Member t r => MemberU2 (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
 instance (MemberU' (EQU t1 t2) tag t1 (t2 :> r)) => MemberU2 tag t1 (t2 :> r)
