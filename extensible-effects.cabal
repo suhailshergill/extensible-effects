@@ -56,7 +56,7 @@ cabal-version:       >=1.10
 
 
 library
-  ghc-options:         -Wall
+  ghc-options:         -Wall -Werror
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
@@ -75,7 +75,11 @@ library
                        Data.OpenUnion1
 
   -- Modules included in this library but not exported.
-  -- other-modules:
+  other-modules:       Data.OpenUnion.Internal.Base
+  if impl(ghc >= 7.8.1)
+     other-modules:    Data.OpenUnion.Internal.OpenUnion2
+  else
+     other-modules:    Data.OpenUnion.Internal.OpenUnion1
 
   default-extensions:  Trustworthy
   -- LANGUAGE extensions used by modules in this package.
@@ -92,7 +96,6 @@ library
                        , KindSignatures
                        , MultiParamTypeClasses
                        , NoMonomorphismRestriction
-                       , OverlappingInstances
                        , PatternGuards
                        , PolyKinds
                        , RankNTypes
@@ -100,6 +103,8 @@ library
                        , TupleSections
                        , TypeOperators
                        , UndecidableInstances
+  if impl(ghc < 7.8.1)
+     other-extensions: OverlappingInstances
 
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.6 && < 5
@@ -129,6 +134,8 @@ test-suite extensible-effects-tests
     test-framework-hunit == 0.3.*,
     test-framework-quickcheck2 == 0.3.*,
     extensible-effects
+
+  default-language:    Haskell2010
 
 source-repository head
   type: git
