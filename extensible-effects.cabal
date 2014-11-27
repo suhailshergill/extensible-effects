@@ -56,7 +56,7 @@ cabal-version:       >=1.10
 
 
 library
-  ghc-options:         -Wall -Werror
+  ghc-options:         -Wall
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
