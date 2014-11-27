@@ -4,7 +4,7 @@ notifications:
   email:
     - suhailshergill@gmail.com
     - benjamin.foppa@gmail.com
-  on_success: always
+  on_success: change
   on_failure: always
 
 before_install:
