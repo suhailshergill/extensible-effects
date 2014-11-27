@@ -61,7 +61,7 @@ newtype Id a = Id { runId :: a }
 -- > -- Only allow a single unique Lift effect, by making a "Lift" set.
 -- > instance Member (Lift m) r => SetMember Lift (Lift m) r
 class (Member t r) => SetMember set (t :: * -> *) r | r set -> t
-instance (MemberU2 set t r) => SetMember set t r
+instance (MemberU set t r) => SetMember set t r
 
 {-# INLINE inj #-}
 -- | Construct a Union.

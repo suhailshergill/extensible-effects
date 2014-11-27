@@ -3,7 +3,7 @@
 {-# LANGUAGE DataKinds, PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
 
--- Only for MemberU2 below, when emulating Monad Transformers
+-- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>.
@@ -13,7 +13,7 @@
 module Data.OpenUnion.Internal.OpenUnion2( Union (..)
                                          , (:>)
                                          , Member
-                                         , MemberU2
+                                         , MemberU
                                          ) where
 
 import Data.OpenUnion.Internal.Base
@@ -37,11 +37,11 @@ type family EQU (a :: k) (b :: k) :: Bool where
   EQU a b = False
 
 -- | This class is used for emulating monad transformers
-class Member t r => MemberU2 (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance (MemberU' (EQU t1 t2) tag t1 (t2 :> r)) => MemberU2 tag t1 (t2 :> r)
+class Member t r => MemberU (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
+instance (MemberU' (EQU t1 t2) tag t1 (t2 :> r)) => MemberU tag t1 (t2 :> r)
 
 class Member t r =>
       MemberU' (f::Bool) (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
 instance MemberU' True tag (tag e) (tag e :> r)
-instance (Member' t (t' :> r) ~ True, MemberU2 tag t r) =>
+instance (Member' t (t' :> r) ~ True, MemberU tag t r) =>
            MemberU' False tag t (t' :> r)
