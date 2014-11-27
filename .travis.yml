@@ -1,5 +1,9 @@
 language: haskell
 
+ghc:
+    - 7.8
+    - 7.6
+
 notifications:
   email:
     - suhailshergill@gmail.com
