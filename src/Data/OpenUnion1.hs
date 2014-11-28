@@ -30,7 +30,7 @@ module Data.OpenUnion1( Union (..)
 
 import Control.Applicative ((<$>))
 import Data.Typeable
-#if __GLASGOW_HASKELL__ >= 781
+#if MIN_TOOL_VERSION_ghc(7,8,1)
 import Data.OpenUnion.Internal.OpenUnion2
 #else
 import Data.OpenUnion.Internal.OpenUnion1
