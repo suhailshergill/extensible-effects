@@ -72,7 +72,7 @@ library
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Control.Eff.Trace
-                       Data.OpenUnion1
+                       Data.OpenUnion
 
   -- Modules included in this library but not exported.
   other-modules:       Data.OpenUnion.Internal.Base
