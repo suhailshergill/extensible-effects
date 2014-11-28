@@ -83,7 +83,7 @@ module Control.Eff(
 
 import Control.Applicative (Applicative (..), (<$>))
 import Control.Monad (ap)
-import Data.OpenUnion1
+import Data.OpenUnion
 import Data.Typeable
 
 #if MIN_VERSION_base(4,7,0)

@@ -28,15 +28,13 @@ import Data.Typeable
 -- | Lift a Monad m to an effect.
 data Lift m v = forall a. Lift (m a) (a -> v)
 #if MIN_VERSION_base(4,7,0)
-	 deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
+    deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
 #else
 
 instance Typeable1 m => Typeable1 (Lift m) where
     typeOf1 _ = mkTyConApp (mkTyCon3 "" "Eff" "Lift")
                            [typeOf1 (undefined :: m ())]
 #endif
-
-instance SetMember Lift (Lift m) (Lift m :> ())
 
 instance Functor (Lift m) where
     fmap f (Lift m k) = Lift m (f . k)

@@ -1,35 +1,46 @@
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE EmptyDataDecls #-}
-{-# LANGUAGE ExistentialQuantification #-}
-{-# LANGUAGE KindSignatures #-}
-{-# LANGUAGE FunctionalDependencies #-}
-{-# LANGUAGE PolyKinds #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE OverlappingInstances #-}
-{-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE FlexibleInstances #-}
+{-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
+
+-- Only for SetMember below, when emulating Monad Transformers
+{-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable
 #endif
--- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>.
+-- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>
+-- and <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
--- This implementation relies on _closed_ overlapping instances
--- (or closed type function overlapping soon to be added to GHC).
-module Data.OpenUnion1( Union (..)
-                      , SetMember
-                      , Member
-                      , (:>)
-                      , inj
-                      , prj
-                      , prjForce
-                      , decomp
-                      , unsafeReUnion
-                      ) where
+--
+-- TODO: see if we can do away with Typeable constraints, perhaps by
+-- incorporating ideas from <http://okmij.org/ftp/Haskell/extensible/TList.hs>
+module Data.OpenUnion(
+  -- * Classes
+  Member
+  -- ** Monad transformer related
+  , SetMember
+    -- * Type-indexed co-product
+    -- ** Datatypes
+  , Union
+  , (:>)
+    -- ** Functions
+  , inj
+  , prj
+  , prjForce
+  , decomp
+  , unsafeReUnion
+  , weaken
+  ) where
 
 import Control.Applicative ((<$>))
 import Data.Typeable
+#if __GLASGOW_HASKELL__ >= 781
+import Data.OpenUnion.Internal.OpenUnion2
+#else
+import Data.OpenUnion.Internal.OpenUnion1
+#endif
 
 infixl 4 <?>
 
@@ -38,29 +49,9 @@ infixl 4 <?>
 Just a <?> _ = a
 _ <?> a = a
 
--- for the sake of gcast1
+-- | for the sake of @gcast1@ used below in @`prj`@
 newtype Id a = Id { runId :: a }
   deriving Typeable
-
--- | Where @r@ is @t1 :> t2 ... :> tn@, @`Union` r v@ can be constructed with a
--- value of type @ti v@.
--- Ideally, we should be be able to add the constraint @`Member` t r@.
-data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
-
-instance Functor (Union r) where
-    {-# INLINE fmap #-}
-    fmap f (Union v) = Union (fmap f v)
-
--- | A sum data type, for composing effects
-infixr 1 :>
-data ((a :: * -> *) :> b)
-
--- | The @`Member` t r@ specifies whether @t@ is present anywhere in the sum
--- type @r@, where @t@ is some effectful type,
--- e.g. @`Lift` `IO`@, @`State` Int`@.
-class Member t r
-instance Member t (t :> r)
-instance Member t r => Member t (t' :> r)
 
 -- | `SetMember` is similar to `Member`, but it allows types to belong to a
 -- \"set\". For every set, only one member can be in @r@ at any given time.
@@ -75,8 +66,8 @@ instance Member t r => Member t (t' :> r)
 -- >
 -- > -- Only allow a single unique Lift effect, by making a "Lift" set.
 -- > instance Member (Lift m) r => SetMember Lift (Lift m) r
-class Member t r => SetMember set (t :: * -> *) r | r set -> t
-instance SetMember set t r => SetMember set t (t' :> r)
+class (Member t r) => SetMember set (t :: * -> *) r | r set -> t
+instance (MemberU set t r) => SetMember set t r
 
 {-# INLINE inj #-}
 -- | Construct a Union.
@@ -99,6 +90,10 @@ prjForce u f = f <$> prj u <?> error "prjForce with an invalid type"
 -- If we can't, return a reduced Union that excludes the type we just checked.
 decomp :: Typeable1 t => Union (t :> r) v -> Either (Union r v) (t v)
 decomp u = Right <$> prj u <?> Left (unsafeReUnion u)
+
+{-# INLINE weaken #-}
+weaken :: (Typeable1 t, Functor t) => Union r w -> Union (t :> r) w
+weaken (Union x) = Union x
 
 {-# INLINE unsafeReUnion #-}
 -- | Juggle types for a Union. Use cautiously.
