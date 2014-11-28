@@ -19,6 +19,9 @@ import Data.Typeable
 -- Where @r@ is @t1 :> t2 ... :> tn@, @`Union` r v@ can be constructed with a
 -- value of type @ti v@.
 -- Ideally, we should be able to add the constraint @`Member` t r@.
+--
+-- NOTE: exposing the constructor below allows users to bypass the type
+-- system. See 'Data.OpenUnion.unsafeReUnion' for example.
 data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
 
 instance Functor (Union r) where

@@ -10,23 +10,29 @@
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable
 #endif
--- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>.
+-- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>
+-- and <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
--- This implementation relies on _closed_ overlapping instances
--- (or closed type function overlapping soon to be added to GHC).
 --
--- TODO: re-evaluate <https://github.com/bfops/extensible-effects/issues/13>
-module Data.OpenUnion1( Union (..)
-                      , Member
-                      , SetMember
-                      , (:>)
-                      , inj
-                      , prj
-                      , prjForce
-                      , decomp
-                      , unsafeReUnion
-                      , weaken
-                      ) where
+-- TODO: see if we can do away with Typeable constraints, perhaps by
+-- incorporating ideas from <http://okmij.org/ftp/Haskell/extensible/TList.hs>
+module Data.OpenUnion(
+  -- * Classes
+  Member
+  -- ** Monad transformer related
+  , SetMember
+    -- * Type-indexed co-product
+    -- ** Datatypes
+  , Union
+  , (:>)
+    -- ** Functions
+  , inj
+  , prj
+  , prjForce
+  , decomp
+  , unsafeReUnion
+  , weaken
+  ) where
 
 import Control.Applicative ((<$>))
 import Data.Typeable

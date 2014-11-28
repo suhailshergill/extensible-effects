@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.7.2.1
+version:             1.8.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -72,7 +72,7 @@ library
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Control.Eff.Trace
-                       Data.OpenUnion1
+                       Data.OpenUnion
 
   -- Modules included in this library but not exported.
   other-modules:       Data.OpenUnion.Internal.Base
