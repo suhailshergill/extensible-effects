@@ -49,8 +49,8 @@ die = throwExc ()
 runExc :: Typeable e => Eff (Exc e :> r) a -> Eff r (Either e a)
 runExc = loop . admin
  where
-  loop (Val x)  = return (Right x)
-  loop (E u)    = handleRelay u loop (\(Exc e) -> return (Left e))
+  loop (Pure x)  = return (Right x)
+  loop (Free u)    = handleRelay u loop (\(Exc e) -> return (Left e))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
@@ -66,8 +66,8 @@ catchExc :: (Typeable e, Member (Exc e) r)
          -> Eff r a
 catchExc m handle = loop (admin m)
  where
-  loop (Val x)  = return x
-  loop (E u)    = interpose u loop (\(Exc e) -> handle e)
+  loop (Pure x)  = return x
+  loop (Free u)    = interpose u loop (\(Exc e) -> handle e)
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.

@@ -56,5 +56,5 @@ lift m = send (inj . Lift m)
 -- we only allow a single Lifted Monad.
 runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
 runLift m = loop (admin m) where
- loop (Val x) = return x
- loop (E u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k
+ loop (Pure x) = return x
+ loop (Free u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k

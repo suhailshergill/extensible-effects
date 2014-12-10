@@ -24,5 +24,5 @@ trace x = send (inj . Trace x)
 runTrace :: Eff (Trace :> ()) w -> IO w
 runTrace m = loop (admin m)
   where
-    loop (Val x) = return x
-    loop (E u)   = prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ())
+    loop (Pure x) = return x
+    loop (Free u)   = prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ())

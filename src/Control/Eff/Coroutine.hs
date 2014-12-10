@@ -39,6 +39,6 @@ data Y r a w = Y a (() -> Eff r (Y r a w))
 runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a w)
 runC m = loop (admin m)
   where
-    loop (Val x) = return (Done x)
-    loop (E u)   = handleRelay u loop $
+    loop (Pure x) = return (Done x)
+    loop (Free u)   = handleRelay u loop $
                     \(Yield x k) -> return (Y x (loop . k))
