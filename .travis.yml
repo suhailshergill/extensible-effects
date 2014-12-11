@@ -17,7 +17,7 @@ before_install:
 
 install:
     - cabal configure --enable-tests --enable-benchmarks -O2
-    - cabal build
+    - cabal build --hsc2hs-options=--include=./dist/build/autogen/cabal_macros.h
 
 script:
     - cabal test --show-details=always --test-options="-a 1000 --maximum-unsuitable-generated-tests=100000 --color"
