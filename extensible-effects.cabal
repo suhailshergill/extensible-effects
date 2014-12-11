@@ -110,6 +110,7 @@ library
   build-depends:       base >= 4.6 && < 5
                        , free >= 4.0 && < 5.0
                        , kan-extensions >= 4.0 && < 5.0
+                       , type-aligned >= 0.9.3
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.5
                        -- For MonadBase instance
