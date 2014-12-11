@@ -92,6 +92,7 @@ import Control.Monad.Codensity (Codensity (..))
 import Control.Monad.Free (Free (..))
 import Data.OpenUnion
 import Data.Typeable
+import Data.Void
 
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable
@@ -104,11 +105,6 @@ import Data.Typeable
 -- As is made explicit here, `VE` is simply the Free monad resulting from the
 -- @`Union` r@ functor.
 type VE r = Free (Union r)
-
-fromVal :: VE r w -> w
-fromVal (Pure w) = w
-fromVal _ = error "extensible-effects: fromVal was called on a non-terminal effect."
-{-# INLINE fromVal #-}
 
 -- | Basic datatype returned by all computations with extensible effects. The
 -- @`Eff` r@ type is a type synonym where the type @r@ is the type of effects
@@ -146,11 +142,13 @@ admin (Codensity m) = m Pure
 {-# INLINE admin #-}
 
 -- | Get the result from a pure computation.
-run :: Eff () w -> w
-run = fromVal . admin
+run :: Eff Void w -> w
+run x = case admin x of
+  Pure w -> w
+  _ -> error $
+       "extensible-effects: the impossible happened! Void has no constructors."
 {-# INLINE run #-}
-
--- the other case is unreachable since () has no constructors
+-- the other case is unreachable since Void has no constructors
 -- Therefore, run is a total function if m Val terminates.
 
 -- | Given a request, either handle it or relay it.

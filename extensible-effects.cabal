@@ -115,6 +115,7 @@ library
                        , transformers >= 0.3 && < 0.5
                        -- For MonadBase instance
                        , transformers-base == 0.4.*
+                       , void >= 0.6 && < 0.8
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -130,13 +131,14 @@ test-suite extensible-effects-tests
   ghc-options: -Wall
 
   build-depends:
-    base >= 4.6 && < 5,
-    QuickCheck == 2.*,
-    HUnit == 1.2.*,
-    test-framework == 0.8.*,
-    test-framework-hunit == 0.3.*,
-    test-framework-quickcheck2 == 0.3.*,
-    extensible-effects
+    base >= 4.6 && < 5
+    , QuickCheck == 2.*
+    , HUnit == 1.2.*
+    , test-framework == 0.8.*
+    , test-framework-hunit == 0.3.*
+    , test-framework-quickcheck2 == 0.3.*
+    , extensible-effects
+    , void >= 0.6 && < 0.8
 
   default-language:    Haskell2010
 
