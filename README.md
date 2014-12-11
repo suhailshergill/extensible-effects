@@ -22,6 +22,8 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
     involving the type `t` would need to be added, which would defeat the point
     of having the grouping in the first place.
 
-  * Requires a `Typeable` instance on the return type.
+  * Requires a `Typeable` instance on the return type. This is no longer a
+    limitation on GHC versions 7.8 and above.
   * Neither `Eff` nor `(:>)` has a `Typeable` instance, and can thus often not
-    be used as a return type (e.g. `State` type) for other `Eff`s.
+    be used as a return type (e.g. `State` type) for other `Eff`s. This is no
+    longer a concern for GHC versions 7.8 and above.
