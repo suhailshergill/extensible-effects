@@ -52,7 +52,7 @@ build-type:          Simple
 extra-source-files:  README.md
 
 -- Constraint on the version of Cabal needed to build this package.
-cabal-version:       >=1.13
+cabal-version:       >1.14
 
 
 library
