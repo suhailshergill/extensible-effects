@@ -60,7 +60,7 @@ testDocs l = let
            => [a]
            -> Eff e ()
     sumAll = mapM_ (LazyS.modify . (+))
-    
+
     writeAndAdd :: (Member (LazyW.Writer Integer) e, Member (LazyS.State Integer) e)
                 => [Integer]
                 -> Eff e ()
@@ -159,6 +159,24 @@ testLift = runLift possiblyAmbiguous
     possiblyAmbiguous :: (Typeable1 m, Monad m, SetMember Lift (Lift m) r) => Eff r ()
     possiblyAmbiguous = lift $ return ()
 
+#if __GLASGOW_HASKELL__ >= 708
+testNestedEff :: Property
+testNestedEff = forAll arbitrary (\x -> property (qu x == x))
+  where
+    qu :: Bool -> Bool
+    qu x = run $ StrictR.runReader (readerAp x) readerId
+
+    readerAp :: Bool -> Eff (StrictR.Reader (Eff (StrictR.Reader Bool :> ()) Bool) :> ()) Bool
+    readerAp x = do
+      f <- StrictR.ask
+      return . run $ StrictR.runReader f x
+
+    readerId :: Eff (StrictR.Reader Bool :> ()) Bool
+    readerId = do
+      x <- StrictR.ask
+      return x
+#endif
+
 tests =
   [ testProperty "Documentation example." testDocs
   , testProperty "Test Writer.Lazy.censor." testCensor
@@ -171,4 +189,7 @@ tests =
   , testCase "Test runFirstWriter laziness." testFirstWriterLaziness
   , testCase "Test failure effect." testFailure
   , testCase "Test lift building." testLift
+#if __GLASGOW_HASKELL__ >= 708
+  , testProperty "Test nested Eff." testNestedEff
+#endif
   ]

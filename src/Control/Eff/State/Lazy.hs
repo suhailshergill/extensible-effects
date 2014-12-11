@@ -40,8 +40,8 @@ runState :: Typeable s
          -> Eff (State s :> r) w  -- ^ Effect incorporating State
          -> Eff r (s, w)          -- ^ Effect containing final state and a return value
 runState s0 = loop s0 . admin where
- loop s (Val x) = return (s, x)
- loop s (E u)   = handleRelay u (loop s) $
+ loop s (Pure x) = return (s, x)
+ loop s (Free u)   = handleRelay u (loop s) $
                        \(State t k) -> let s' = t s
                                        in loop s' (k s')
 

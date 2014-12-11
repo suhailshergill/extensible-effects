@@ -36,7 +36,7 @@ module Data.OpenUnion(
 
 import Control.Applicative ((<$>))
 import Data.Typeable
-#if __GLASGOW_HASKELL__ >= 781
+#if __GLASGOW_HASKELL__ >= 708
 import Data.OpenUnion.Internal.OpenUnion2
 #else
 import Data.OpenUnion.Internal.OpenUnion1

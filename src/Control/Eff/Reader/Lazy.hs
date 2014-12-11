@@ -33,8 +33,8 @@ local :: (Typeable e, Member (Reader e) r)
       -> Eff r a
 local f m = do
   e <- f <$> ask
-  let loop (Val x) = return x
-      loop (E u) = interpose u loop (\(Reader k) -> loop (k e))
+  let loop (Pure x) = return x
+      loop (Free u) = interpose u loop (\(Reader k) -> loop (k e))
   loop (admin m)
 
 -- | Request the environment value using a transformation function.
@@ -46,5 +46,5 @@ reader f = f <$> ask
 runReader :: Typeable e => Eff (Reader e :> r) w -> e -> Eff r w
 runReader m e = loop (admin m)
   where
-    loop (Val x) = return x
-    loop (E u) = handleRelay u loop (\(Reader k) -> loop (k e))
+    loop (Pure x) = return x
+    loop (Free u) = handleRelay u loop (\(Reader k) -> loop (k e))

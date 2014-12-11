@@ -25,6 +25,6 @@ fresh = send (inj . Fresh)
 runFresh :: (Typeable i, Enum i) => Eff (Fresh i :> r) w -> i -> Eff r w
 runFresh m s0 = loop s0 (admin m)
   where
-    loop _ (Val x) = return x
-    loop s (E u)   = handleRelay u (loop s) $
+    loop _ (Pure x) = return x
+    loop s (Free u)   = handleRelay u (loop s) $
                           \(Fresh k) -> (loop $! succ s) (k s)

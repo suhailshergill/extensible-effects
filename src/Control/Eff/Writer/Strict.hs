@@ -32,8 +32,8 @@ tell !w = send $ \f -> inj $ Writer w $ f ()
 censor :: (Typeable w, Member (Writer w) r) => (w -> w) -> Eff r a -> Eff r a
 censor f = loop . admin
   where
-    loop (Val x) = return x
-    loop (E u) = interpose u loop
+    loop (Pure x) = return x
+    loop (Free u) = interpose u loop
                $ \(Writer w v) -> tell (f w) >> loop v
 
 -- | Handle Writer requests, using a user-provided function to accumulate values.
@@ -42,8 +42,8 @@ runWriter accum !b = loop . admin
   where
     first f (x, y) = (f x, y)
 
-    loop (Val x) = return (b, x)
-    loop (E u) = handleRelay u loop
+    loop (Pure x) = return (b, x)
+    loop (Free u) = handleRelay u loop
                  $ \(Writer w v) -> first (accum w) <$> loop v
 
 -- | Handle Writer requests by taking the first value provided.

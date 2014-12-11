@@ -40,8 +40,8 @@ mplus' m1 m2 = join $ choose [m1,m2]
 runChoice :: forall a r. Eff (Choose :> r) a -> Eff r [a]
 runChoice m = loop (admin m)
  where
-  loop (Val x)  = return [x]
-  loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
+  loop (Pure x)  = return [x]
+  loop (Free u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
 
   handle :: [t] -> (t -> VE (Choose :> r) a) -> Eff r [a]
   handle [] _  = return []

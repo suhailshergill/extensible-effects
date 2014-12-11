@@ -68,8 +68,8 @@ cutfalse = throwExc CutFalse
 -- It completely handles CutFalse effects but not non-determinism.
 call :: Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
 call m = loop [] (admin m) where
- loop jq (Val x) = return x `mplus'` next jq          -- (C2)
- loop jq (E u) = case decomp u of
+ loop jq (Pure x) = return x `mplus'` next jq          -- (C2)
+ loop jq (Free u) = case decomp u of
     Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
     Left u' -> check jq u'
 

@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.8.0.0
+version:             1.8.1.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -108,6 +108,8 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.6 && < 5
+                       , free >= 4.0 && < 5.0
+                       , kan-extensions >= 4.0 && < 5.0
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.5
                        -- For MonadBase instance

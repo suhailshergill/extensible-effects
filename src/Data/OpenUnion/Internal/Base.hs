@@ -1,3 +1,4 @@
+{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
@@ -23,6 +24,7 @@ import Data.Typeable
 -- NOTE: exposing the constructor below allows users to bypass the type
 -- system. See 'Data.OpenUnion.unsafeReUnion' for example.
 data Union r v = forall t. (Functor t, Typeable1 t) => Union (t v)
+                 deriving Typeable
 
 instance Functor (Union r) where
     {-# INLINE fmap #-}
@@ -31,3 +33,6 @@ instance Functor (Union r) where
 -- | A sum data type, for composing effects
 infixr 1 :>
 data ((a :: * -> *) :> b)
+#if __GLASGOW_HASKELL__ >= 708
+  deriving Typeable
+#endif
