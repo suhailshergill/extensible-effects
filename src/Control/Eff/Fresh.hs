@@ -19,12 +19,13 @@ newtype Fresh i v = Fresh (i -> v)
 
 -- | Produce a value that has not been previously produced.
 fresh :: (Typeable i, Enum i, Member (Fresh i) r) => Eff r i
-fresh = send (inj . Fresh)
+fresh = send . inj $ Fresh id
 
 -- | Run an effect requiring unique values.
 runFresh :: (Typeable i, Enum i) => Eff (Fresh i :> r) w -> i -> Eff r w
-runFresh m s0 = loop s0 (admin m)
+runFresh m s0 = loop s0 m
   where
-    loop _ (Pure x) = return x
-    loop s (Free u)   = handleRelay u (loop s) $
-                          \(Fresh k) -> (loop $! succ s) (k s)
+    loop s = freeMap
+             return
+             (\u -> handleRelay u (loop s) $
+                    \(Fresh k) -> (loop $! succ s) (k s))

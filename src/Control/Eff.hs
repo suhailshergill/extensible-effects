@@ -1,22 +1,14 @@
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, DeriveFunctor #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE StandaloneDeriving #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ >= 708
--- needed for the orphan Typeable instance for Codensity below
-{-# OPTIONS -fno-warn-orphans #-}
-#endif
 
 -- | Original work available at <http://okmij.org/ftp/Haskell/extensible/Eff.hs>.
 -- This module implements extensible effects as an alternative to monad transformers,
@@ -69,8 +61,7 @@
 -- >                in (lst, total)
 module Control.Eff(
                     Eff
-                  , VE
-                  , Free (..)
+                  , module Reflection
                   , Member
                   , SetMember
                   , Union
@@ -80,16 +71,13 @@ module Control.Eff(
                   , prjForce
                   , decomp
                   , send
-                  , admin
                   , run
                   , interpose
                   , handleRelay
                   , unsafeReUnion
                   ) where
 
-import Control.Applicative ((<$>))
-import Control.Monad.Codensity (Codensity (..))
-import Control.Monad.Free (Free (..))
+import Control.Monad.Free.Reflection as Reflection
 import Data.OpenUnion
 import Data.Typeable
 import Data.Void
@@ -98,55 +86,32 @@ import Data.Void
 #define Typeable1 Typeable
 #endif
 
--- | A `VE` is either a value, or an effect of type @`Union` r@ producing another `VE`.
--- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
--- effects, terminated with a pure value.
+-- | Basic type returned by all computations with extensible effects. The @`Eff`
+-- r@ type is a type synonym where the type @r@ is the type of effects that can
+-- be handled, and the missing type @a@ (from the type application) is the type
+-- of value that is returned.
 --
--- As is made explicit here, `VE` is simply the Free monad resulting from the
+-- Expressed another way: an `Eff` can either be a value (i.e., 'Pure' case), or
+-- an effect of type @`Union` r@ producing another `Eff` (i.e., 'Impure'
+-- case). The result is that an `Eff` can produce an arbitrarily long chain of
+-- @`Union` r@ effects, terminated with a pure value.
+--
+-- As is made explicit below, the `Eff` type is simply the Free monad resulting from the
 -- @`Union` r@ functor.
-type VE r = Free (Union r)
-
--- | Basic datatype returned by all computations with extensible effects. The
--- @`Eff` r@ type is a type synonym where the type @r@ is the type of effects
--- that can be handled, and the missing type @a@ (from the type application) is
--- the type of value that is returned.
 --
--- As is made explicit below, the `Eff` type is simply the application of the
--- Codensity transformer to `VE`:
---
---     @type `Eff` r a = `Codensity` (`VE` r) a@
---
--- This is done to gain the asymptotic speedups for scenarios where there is a
--- single 'execution' stage where the built up monadic computation gets
--- executed. For scenarios where the computation execution and building stages
--- are interspersed, the reflection without remorse techniques would be a
--- better fit. See <https://github.com/atzeus/reflectionwithoutremorse>.
-type Eff r = Codensity (VE r)
-#if __GLASGOW_HASKELL__ >= 708
--- as of version 4.1.0.1 Codensity in kan-extensions does not have a a Typeable
--- instance. it doesn't seem possible to be able to define an orphan Typeable
--- instance for Codensity in ghc-7.6
-deriving instance Typeable Codensity
-#endif
+--     @type `Eff` r a = `Free` (`Union` r) a@
+type Eff r = Free (Union r)
 
 -- | Given a method of turning requests into results,
 -- we produce an effectful computation.
-send :: (forall w. (a -> VE r w) -> Union r (VE r w)) -> Eff r a
-send f = Codensity (Free . f)
+send :: Union r a -> Eff r a
+send = freeImpure . (fmap freePure)
 {-# INLINE send #-}
-
--- | Tell an effectful computation that you're ready to start running effects
--- and return a value.
-admin :: Eff r w -> VE r w
-admin (Codensity m) = m Pure
-{-# INLINE admin #-}
 
 -- | Get the result from a pure computation.
 run :: Eff Void w -> w
-run x = case admin x of
-  Pure w -> w
-  _ -> error $
-       "extensible-effects: the impossible happened! Void has no constructors."
+run = freeMap id
+      (\_ -> error "extensible-effects: the impossible happened!")
 {-# INLINE run #-}
 -- the other case is unreachable since Void has no constructors
 -- Therefore, run is a total function if m Val terminates.
@@ -158,9 +123,7 @@ handleRelay :: Typeable1 t
             -> (t v -> Eff r a) -- ^ Handle the request of type t
             -> Eff r a
 handleRelay u loop h = either passOn h $ decomp u
-  where passOn u' = send (<$> u') >>= loop
-  -- perhaps more efficient:
-  -- passOn u' = send (\k -> fmap (\w -> runCodensity (loop w) k) u')
+  where passOn u' = send u' >>= loop
 {-# INLINE handleRelay #-}
 
 -- | Given a request, either handle it or relay it. Both the handler
@@ -170,5 +133,5 @@ interpose :: (Typeable1 t, Functor t, Member t r)
           -> (v -> Eff r a)
           -> (t v -> Eff r a)
           -> Eff r a
-interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
+interpose u loop h = maybe (send u >>= loop) h $ prj u
 {-# INLINE interpose #-}
