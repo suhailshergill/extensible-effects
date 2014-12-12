@@ -26,25 +26,27 @@ data Writer w v = Writer !w v
 
 -- | Write a new value.
 tell :: (Typeable w, Member (Writer w) r) => w -> Eff r ()
-tell !w = send $ \f -> inj $ Writer w $ f ()
+tell !w = send . inj $ Writer w ()
 
 -- | Transform the state being produced.
 censor :: (Typeable w, Member (Writer w) r) => (w -> w) -> Eff r a -> Eff r a
-censor f = loop . admin
+censor f = loop
   where
-    loop (Pure x) = return x
-    loop (Free u) = interpose u loop
-               $ \(Writer w v) -> tell (f w) >> loop v
+    loop = freeMap
+           return
+           (\u -> interpose u loop
+                  $ \(Writer w v) -> tell (f w) >> loop v)
 
 -- | Handle Writer requests, using a user-provided function to accumulate values.
 runWriter :: Typeable w => (w -> b -> b) -> b -> Eff (Writer w :> r) a -> Eff r (b, a)
-runWriter accum !b = loop . admin
+runWriter accum !b = loop
   where
     first f (x, y) = (f x, y)
 
-    loop (Pure x) = return (b, x)
-    loop (Free u) = handleRelay u loop
-                 $ \(Writer w v) -> first (accum w) <$> loop v
+    loop = freeMap
+           (\x -> return (b, x))
+           (\u -> handleRelay u loop
+                  $ \(Writer w v) -> first (accum w) <$> loop v)
 
 -- | Handle Writer requests by taking the first value provided.
 runFirstWriter :: Typeable w => Eff (Writer w :> r) a -> Eff r (Maybe w, a)

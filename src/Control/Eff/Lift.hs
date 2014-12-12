@@ -50,11 +50,13 @@ instance (MonadBase b m, Typeable1 m, SetMember Lift (Lift m) r) => MonadBase b 
 
 -- | Lift a Monad to an Effect.
 lift :: (Typeable1 m, SetMember Lift (Lift m) r) => m a -> Eff r a
-lift m = send (inj . Lift m)
+lift m = send . inj $ Lift m id
 
 -- | The handler of Lift requests. It is meant to be terminal:
 -- we only allow a single Lifted Monad.
 runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
-runLift m = loop (admin m) where
- loop (Pure x) = return x
- loop (Free u) = prjForce u $ \(Lift m' k) -> m' >>= loop . k
+runLift = loop
+  where
+    loop = freeMap
+           return
+           (\u -> prjForce u $ \(Lift m' k) -> m' >>= loop . k)

@@ -45,7 +45,6 @@ module Control.Eff.Cut( CutFalse (..)
                       , cutfalse
                       ) where
 
-import Control.Applicative ((<$>))
 import Data.Typeable
 
 import Control.Eff
@@ -67,16 +66,24 @@ cutfalse = throwExc CutFalse
 -- it discards the remaining choicepoints.
 -- It completely handles CutFalse effects but not non-determinism.
 call :: Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
-call m = loop [] (admin m) where
- loop jq (Pure x) = return x `mplus'` next jq          -- (C2)
- loop jq (Free u) = case decomp u of
-    Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
-    Left u' -> check jq u'
+call = loop [] where
+ loop jq = freeMap
+           (\x -> return x `mplus'` next jq)          -- (C2)
+           (\u -> case decomp u of
+               Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
+               Left u' -> check jq u')
 
+ check :: Member Choose r
+          => [Eff (Exc CutFalse :> r) a]
+          -> Union r (Eff (Exc CutFalse :> r) a)
+          -> Eff r a
  check jq u | Just (Choose [] _) <- prj u  = next jq  -- (C1)
  check jq u | Just (Choose [x] k) <- prj u = loop jq (k x)  -- (C3), optim
  check jq u | Just (Choose lst k) <- prj u = next $ map k lst ++ jq -- (C3)
- check jq u = send (<$> u) >>= loop jq      -- (C4)
+ check jq u = send u >>= loop jq      -- (C4)
 
+ next :: Member Choose r
+         => [Eff (Exc CutFalse :> r) a]
+         -> Eff r a
  next []    = mzero'
  next (h:t) = loop t h

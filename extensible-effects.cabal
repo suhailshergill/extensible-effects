@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.8.1.0
+version:             1.9.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -72,6 +72,7 @@ library
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Control.Eff.Trace
+                       Control.Monad.Free.Reflection
                        Data.OpenUnion
 
   -- Modules included in this library but not exported.
@@ -110,10 +111,12 @@ library
   build-depends:       base >= 4.6 && < 5
                        , free >= 4.0 && < 5.0
                        , kan-extensions >= 4.0 && < 5.0
+                       , type-aligned >= 0.9.3
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.5
                        -- For MonadBase instance
                        , transformers-base == 0.4.*
+                       , void >= 0.6 && < 0.8
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -129,13 +132,14 @@ test-suite extensible-effects-tests
   ghc-options: -Wall
 
   build-depends:
-    base >= 4.6 && < 5,
-    QuickCheck == 2.*,
-    HUnit == 1.2.*,
-    test-framework == 0.8.*,
-    test-framework-hunit == 0.3.*,
-    test-framework-quickcheck2 == 0.3.*,
-    extensible-effects
+    base >= 4.6 && < 5
+    , QuickCheck == 2.*
+    , HUnit == 1.2.*
+    , test-framework == 0.8.*
+    , test-framework-hunit == 0.3.*
+    , test-framework-quickcheck2 == 0.3.*
+    , extensible-effects
+    , void >= 0.6 && < 0.8
 
   default-language:    Haskell2010
 

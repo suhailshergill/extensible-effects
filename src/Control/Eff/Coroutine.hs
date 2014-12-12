@@ -21,7 +21,7 @@ data Yield a v = Yield a (() -> v)
 
 -- | Yield a value of type a and suspend the coroutine.
 yield :: (Typeable a, Member (Yield a) r) => a -> Eff r ()
-yield x = send (inj . Yield x)
+yield x = send . inj $ Yield x id
 
 -- | Status of a thread: done or reporting the value of the type a
 --   (For simplicity, a co-routine reports a value but accepts unit)
@@ -37,8 +37,9 @@ data Y r a w = Y a (() -> Eff r (Y r a w))
 
 -- | Launch a thread and report its status.
 runC :: Typeable a => Eff (Yield a :> r) w -> Eff r (Y r a w)
-runC m = loop (admin m)
+runC = loop
   where
-    loop (Pure x) = return (Done x)
-    loop (Free u)   = handleRelay u loop $
-                    \(Yield x k) -> return (Y x (loop . k))
+    loop = freeMap
+           (return . Done)
+           (\u -> handleRelay u loop $
+                  \(Yield x k) -> return (Y x (loop . k)))

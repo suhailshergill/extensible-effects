@@ -37,7 +37,7 @@ type Fail = Exc ()
 
 -- | Throw an exception in an effectful computation.
 throwExc :: (Typeable e, Member (Exc e) r) => e -> Eff r a
-throwExc e = send (\_ -> inj $ Exc e)
+throwExc e = send . inj $ Exc e
 {-# INLINE throwExc #-}
 
 -- | Makes an effect fail, preventing future effects from happening.
@@ -47,15 +47,16 @@ die = throwExc ()
 
 -- | Run a computation that might produce an exception.
 runExc :: Typeable e => Eff (Exc e :> r) a -> Eff r (Either e a)
-runExc = loop . admin
+runExc = loop
  where
-  loop (Pure x)  = return (Right x)
-  loop (Free u)    = handleRelay u loop (\(Exc e) -> return (Left e))
+  loop = freeMap
+         (return . Right)
+         (\u -> handleRelay u loop (\(Exc e) -> return (Left e)))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
 runFail :: Eff (Fail :> r) a -> Eff r (Maybe a)
-runFail = fmap (either (\_-> Nothing) Just) . runExc
+runFail = fmap (either (const Nothing) Just) . runExc
 {-# INLINE runFail #-}
 
 -- | Run a computation that might produce exceptions,
@@ -64,10 +65,11 @@ catchExc :: (Typeable e, Member (Exc e) r)
          => Eff r a
          -> (e -> Eff r a)
          -> Eff r a
-catchExc m handle = loop (admin m)
+catchExc m handle = loop m
  where
-  loop (Pure x)  = return x
-  loop (Free u)    = interpose u loop (\(Exc e) -> handle e)
+  loop = freeMap
+         return
+         (\u -> interpose u loop (\(Exc e) -> handle e))
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.

@@ -21,6 +21,7 @@ import Control.Eff.Writer.Lazy as LazyW
 import Control.Eff.Reader.Strict as StrictR
 import Control.Eff.State.Strict as StrictS
 import Control.Eff.Writer.Strict as StrictW
+import Data.Void
 
 withError :: a -> ErrorCall -> a
 withError a _ = a
@@ -75,7 +76,7 @@ testCensor l = property
     inc :: Integer -> Integer
     inc = (+1)
 
-    listE :: Eff (LazyW.Writer Integer :> ()) () -> [Integer]
+    listE :: Eff (LazyW.Writer Integer :> Void) () -> [Integer]
     listE = fst . run . LazyW.runWriter (:) []
 
 testReaderLaziness :: Assertion
@@ -83,7 +84,7 @@ testReaderLaziness = let e = run $ LazyR.runReader voidReader (undefined :: ())
                      in assertNoUndefined (e :: ())
   where
     voidReader = do
-        _ <- (LazyR.ask :: Eff (LazyR.Reader () :> ()) ())
+        _ <- (LazyR.ask :: Eff (LazyR.Reader () :> Void) ())
         return ()
 
 testReaderStrictness :: Assertion
@@ -91,7 +92,7 @@ testReaderStrictness = let e = run $ StrictR.runReader voidReader (undefined :: 
                        in assertUndefined (e :: ())
   where
     voidReader = do
-        _ <- (StrictR.ask :: Eff (StrictR.Reader () :> ()) ())
+        _ <- (StrictR.ask :: Eff (StrictR.Reader () :> Void) ())
         return ()
 
 testStateLaziness :: Assertion
@@ -102,10 +103,10 @@ testStateLaziness = let (r, ()) = run
                                >> putVoid ()
                     in assertNoUndefined r
   where
-    getVoid :: Eff (LazyS.State () :> ()) ()
+    getVoid :: Eff (LazyS.State () :> Void) ()
     getVoid = LazyS.get
 
-    putVoid :: () -> Eff (LazyS.State () :> ()) ()
+    putVoid :: () -> Eff (LazyS.State () :> Void) ()
     putVoid = LazyS.put
 
 testStateStrictness :: Assertion
@@ -116,10 +117,10 @@ testStateStrictness = let (r, ()) = run
                                  >> putVoid ()
                       in assertUndefined r
   where
-    getVoid :: Eff (StrictS.State () :> ()) ()
+    getVoid :: Eff (StrictS.State () :> Void) ()
     getVoid = StrictS.get
 
-    putVoid :: () -> Eff (StrictS.State () :> ()) ()
+    putVoid :: () -> Eff (StrictS.State () :> Void) ()
     putVoid = StrictS.put
 
 testLastWriterLaziness :: Assertion
@@ -136,7 +137,7 @@ testFirstWriterLaziness = let (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ 
 
 testFailure :: Assertion
 testFailure =
-  let go :: Eff (Exc () :> StrictW.Writer Int :> ()) Int
+  let go :: Eff (Exc () :> StrictW.Writer Int :> Void) Int
          -> Int
       go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
       ret = go $ do
@@ -166,12 +167,12 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
     qu :: Bool -> Bool
     qu x = run $ StrictR.runReader (readerAp x) readerId
 
-    readerAp :: Bool -> Eff (StrictR.Reader (Eff (StrictR.Reader Bool :> ()) Bool) :> ()) Bool
+    readerAp :: Bool -> Eff (StrictR.Reader (Eff (StrictR.Reader Bool :> Void) Bool) :> Void) Bool
     readerAp x = do
       f <- StrictR.ask
       return . run $ StrictR.runReader f x
 
-    readerId :: Eff (StrictR.Reader Bool :> ()) Bool
+    readerId :: Eff (StrictR.Reader Bool :> Void) Bool
     readerId = do
       x <- StrictR.ask
       return x

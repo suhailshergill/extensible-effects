@@ -18,11 +18,12 @@ data Trace v = Trace String (() -> v)
 
 -- | Print a string as a trace.
 trace :: Member Trace r => String -> Eff r ()
-trace x = send (inj . Trace x)
+trace x = send . inj $ Trace x id
 
 -- | Run a computation producing Traces.
 runTrace :: Eff (Trace :> ()) w -> IO w
-runTrace m = loop (admin m)
+runTrace = loop
   where
-    loop (Pure x) = return x
-    loop (Free u)   = prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ())
+    loop = freeMap
+           return
+           (\u -> prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ()))
