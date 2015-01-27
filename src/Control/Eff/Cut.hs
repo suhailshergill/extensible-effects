@@ -1,7 +1,12 @@
+{-# LANGUAGE CPP           #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
+#if __GLASGOW_HASKELL_ >= 710
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE ScopedTypeVariables #-}
+#endif
 -- | An example of non-trivial interaction of effects, handling of two
 -- effects together
 -- Non-determinism with control (cut)
@@ -65,7 +70,11 @@ cutfalse = throwExc CutFalse
 -- of its argument computation. When it encounteres a cutfalse request,
 -- it discards the remaining choicepoints.
 -- It completely handles CutFalse effects but not non-determinism.
+#if __GLASGOW_HASKELL >= 710
+call :: forall r a . Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
+#else
 call :: Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
+#endif
 call = loop [] where
  loop jq = freeMap
            (\x -> return x `mplus'` next jq)          -- (C2)
