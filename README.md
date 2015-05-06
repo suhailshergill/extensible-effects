@@ -13,6 +13,7 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
 
 ## Disadvantages
 
+### For GHC version 7.8 and upwards
   * Common functions can't be grouped using typeclasses, e.g.
     the `ask` and `getState` functions can't be grouped with some
 
@@ -23,9 +24,11 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
     a constraint on `t`, and nothing more. To specify fully, a parameter
     involving the type `t` would need to be added, which would defeat the point
     of having the grouping in the first place.
-
   * Requires a `Typeable` instance on the return type. This is no longer a
     limitation on GHC versions 7.8 and above.
+    * fixed by https://github.com/suhailshergill/extensible-effects/issues/38
+
+### For GHC versions prior to 7.8
   * Neither `Eff` nor `(:>)` has a `Typeable` instance, and can thus often not
-    be used as a return type (e.g. `State` type) for other `Eff`s. This is no
-    longer a concern for GHC versions 7.8 and above.
+    be used as a return type (e.g. `State` type) for other `Eff`s. 
+    * fixed by https://github.com/suhailshergill/extensible-effects/issues/38
