@@ -15,6 +15,8 @@ import Test.QuickCheck
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Lift
+import Control.Eff.Operational as Op
+import Control.Eff.Operational.Example as Op.Eg
 import Control.Eff.Reader.Lazy as LazyR
 import Control.Eff.State.Lazy as LazyS
 import Control.Eff.Writer.Lazy as LazyW
@@ -178,6 +180,18 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
       return x
 #endif
 
+testOperational :: Assertion
+testOperational =
+  let comp :: (Member (LazyS.State [String]) r
+               , Member (LazyW.Writer String) r)
+              => Eff r ()
+      comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
+      go = fst . run . LazyW.runMonoidWriter . LazyS.evalState ["foo", "bar"] $ comp
+  in
+   assertEqual
+   "Evaluating Operational Monad example"
+   "getting input...\nok\nthe input is foo\n" go
+
 tests =
   [ testProperty "Documentation example." testDocs
   , testProperty "Test Writer.Lazy.censor." testCensor
@@ -193,4 +207,5 @@ tests =
 #if __GLASGOW_HASKELL__ >= 708
   , testProperty "Test nested Eff." testNestedEff
 #endif
+  , testCase "Test Operational monad." testOperational
   ]

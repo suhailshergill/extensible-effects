@@ -73,6 +73,7 @@ library
                        Control.Eff.Writer.Strict
                        Control.Eff.Trace
                        Control.Eff.Operational
+                       Control.Eff.Operational.Example
                        Control.Monad.Free.Reflection
                        Data.OpenUnion
 

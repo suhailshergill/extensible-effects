@@ -57,41 +57,10 @@ runProgram advent = loop where
 
 -- $usage
 --
--- Define data using GADTs.
+-- See 'Control.Eff.Operational.Example' for an example of defining data using
+-- GADTs and implementing interpreters from the data to effects.
 --
--- @
---data Jail a where
---    Print :: String -> Jail ()
---    Scan :: Jail String
---
---instance 'Typeable1' Jail where
---    'typeOf1' _ = 'mkTyConApp' ('mkTyCon3' \"test\" \"Main\" \"Jail\") []
---
---prog :: 'Member' ('Program' Jail) r => 'Eff' r ()
---prog = do
---    'singleton' $ Print \"getting input...\"
---    str \<- 'singleton' Scan
---    'singleton' $ Print \"ok\"
---    'singleton' $ Print (\"the input is \" ++ str)
--- @
---
--- Then, implements interpreters from the data to effects.
---
--- @
---adventIO :: ('Member' ('Lift' IO) r, 'SetMember' 'Lift' ('Lift' IO) r) => Jail a -> 'Eff' r a
---adventIO (Print a) = 'lift' $ putStrLn a
---adventIO Scan = 'lift' getLine
---
---adventPure :: ('Member' ('Writer' String) r, 'Member' ('State' [String]) r) => Jail a -> 'Eff' r a
---adventPure (Print a) = 'tell' (a ++ \"\\n\")
---adventPure Scan = do
---    x \<- 'get'
---    case x of
---        [] -\> return []
---        y:ys -\> 'put' ys \>\> return y
--- @
---
--- Use the interpreter.
+-- To use the interpreter, see below or consult the tests.
 --
 -- @
 --main :: IO ()
