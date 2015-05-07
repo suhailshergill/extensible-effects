@@ -18,7 +18,6 @@ module Control.Eff.Operational ( Program (..)
                                ) where
 
 import Data.Typeable
-
 import Control.Eff
 
 #if MIN_VERSION_base(4,7,0)
@@ -27,32 +26,32 @@ import Control.Eff
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.
-data Program m v = forall a. Program (m a) (a -> v)
+data Program instr v = forall a. Program (instr a) (a -> v)
 #if MIN_VERSION_base(4,7,0)
          deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
 #else
 
-instance Typeable1 m => Typeable1 (Program m) where
+instance Typeable1 instr => Typeable1 (Program instr) where
     typeOf1 _ = mkTyConApp (mkTyCon3
                             "extensible-effects"
                             "Control.Eff.Operational"
                             "Program")
-                           [typeOf1 (undefined :: m ())]
+                           [typeOf1 (undefined :: instr ())]
 #endif
 
-instance Functor (Program m) where
-    fmap f (Program m k) = Program m (f . k)
+instance Functor (Program instr) where
+    fmap f (Program instr k) = Program instr (f . k)
 
 -- | Lift a value to a monad.
-singleton :: (Typeable1 m, Member (Program m) r) => m a -> Eff r a
-singleton m = send . inj $ (Program m) id
+singleton :: (Typeable1 instr, Member (Program instr) r) => instr a -> Eff r a
+singleton instr = send . inj $ (Program instr) id
 
 -- | Convert values using given interpreter to effects.
 runProgram :: Typeable1 f => (forall x. f x -> Eff r x) -> Eff (Program f :> r) a -> Eff r a
 runProgram advent = loop where
   loop = freeMap
          return
-         (\u -> handleRelay u loop (\ (Program m k) -> advent m >>= loop . k))
+         (\u -> handleRelay u loop (\ (Program instr k) -> advent instr >>= loop . k))
 
 
 -- $usage
