@@ -26,7 +26,7 @@ instance Functor Choose where
 -- | choose lst non-deterministically chooses one value from the lst
 -- choose [] thus corresponds to failure
 choose :: Member Choose r => [a] -> Eff r a
-choose lst = send (inj . Choose lst)
+choose lst = send . inj $ Choose lst id
 
 -- | MonadPlus-like operators are expressible via choose
 mzero' :: Member Choose r => Eff r a
@@ -38,12 +38,13 @@ mplus' m1 m2 = join $ choose [m1,m2]
 
 -- | Run a nondeterministic effect, returning all values.
 runChoice :: forall a r. Eff (Choose :> r) a -> Eff r [a]
-runChoice m = loop (admin m)
+runChoice = loop
  where
-  loop (Val x)  = return [x]
-  loop (E u)    = handleRelay u loop (\(Choose lst k) -> handle lst k)
+  loop = freeMap
+         (\x -> return [x])
+         (\u -> handleRelay u loop (\(Choose lst k) -> handle lst k))
 
-  handle :: [t] -> (t -> VE (Choose :> r) a) -> Eff r [a]
+  handle :: [t] -> (t -> Eff (Choose :> r) a) -> Eff r [a]
   handle [] _  = return []
   handle [x] k = loop (k x)
   handle lst k = concat <$> mapM (loop . k) lst

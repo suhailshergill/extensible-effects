@@ -1,9 +1,6 @@
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE EmptyDataDecls #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE PatternGuards #-}
-{-# LANGUAGE DeriveDataTypeable, GeneralizedNewtypeDeriving, DeriveFunctor #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -63,8 +60,8 @@
 -- > lastAndSum l = let (lst, (total, ())) = run $ runWriter $ runState 0 $ writeAndAdd l
 -- >                in (lst, total)
 module Control.Eff(
-                    Eff (..)
-                  , VE (..)
+                    Eff
+                  , module Reflection
                   , Member
                   , SetMember
                   , Union
@@ -74,72 +71,49 @@ module Control.Eff(
                   , prjForce
                   , decomp
                   , send
-                  , admin
                   , run
                   , interpose
                   , handleRelay
                   , unsafeReUnion
                   ) where
 
-import Control.Applicative (Applicative (..), (<$>))
-import Control.Monad (ap)
+import Control.Monad.Free.Reflection as Reflection
 import Data.OpenUnion
 import Data.Typeable
+import Data.Void
 
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable
 #endif
 
--- | A `VE` is either a value, or an effect of type @`Union` r@ producing another `VE`.
--- The result is that a `VE` can produce an arbitrarily long chain of @`Union` r@
--- effects, terminated with a pure value.
-data VE r w = Val w | E !(Union r (VE r w))
-  deriving Typeable
-
-fromVal :: VE r w -> w
-fromVal (Val w) = w
-fromVal _ = error "extensible-effects: fromVal was called on a non-terminal effect."
-{-# INLINE fromVal #-}
-
--- | Basic datatype returned by all computations with extensible effects.
--- The type @r@ is the type of effects that can be handled,
--- and @a@ is the type of value that is returned.
-newtype Eff r a = Eff { runEff :: forall w. (a -> VE r w) -> VE r w }
-  deriving Typeable
-
-instance Functor (Eff r) where
-    fmap f m = Eff $ \k -> runEff m (k . f)
-    {-# INLINE fmap #-}
-
-instance Applicative (Eff r) where
-    pure = return
-    (<*>) = ap
-
-instance Monad (Eff r) where
-    return x = Eff $ \k -> k x
-    {-# INLINE return #-}
-
-    m >>= f = Eff $ \k -> runEff m (\v -> runEff (f v) k)
-    {-# INLINE (>>=) #-}
+-- | Basic type returned by all computations with extensible effects. The @`Eff`
+-- r@ type is a type synonym where the type @r@ is the type of effects that can
+-- be handled, and the missing type @a@ (from the type application) is the type
+-- of value that is returned.
+--
+-- Expressed another way: an `Eff` can either be a value (i.e., 'Pure' case), or
+-- an effect of type @`Union` r@ producing another `Eff` (i.e., 'Impure'
+-- case). The result is that an `Eff` can produce an arbitrarily long chain of
+-- @`Union` r@ effects, terminated with a pure value.
+--
+-- As is made explicit below, the `Eff` type is simply the Free monad resulting from the
+-- @`Union` r@ functor.
+--
+--     @type `Eff` r a = `Free` (`Union` r) a@
+type Eff r = Free (Union r)
 
 -- | Given a method of turning requests into results,
 -- we produce an effectful computation.
-send :: (forall w. (a -> VE r w) -> Union r (VE r w)) -> Eff r a
-send f = Eff (E . f)
+send :: Union r a -> Eff r a
+send = freeImpure . (fmap freePure)
 {-# INLINE send #-}
 
--- | Tell an effectful computation that you're ready to start running effects
--- and return a value.
-admin :: Eff r w -> VE r w
-admin (Eff m) = m Val
-{-# INLINE admin #-}
-
 -- | Get the result from a pure computation.
-run :: Eff () w -> w
-run = fromVal . admin
+run :: Eff Void w -> w
+run = freeMap id
+      (\_ -> error "extensible-effects: the impossible happened!")
 {-# INLINE run #-}
-
--- the other case is unreachable since () has no constructors
+-- the other case is unreachable since Void has no constructors
 -- Therefore, run is a total function if m Val terminates.
 
 -- | Given a request, either handle it or relay it.
@@ -149,9 +123,7 @@ handleRelay :: Typeable1 t
             -> (t v -> Eff r a) -- ^ Handle the request of type t
             -> Eff r a
 handleRelay u loop h = either passOn h $ decomp u
-  where passOn u' = send (<$> u') >>= loop
-  -- perhaps more efficient:
-  -- passOn u' = send (\k -> fmap (\w -> runEff (loop w) k) u')
+  where passOn u' = send u' >>= loop
 {-# INLINE handleRelay #-}
 
 -- | Given a request, either handle it or relay it. Both the handler
@@ -161,5 +133,5 @@ interpose :: (Typeable1 t, Functor t, Member t r)
           -> (v -> Eff r a)
           -> (t v -> Eff r a)
           -> Eff r a
-interpose u loop h = maybe (send (<$> u) >>= loop) h $ prj u
+interpose u loop h = maybe (send u >>= loop) h $ prj u
 {-# INLINE interpose #-}

@@ -1,5 +1,4 @@
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
@@ -28,22 +27,24 @@ put = modify . const
 
 -- | Return the current value of the state.
 get :: (Typeable e, Member (State e) r) => Eff r e
-get = send (inj . State id)
+get = send . inj $ State id id
 
 -- | Transform the state with a function.
 modify :: (Typeable s, Member (State s) r) => (s -> s) -> Eff r ()
-modify f = send $ \k -> inj $ State f $ \_ -> k ()
+modify f = send . inj $ State f $ const ()
 
 -- | Run a State effect.
 runState :: Typeable s
          => s                     -- ^ Initial state
          -> Eff (State s :> r) w  -- ^ Effect incorporating State
          -> Eff r (s, w)          -- ^ Effect containing final state and a return value
-runState s0 = loop s0 . admin where
- loop s (Val x) = return (s, x)
- loop s (E u)   = handleRelay u (loop s) $
-                       \(State t k) -> let s' = t s
-                                       in loop s' (k s')
+runState = loop
+  where
+    loop s = freeMap
+             (\x -> return (s, x))
+             (\u -> handleRelay u (loop s) $
+                    \(State t k) -> let s' = t s
+                                    in loop s' (k s'))
 
 -- | Run a State effect, discarding the final state.
 evalState :: Typeable s => s -> Eff (State s :> r) w -> Eff r w

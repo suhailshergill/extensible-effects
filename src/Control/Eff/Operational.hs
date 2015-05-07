@@ -7,7 +7,8 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 
--- | Operational Monad imeplemented with extensible effects.
+-- | Operational Monad (<https://wiki.haskell.org/Operational>) implemented with
+-- extensible effects.
 
 module Control.Eff.Operational ( Program (..)
                                , singleton
@@ -32,7 +33,10 @@ data Program m v = forall a. Program (m a) (a -> v)
 #else
 
 instance Typeable1 m => Typeable1 (Program m) where
-    typeOf1 _ = mkTyConApp (mkTyCon3 "" "Eff" "Program")
+    typeOf1 _ = mkTyConApp (mkTyCon3
+                            "extensible-effects"
+                            "Control.Eff.Operational"
+                            "Program")
                            [typeOf1 (undefined :: m ())]
 #endif
 
@@ -41,19 +45,19 @@ instance Functor (Program m) where
 
 -- | Lift a value to a monad.
 singleton :: (Typeable1 m, Member (Program m) r) => m a -> Eff r a
-singleton m = send (inj . Program m)
+singleton m = send . inj $ (Program m) id
 
 -- | Convert values using given interpreter to effects.
 runProgram :: Typeable1 f => (forall x. f x -> Eff r x) -> Eff (Program f :> r) a -> Eff r a
-runProgram advent = loop . admin where
-    loop (Val x) = return x
-    loop (E u) = handleRelay u loop
-        (\ (Program m k) -> advent m >>= loop . k)
+runProgram advent = loop where
+  loop = freeMap
+         return
+         (\u -> handleRelay u loop (\ (Program m k) -> advent m >>= loop . k))
 
 
 -- $usage
 --
--- Define data uging GADTs.
+-- Define data using GADTs.
 --
 -- @
 --data Jail a where
