@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Safe #-}
 -- | Exception-producing and exception-handling effects
 module Control.Eff.Exception( Exc (..)
                             , Fail

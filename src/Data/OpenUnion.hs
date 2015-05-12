@@ -3,6 +3,7 @@
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Safe #-}
 
 -- Only for SetMember below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
@@ -34,13 +35,8 @@ module Data.OpenUnion(
   , weaken
   ) where
 
-import Control.Applicative ((<$>))
+import Data.OpenUnion.Imports
 import Data.Typeable
-#if __GLASGOW_HASKELL__ >= 708
-import Data.OpenUnion.Internal.OpenUnion2
-#else
-import Data.OpenUnion.Internal.OpenUnion1
-#endif
 
 infixl 4 <?>
 
@@ -77,19 +73,19 @@ inj = Union
 {-# INLINE prj #-}
 -- | Try extracting the contents of a Union as a given type.
 prj :: (Typeable1 t, Member t r) => Union r v -> Maybe (t v)
-prj (Union v) = runId <$> gcast1 (Id v)
+prj (Union v) = runId `fmap` gcast1 (Id v)
 
 {-# INLINE prjForce #-}
 -- | Extract the contents of a Union as a given type.
 -- If the Union isn't of that type, a runtime error occurs.
 prjForce :: (Typeable1 t, Member t r) => Union r v -> (t v -> a) -> a
-prjForce u f = f <$> prj u <?> error "prjForce with an invalid type"
+prjForce u f = f `fmap` prj u <?> error "prjForce with an invalid type"
 
 {-# INLINE decomp #-}
 -- | Try extracting the contents of a Union as a given type.
 -- If we can't, return a reduced Union that excludes the type we just checked.
 decomp :: Typeable1 t => Union (t :> r) v -> Either (Union r v) (t v)
-decomp u = Right <$> prj u <?> Left (unsafeReUnion u)
+decomp u = Right `fmap` prj u <?> Left (unsafeReUnion u)
 
 {-# INLINE weaken #-}
 weaken :: (Typeable1 t, Functor t) => Union r w -> Union (t :> r) w

@@ -9,6 +9,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Safe #-}
 
 -- | Original work available at <http://okmij.org/ftp/Haskell/extensible/Eff.hs>.
 -- This module implements extensible effects as an alternative to monad transformers,

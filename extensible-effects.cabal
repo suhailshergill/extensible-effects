@@ -79,15 +79,16 @@ library
                        Control.Eff.Operational.Example
                        Control.Monad.Free.Reflection
                        Data.OpenUnion
+                       Data.OpenUnion.Imports
 
   -- Modules included in this library but not exported.
   other-modules:       Data.OpenUnion.Internal.Base
   if impl(ghc >= 7.8.1)
      other-modules:    Data.OpenUnion.Internal.OpenUnion2
+     default-extensions:  Safe
   else
      other-modules:    Data.OpenUnion.Internal.OpenUnion1
 
-  default-extensions:  Safe
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
                        , CPP

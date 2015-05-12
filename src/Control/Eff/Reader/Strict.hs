@@ -4,6 +4,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Safe #-}
 -- | Strict read-only state
 module Control.Eff.Reader.Strict( Reader (..)
                                 , ask
@@ -12,7 +13,6 @@ module Control.Eff.Reader.Strict( Reader (..)
                                 , runReader
                                 ) where
 
-import Control.Applicative ((<$>))
 import Data.Typeable
 
 import Control.Eff
@@ -33,7 +33,7 @@ local :: (Typeable e, Member (Reader e) r)
       -> Eff r a
       -> Eff r a
 local f m = do
-  e <- f <$> ask
+  e <- f `fmap` ask
   let loop = freeMap
              return
              (\u -> interpose u loop (\(Reader k) -> loop (k e)))
@@ -41,7 +41,7 @@ local f m = do
 
 -- | Request the environment value using a transformation function.
 reader :: (Typeable e, Member (Reader e) r) => (e -> a) -> Eff r a
-reader f = f <$> ask
+reader f = f `fmap` ask
 
 -- | The handler of Reader requests. The return type shows that
 -- all Reader requests are fully handled.

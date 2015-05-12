@@ -7,6 +7,7 @@
 #if __GLASGOW_HASKELL_ >= 708
 {-# LANGUAGE TypeFamilies #-}
 #endif
+{-# LANGUAGE Safe #-}
 -- | An example of non-trivial interaction of effects, handling of two
 -- effects together
 -- Non-determinism with control (cut)

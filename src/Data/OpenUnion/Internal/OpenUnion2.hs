@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds, PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
@@ -24,17 +25,17 @@ import Data.OpenUnion.Internal.Base
 --
 -- The @`Member` t r@ specifies whether @t@ is present anywhere in the sum type
 -- @r@, where @t@ is some effectful type, e.g. @`Lift` `IO`@, @`State` Int`@.
-class (Member' t r ~ True) => Member (t :: * -> *) r
-instance (Member' t r ~ True) => Member t r
+class (Member' t r ~ 'True) => Member (t :: * -> *) r
+instance (Member' t r ~ 'True) => Member t r
 
 type family Member' (t :: * -> *) r :: Bool where
-  Member' t (t :> r)  = True
-  Member' t ()        = False
+  Member' t (t :> r)  = 'True
+  Member' t ()        = 'False
   Member' t (t' :> r) = Member' t r
 
 type family EQU (a :: k) (b :: k) :: Bool where
-  EQU a a = True
-  EQU a b = False
+  EQU a a = 'True
+  EQU a b = 'False
 
 -- | This class is used for emulating monad transformers
 class Member t r => MemberU (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
@@ -42,6 +43,6 @@ instance (MemberU' (EQU t1 t2) tag t1 (t2 :> r)) => MemberU tag t1 (t2 :> r)
 
 class Member t r =>
       MemberU' (f::Bool) (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance MemberU' True tag (tag e) (tag e :> r)
-instance (Member' t (t' :> r) ~ True, MemberU tag t r) =>
-           MemberU' False tag t (t' :> r)
+instance MemberU' 'True tag (tag e) (tag e :> r)
+instance (Member' t (t' :> r) ~ 'True, MemberU tag t r) =>
+           MemberU' 'False tag t (t' :> r)
