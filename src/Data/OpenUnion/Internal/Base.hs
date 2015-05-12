@@ -3,6 +3,7 @@
 {-# LANGUAGE KindSignatures #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE Safe #-}
 
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable

@@ -1,6 +1,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE Safe #-}
 
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, OverlappingInstances, UndecidableInstances #-}

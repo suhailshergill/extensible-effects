@@ -1,8 +1,9 @@
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE GeneralizedNewtypeDeriving #-}
+{-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Safe #-}
 -- | Create unique Enumerable values.
 module Control.Eff.Fresh( Fresh (..)
                         , fresh

@@ -3,6 +3,7 @@
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Safe #-}
 -- | Lazy write-only state.
 module Control.Eff.Writer.Lazy( Writer (..)
                               , tell
@@ -13,9 +14,9 @@ module Control.Eff.Writer.Lazy( Writer (..)
                               , runMonoidWriter
                               ) where
 
-import Control.Applicative ((<$>), (<|>))
-import Data.Monoid
 import Data.Typeable
+import Control.Applicative ((<|>))
+import Data.Monoid
 
 import Control.Eff
 
@@ -45,7 +46,7 @@ runWriter accum b = loop
     loop = freeMap
            (\x -> return (b, x))
            (\u -> handleRelay u loop
-                  $ \(Writer w v) -> first (accum w) <$> loop v)
+                  $ \(Writer w v) -> first (accum w) `fmap` loop v)
 
 -- | Handle Writer requests by taking the first value provided.
 runFirstWriter :: Typeable w => Eff (Writer w :> r) a -> Eff r (Maybe w, a)

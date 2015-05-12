@@ -2,6 +2,7 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE ExistentialQuantification #-}
+{-# LANGUAGE Safe #-}
 -- | Nondeterministic choice effect
 module Control.Eff.Choose( Choose (..)
                          , choose
@@ -10,9 +11,8 @@ module Control.Eff.Choose( Choose (..)
                          , mplus'
                          ) where
 
-import Control.Applicative ((<$>))
-import Control.Monad (join)
 import Data.Typeable
+import Control.Monad (join)
 
 import Control.Eff
 
@@ -47,4 +47,4 @@ runChoice = loop
   handle :: [t] -> (t -> Eff (Choose :> r) a) -> Eff r [a]
   handle [] _  = return []
   handle [x] k = loop (k x)
-  handle lst k = concat <$> mapM (loop . k) lst
+  handle lst k = concat `fmap` mapM (loop . k) lst

@@ -4,6 +4,7 @@
 #if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE AutoDeriveTypeable #-}
 #endif
+{-# LANGUAGE Safe #-}
 
 module Control.Monad.Free.Reflection(
   Free
@@ -16,7 +17,7 @@ module Control.Monad.Free.Reflection(
   ) where
 
 import Control.Arrow (Kleisli (..))
-import Control.Applicative
+import qualified Data.OpenUnion.Imports as P
 import Control.Monad
 import Data.TASequence
 import Data.TASequence.FastCatQueue (FastTCQueue)
@@ -54,7 +55,7 @@ freeMap f g mx = case toView mx of
 
 instance Functor f => Functor (Free f) where
   fmap = liftM
-instance Functor f => Applicative (Free f) where
+instance Functor f => P.Applicative (Free f) where
   pure = return
   (<*>) = ap
 instance Functor f => Monad (Free f) where

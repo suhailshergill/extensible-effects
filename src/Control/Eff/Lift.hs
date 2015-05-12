@@ -6,6 +6,9 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ < 708
+{-# LANGUAGE Trustworthy #-}
+#endif
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS -fno-warn-orphans #-}
 -- | Lifting primitive Monad types to effectful computations.
