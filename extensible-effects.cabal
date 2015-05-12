@@ -54,6 +54,9 @@ extra-source-files:  README.md
 -- Constraint on the version of Cabal needed to build this package.
 cabal-version:       >=1.10
 
+flag lib-Werror
+  default: False
+  manual: True
 
 library
   ghc-options:         -Wall
@@ -123,6 +126,9 @@ library
 
   -- Base language which the package is written in.
   default-language:    Haskell2010
+
+  if flag(lib-Werror)
+    ghc-options: -Werror
 
 test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
