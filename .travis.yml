@@ -1,9 +1,14 @@
 language: haskell
 
-ghc:
-    - '7.10'
-    - 7.8
-    - 7.6
+env:
+  - CABALVER=1.18 GHCVER=7.6.3
+  - CABALVER=1.18 GHCVER=7.8.4
+  - CABALVER=1.22 GHCVER=7.10.1
+  - CABALVER=head GHCVER=head
+
+matrix:
+  allow_failures:
+    - env: CABALVER=head GHCVER=head
 
 notifications:
   email:
@@ -12,13 +17,39 @@ notifications:
   on_failure: always
 
 before_install:
-    - cabal sandbox init
-    - cabal install --only-dependencies --enable-tests --enable-benchmarks --with-hsc2hs=/usr/bin/hsc2hs
+  - travis_retry sudo add-apt-repository -y ppa:hvr/ghc
+  - travis_retry sudo apt-get update
+  - travis_retry sudo apt-get install cabal-install-$CABALVER ghc-$GHCVER happy
+  - export PATH=/opt/ghc/$GHCVER/bin:/opt/cabal/$CABALVER/bin:$PATH
+  - cabal --version
+  - echo "$(ghc --version) [$(ghc --print-project-git-commit-id 2> /dev/null || echo '?')]"
+  - travis_retry cabal update
 
+  # Update happy when building with GHC head
+  - |
+    if [ $GHCVER = "head" ] || [ $GHCVER = "7.8.4" ] || [ $GHCVER = "7.10.1" ]; then
+      cabal install --constraint=transformers\ installed happy alex
+      export PATH=$HOME/.cabal/bin:$PATH
+    fi
 install:
-    - cabal configure --enable-tests --enable-benchmarks -O2
-    - cabal build
+  - cabal sandbox init
+  - cabal install --only-dependencies --enable-tests --enable-benchmarks --with-hsc2hs=/usr/bin/hsc2hs
+  - cabal configure -flib-Werror --enable-tests --enable-benchmarks -v2 -O2
+  - cabal build
 
 script:
-    - cabal test --show-details=always --test-options="-a 1000 --maximum-unsuitable-generated-tests=100000 --color"
-    - cabal bench || true
+  - cabal test --show-details=always --test-options="-a 1000 --maximum-unsuitable-generated-tests=100000 --color"
+  - cabal bench || true
+
+  # tests that a source-distribution can be generated
+  - cabal sdist
+
+  # check that the generated source-distribution can be built & installed
+  - export SRC_TGZ=$(cabal info . | awk '{print $2 ".tar.gz";exit}') ;
+    cd dist/;
+    if [ -f "$SRC_TGZ" ]; then
+       cabal install --force-reinstalls "$SRC_TGZ";
+    else
+       echo "expected '$SRC_TGZ' not found";
+       exit 1;
+    fi
