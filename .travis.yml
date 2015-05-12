@@ -7,7 +7,6 @@ ghc:
 notifications:
   email:
     - suhailshergill@gmail.com
-    - benjamin.foppa@gmail.com
   on_success: change
   on_failure: always
 
