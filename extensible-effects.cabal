@@ -88,6 +88,8 @@ library
      default-extensions:  Safe
   else
      other-modules:    Data.OpenUnion.Internal.OpenUnion1
+     other-extensions: Safe
+                       , Trustworthy
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
