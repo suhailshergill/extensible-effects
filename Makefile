@@ -21,6 +21,7 @@ test:
 
 .PHONY: package
 package: test
+	cabal check
 	# tests that a source-distribution can be generated
 	cabal sdist
 	# check that the generated source-distribution can be built & installed
