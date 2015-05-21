@@ -8,6 +8,8 @@
 {-# LANGUAGE DeriveDataTypeable #-}
 #if __GLASGOW_HASKELL__ < 708
 {-# LANGUAGE Trustworthy #-}
+#else
+{-# LANGUAGE Safe #-}
 #endif
 
 -- | Operational Monad (<https://wiki.haskell.org/Operational>) implemented with

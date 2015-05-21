@@ -7,6 +7,7 @@
 
 -- Only for SetMember below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
 #if MIN_VERSION_base(4,7,0)
 #define Typeable1 Typeable

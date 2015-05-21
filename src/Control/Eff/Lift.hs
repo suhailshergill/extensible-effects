@@ -8,6 +8,8 @@
 {-# LANGUAGE CPP #-}
 #if __GLASGOW_HASKELL__ < 708
 {-# LANGUAGE Trustworthy #-}
+#else
+{-# LANGUAGE Safe #-}
 #endif
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# OPTIONS -fno-warn-orphans #-}

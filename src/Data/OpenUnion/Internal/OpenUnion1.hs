@@ -1,31 +1,32 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE Safe #-}
 
 -- Only for MemberU below, when emulating Monad Transformers
-{-# LANGUAGE FunctionalDependencies, OverlappingInstances, UndecidableInstances #-}
+{-# LANGUAGE OverlappingInstances, UndecidableInstances #-}
 
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ overlapping instances
 -- (or closed type function overlapping soon to be added to GHC).
-module Data.OpenUnion.Internal.OpenUnion1( Union (..)
-                                         , (:>)
-                                         , Member
-                                         , MemberU
+module Data.OpenUnion.Internal.OpenUnion1( OU1
+                                         , module Base
                                          ) where
 
-import Data.OpenUnion.Internal.Base
+import Data.OpenUnion.Internal.Base as Base
 
--- | The @`Member` t r@ specifies whether @t@ is present anywhere in the sum
--- type @r@, where @t@ is some effectful type,
--- e.g. @`Lift` `IO`@, @`State` Int`@.
-class Member (t :: * -> *) r
-instance Member t (t :> r)
-instance Member t r => Member t (t' :> r)
+-- | Label to represent 'OpenUnion1' implementation
+data OU1
 
--- | This class is used for emulating monad transformers
-class Member t r => MemberU (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance MemberU tag (tag e) (tag e :> r)
-instance MemberU tag t r => MemberU tag t (t' :> r)
+-- | @`MemberImpl` OU1 t r@ specifies whether @t@ is present anywhere in the
+-- sum type @r@, where @t@ is some effectful type
+type instance MemberConstraint OU1 t r = ()
+instance MemberImpl OU1 t (t :> r)
+instance MemberImpl OU1 t r => MemberImpl OU1 t (t' :> r)
+
+-- | For emulating monad transformers
+type instance MemberUConstraint OU1 t r = (MemberImpl OU1 t r)
+instance MemberUImpl OU1 tag (tag e) (tag e :> r)
+instance MemberUImpl OU1 tag t r => MemberUImpl OU1 tag t (t' :> r)
