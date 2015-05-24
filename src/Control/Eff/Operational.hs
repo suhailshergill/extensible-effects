@@ -25,14 +25,14 @@ module Control.Eff.Operational ( Program (..)
 import Data.Typeable
 import Control.Eff
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.
 data Program instr v = forall a. Program (instr a) (a -> v)
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
          deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
 #else
 

@@ -9,7 +9,7 @@
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>

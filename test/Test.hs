@@ -151,7 +151,7 @@ testFailure =
         return 5
    in assertEqual "Fail should stop writing" 6 ret
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 

@@ -26,13 +26,13 @@ import Control.Monad.Base
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.Typeable
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 
 -- | Lift a Monad m to an effect.
 data Lift m v = forall a. Lift (m a) (a -> v)
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
     deriving (Typeable) -- starting from ghc-7.8 Typeable can only be derived
 #else
 

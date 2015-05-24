@@ -13,7 +13,7 @@ import Control.Eff.Writer.Lazy
 import Control.Eff.State.Lazy
 import Data.Typeable
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 

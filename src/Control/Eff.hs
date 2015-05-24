@@ -83,7 +83,7 @@ import Data.OpenUnion
 import Data.Typeable
 import Data.Void
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 
