@@ -131,8 +131,8 @@ library
 
   -- TODO: uncomment when https://github.com/haskell/cabal/issues/2527 is
   -- resolved
-  -- if flag(lib-Werror)
-  --   ghc-options: -Werror
+  if flag(lib-Werror)
+    ghc-options: -Werror
 
 test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
