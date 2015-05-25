@@ -19,6 +19,16 @@ test:
 	--maximum-unsuitable-generated-tests=100000 --color"
 	cabal bench || true
 
+.PHONY: devel
+devel: build
+	{ \
+	DIRS="*.hs *.cabal ./src ./test"; \
+	EVENTS="-e modify -e move -e delete"; \
+	while inotifywait -qq $$EVENTS -r $$DIRS; do \
+		make test && haskdogs -e; \
+	done; \
+	}
+
 .PHONY: package
 package: test
 	cabal check
