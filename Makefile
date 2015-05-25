@@ -19,13 +19,17 @@ test:
 	--maximum-unsuitable-generated-tests=100000 --color"
 	cabal bench || true
 
+.PHONY: doc
+doc:
+	cabal haddock --internal
+
 .PHONY: devel
 devel: build
 	{ \
 	DIRS="*.hs *.cabal ./src ./test"; \
 	EVENTS="-e modify -e move -e delete"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS; do \
-		make test && haskdogs -e; \
+		make test && make doc && haskdogs -e; \
 	done; \
 	}
 
