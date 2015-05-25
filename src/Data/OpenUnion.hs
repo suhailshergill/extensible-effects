@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE PolyKinds #-}
@@ -7,8 +9,9 @@
 
 -- Only for SetMember below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE FlexibleContexts #-}
 
-#if MIN_VERSION_base(4,7,0)
+#if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs>
@@ -19,8 +22,11 @@
 -- incorporating ideas from <http://okmij.org/ftp/Haskell/extensible/TList.hs>
 module Data.OpenUnion(
   -- * Classes
+  -- | @`Member` t r@ specifies whether @t@ is present anywhere in the sum type
+  -- @r@, where @t@ is some effectful type, e.g. @`Lift` `IO`@, @`State` Int`@
   Member
   -- ** Monad transformer related
+  -- | @`SetMember` set t r@ is used to emulate monad transformers.
   , SetMember
     -- * Type-indexed co-product
     -- ** Datatypes

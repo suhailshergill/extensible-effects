@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.9.2.2
+version:             1.10.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -85,11 +85,8 @@ library
   other-modules:       Data.OpenUnion.Internal.Base
   if impl(ghc >= 7.8.1)
      other-modules:    Data.OpenUnion.Internal.OpenUnion2
-     default-extensions:  Safe
   else
      other-modules:    Data.OpenUnion.Internal.OpenUnion1
-     other-extensions: Safe
-                       , Trustworthy
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
@@ -108,8 +105,10 @@ library
                        , PatternGuards
                        , PolyKinds
                        , RankNTypes
+                       , Safe
                        , ScopedTypeVariables
                        , TupleSections
+                       , Trustworthy
                        , TypeOperators
                        , UndecidableInstances
   if impl(ghc < 7.8.1)
