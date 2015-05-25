@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.10.0.0
+version:             1.10.0.1
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -148,6 +148,7 @@ test-suite extensible-effects-tests
     , test-framework == 0.8.*
     , test-framework-hunit == 0.3.*
     , test-framework-quickcheck2 == 0.3.*
+    , test-framework-th >= 0.2
     , extensible-effects
     , void >= 0.6 && < 0.8
 
