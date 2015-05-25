@@ -148,6 +148,7 @@ test-suite extensible-effects-tests
     , test-framework == 0.8.*
     , test-framework-hunit == 0.3.*
     , test-framework-quickcheck2 == 0.3.*
+    , test-framework-th >= 0.2
     , extensible-effects
     , void >= 0.6 && < 0.8
 

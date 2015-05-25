@@ -1,3 +1,4 @@
+{-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
@@ -8,6 +9,7 @@ import Data.Typeable
 import Test.Framework (defaultMain)
 import Test.Framework.Providers.HUnit
 import Test.Framework.Providers.QuickCheck2
+import Test.Framework.TH
 
 import Test.HUnit hiding (State)
 import Test.QuickCheck
@@ -25,6 +27,18 @@ import Control.Eff.State.Strict as StrictS
 import Control.Eff.Writer.Strict as StrictW
 import Data.Void
 
+main :: IO ()
+main = defaultMain tests
+
+tests = [
+  $(testGroupGenerator)
+#if __GLASGOW_HASKELL__ >= 708
+  , testProperty "Test nested Eff." testNestedEff
+#endif
+        ]
+
+-- {{{ utils
+
 withError :: a -> ErrorCall -> a
 withError a _ = a
 
@@ -34,9 +48,6 @@ assertUndefined a = catch (seq a $ assertFailure "") (withError $ return ())
 assertNoUndefined :: a -> Assertion
 assertNoUndefined a = catch (seq a $ return ()) (withError $ assertFailure "")
 
-main :: IO ()
-main = defaultMain tests
-
 allEqual :: Eq a => [a] -> Bool
 allEqual = all (uncurry (==)) . pairs
   where
@@ -45,14 +56,19 @@ allEqual = all (uncurry (==)) . pairs
 safeLast [] = Nothing
 safeLast l = Just $ last l
 
-testDocs :: [Integer] -> Property
-testDocs l = let
-              (total1, ()) = run $ LazyS.runState 0 $ sumAll l
-              (last1, ()) = run $ LazyW.runLastWriter $ writeAll l
-              (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ writeAndAdd l
-              (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ writeAndAdd l
-             in allEqual [safeLast l, last1, last2, last3]
-           .&&. allEqual [sum l, total1, total2, total3]
+-- }}}
+
+-- {{{ Documentation example
+
+prop_Documentation_example :: [Integer] -> Property
+prop_Documentation_example l = let
+  (total1, ()) = run $ LazyS.runState 0 $ sumAll l
+  (last1, ()) = run $ LazyW.runLastWriter $ writeAll l
+  (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ writeAndAdd l
+  (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ writeAndAdd l
+  in
+   allEqual [safeLast l, last1, last2, last3]
+   .&&. allEqual [sum l, total1, total2, total3]
   where
     writeAll :: (Typeable a, Member (LazyW.Writer a) e)
              => [a]
@@ -71,39 +87,43 @@ testDocs l = let
         writeAll lst
         sumAll lst
 
-testCensor :: [Integer] -> Property
-testCensor l = property
-             $ listE (mapM_ (LazyW.tell . inc) l) == listE (LazyW.censor inc $ mapM_ LazyW.tell l)
-  where
-    inc :: Integer -> Integer
-    inc = (+1)
+-- }}}
 
-    listE :: Eff (LazyW.Writer Integer :> Void) () -> [Integer]
-    listE = fst . run . LazyW.runWriter (:) []
+-- {{{ Reader.runReader
 
-testReaderLaziness :: Assertion
-testReaderLaziness = let e = run $ LazyR.runReader voidReader (undefined :: ())
-                     in assertNoUndefined (e :: ())
+case_Lazy_Reader_runReader :: Assertion
+case_Lazy_Reader_runReader = let
+  e = run $ LazyR.runReader voidReader (undefined :: ())
+  in
+   assertNoUndefined (e :: ())
   where
     voidReader = do
         _ <- (LazyR.ask :: Eff (LazyR.Reader () :> Void) ())
         return ()
 
-testReaderStrictness :: Assertion
-testReaderStrictness = let e = run $ StrictR.runReader voidReader (undefined :: ())
-                       in assertUndefined (e :: ())
+case_Strict_Reader_runReader :: Assertion
+case_Strict_Reader_runReader = let
+  e = run $ StrictR.runReader voidReader (undefined :: ())
+  in
+   assertUndefined (e :: ())
   where
     voidReader = do
         _ <- (StrictR.ask :: Eff (StrictR.Reader () :> Void) ())
         return ()
 
-testStateLaziness :: Assertion
-testStateLaziness = let (r, ()) = run
-                                $ LazyS.runState undefined
-                                $ getVoid
-                               >> putVoid undefined
-                               >> putVoid ()
-                    in assertNoUndefined r
+-- }}}
+
+-- {{{ State.runState
+
+case_Lazy_State_runState :: Assertion
+case_Lazy_State_runState = let
+  (r, ()) = run
+            $ LazyS.runState undefined
+            $ getVoid
+            >> putVoid undefined
+            >> putVoid ()
+  in
+   assertNoUndefined r
   where
     getVoid :: Eff (LazyS.State () :> Void) ()
     getVoid = LazyS.get
@@ -111,13 +131,15 @@ testStateLaziness = let (r, ()) = run
     putVoid :: () -> Eff (LazyS.State () :> Void) ()
     putVoid = LazyS.put
 
-testStateStrictness :: Assertion
-testStateStrictness = let (r, ()) = run
-                                  $ StrictS.runState undefined
-                                  $ getVoid
-                                 >> putVoid undefined
-                                 >> putVoid ()
-                      in assertUndefined r
+case_Strict_State_runState :: Assertion
+case_Strict_State_runState = let
+  (r, ()) = run
+            $ StrictS.runState undefined
+            $ getVoid
+            >> putVoid undefined
+            >> putVoid ()
+  in
+   assertUndefined r
   where
     getVoid :: Eff (StrictS.State () :> Void) ()
     getVoid = StrictS.get
@@ -125,20 +147,57 @@ testStateStrictness = let (r, ()) = run
     putVoid :: () -> Eff (StrictS.State () :> Void) ()
     putVoid = StrictS.put
 
-testLastWriterLaziness :: Assertion
-testLastWriterLaziness = let (Just m, ()) = run $ LazyW.runLastWriter $ mapM_ LazyW.tell [undefined, ()]
-                         in assertNoUndefined (m :: ())
+-- }}}
 
-testLastWriterStrictness :: Assertion
-testLastWriterStrictness = let (Just m, ()) = run $ StrictW.runLastWriter $ mapM_ StrictW.tell [undefined, ()]
-                           in assertUndefined (m :: ())
+-- {{{ Writer
 
-testFirstWriterLaziness :: Assertion
-testFirstWriterLaziness = let (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ LazyW.tell [(), undefined]
-                          in assertNoUndefined (m :: ())
+-- {{{ Writer.censor
 
-testFailure :: Assertion
-testFailure =
+prop_Lazy_Writer_censor :: [Integer] -> Property
+prop_Lazy_Writer_censor l =
+  property
+  $ listE (mapM_ (LazyW.tell . inc) l) == listE (LazyW.censor inc $ mapM_ LazyW.tell l)
+  where
+    inc :: Integer -> Integer
+    inc = (+1)
+
+    listE :: Eff (LazyW.Writer Integer :> Void) () -> [Integer]
+    listE = fst . run . LazyW.runWriter (:) []
+
+-- }}}
+
+-- {{{ Writer.runFirstWriter
+
+case_Lazy_Writer_runFirstWriter :: Assertion
+case_Lazy_Writer_runFirstWriter = let
+  (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ LazyW.tell [(), undefined]
+  in
+   assertNoUndefined (m :: ())
+
+-- }}}
+
+-- {{{ Writer.runLastWriter
+
+case_Lazy_Writer_runLastWriter :: Assertion
+case_Lazy_Writer_runLastWriter = let
+  (Just m, ()) = run $ LazyW.runLastWriter $ mapM_ LazyW.tell [undefined, ()]
+  in
+   assertNoUndefined (m :: ())
+
+case_Strict_Writer_runLastWriter :: Assertion
+case_Strict_Writer_runLastWriter = let
+  (Just m, ()) = run $ StrictW.runLastWriter $ mapM_ StrictW.tell [undefined, ()]
+  in
+   assertUndefined (m :: ())
+
+-- }}}
+
+-- }}}
+
+-- {{{ Eff Failure
+
+case_Failure_Effect :: Assertion
+case_Failure_Effect =
   let go :: Eff (Exc () :> StrictW.Writer Int :> Void) Int
          -> Int
       go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
@@ -151,16 +210,24 @@ testFailure =
         return 5
    in assertEqual "Fail should stop writing" 6 ret
 
+-- }}}
+
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
 
+-- {{{ test Lift building
+
 -- | Ensure that https://github.com/RobotGymnast/extensible-effects/issues/11 stays resolved.
-testLift :: Assertion
-testLift = runLift possiblyAmbiguous
+case_Lift_building :: Assertion
+case_Lift_building = runLift possiblyAmbiguous
   where
     possiblyAmbiguous :: (Typeable1 m, Monad m, SetMember Lift (Lift m) r) => Eff r ()
     possiblyAmbiguous = lift $ return ()
+
+-- }}}
+
+-- {{{ Nested Eff
 
 #if __GLASGOW_HASKELL__ >= 708
 testNestedEff :: Property
@@ -180,8 +247,12 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
       return x
 #endif
 
-testOperational :: Assertion
-testOperational =
+-- }}}
+
+-- {{{ Operational Monad
+
+case_Operational_Monad :: Assertion
+case_Operational_Monad =
   let comp :: (Member (LazyS.State [String]) r
                , Member (LazyW.Writer String) r)
               => Eff r ()
@@ -192,20 +263,4 @@ testOperational =
    "Evaluating Operational Monad example"
    "getting input...\nok\nthe input is foo\n" go
 
-tests =
-  [ testProperty "Documentation example." testDocs
-  , testProperty "Test Writer.Lazy.censor." testCensor
-  , testCase "Test runReader laziness." testReaderLaziness
-  , testCase "Test runReader strictness." testReaderStrictness
-  , testCase "Test runState laziness." testStateLaziness
-  , testCase "Test runState strictness." testStateStrictness
-  , testCase "Test runLastWriter laziness." testLastWriterLaziness
-  , testCase "Test runLastWriter strictness." testLastWriterStrictness
-  , testCase "Test runFirstWriter laziness." testFirstWriterLaziness
-  , testCase "Test failure effect." testFailure
-  , testCase "Test lift building." testLift
-#if __GLASGOW_HASKELL__ >= 708
-  , testProperty "Test nested Eff." testNestedEff
-#endif
-  , testCase "Test Operational monad." testOperational
-  ]
+-- }}}
