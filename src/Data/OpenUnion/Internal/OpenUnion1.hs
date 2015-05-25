@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK hide, show-extensions #-}
+
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances #-}

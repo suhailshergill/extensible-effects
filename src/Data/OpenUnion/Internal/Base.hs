@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK hide, show-extensions #-}
+
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE MultiParamTypeClasses, ConstraintKinds, UndecidableInstances #-}
@@ -14,13 +16,17 @@
 
 -- | Adapted from <http://okmij.org/ftp/Haskell/extensible/OpenUnion1.hs> and
 -- <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>
-module Data.OpenUnion.Internal.Base( Union (..)
-                                   , (:>)
-                                   , MemberConstraint
-                                   , MemberImpl
-                                   , MemberUConstraint
-                                   , MemberUImpl
-                                   ) where
+module Data.OpenUnion.Internal.Base(
+  -- * Datatypes
+  Union (..)
+  , (:>)
+  -- * Classes
+  , MemberConstraint
+  , MemberImpl
+  -- ** Monad transformer related
+  , MemberUConstraint
+  , MemberUImpl
+  ) where
 
 import Data.Typeable
 import GHC.Exts (Constraint)

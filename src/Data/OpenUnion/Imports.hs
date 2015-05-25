@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK ignore-exports, show-extensions #-}
+
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
 

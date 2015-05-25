@@ -4,6 +4,7 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
 
+-- | Example usage of "Control.Eff.Operational".
 module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
