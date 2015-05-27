@@ -25,6 +25,7 @@ import Control.Eff
 import Control.Monad.Base
 import Control.Monad.IO.Class (MonadIO (..))
 import Data.Typeable
+import Data.Void
 
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
@@ -59,7 +60,7 @@ lift m = send . inj $ Lift m id
 
 -- | The handler of Lift requests. It is meant to be terminal:
 -- we only allow a single Lifted Monad.
-runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> ()) w -> m w
+runLift :: (Monad m, Typeable1 m) => Eff (Lift m :> Void) w -> m w
 runLift = loop
   where
     loop = freeMap

@@ -10,6 +10,7 @@ module Control.Eff.Trace( Trace (..)
                         ) where
 
 import Data.Typeable
+import Data.Void
 
 import Control.Eff
 
@@ -22,7 +23,7 @@ trace :: Member Trace r => String -> Eff r ()
 trace x = send . inj $ Trace x id
 
 -- | Run a computation producing Traces.
-runTrace :: Eff (Trace :> ()) w -> IO w
+runTrace :: Eff (Trace :> Void) w -> IO w
 runTrace = loop
   where
     loop = freeMap
