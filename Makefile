@@ -23,13 +23,18 @@ test:
 doc:
 	cabal haddock --internal
 
+.PHONY: tags
+tags:
+	haskdogs -e
+
 .PHONY: devel
 devel: build
 	{ \
 	DIRS="*.hs *.cabal ./src ./test"; \
 	EVENTS="-e modify -e move -e delete"; \
-	while inotifywait -qq $$EVENTS -r $$DIRS; do \
-		make test && make doc && haskdogs -e; \
+	EXCLUDE="\.#"; \
+	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
+		make test && make doc && make tags; \
 	done; \
 	}
 
