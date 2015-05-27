@@ -1,5 +1,5 @@
 .PHONY: all
-all: build test package
+all: build test package doc tags
 
 .PHONY: init
 init:
