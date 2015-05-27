@@ -47,12 +47,32 @@ package: test
 	{ \
 	set -e; \
 	export SRC_TGZ=$$(cabal info . | awk '{print $$2 ".tar.gz";exit}') ; \
-    cd dist/; \
+	cd dist/; \
 	cabal sandbox init; \
-    if [ -f "$$SRC_TGZ" ]; then \
-       cabal install --force-reinstalls "$$SRC_TGZ"; \
-    else \
-       echo "expected '$$SRC_TGZ' not found"; \
-       exit 1; \
-    fi; \
+	if [ -f "$$SRC_TGZ" ]; then \
+		cabal install --force-reinstalls "$$SRC_TGZ"; \
+	else \
+		echo "expected '$$SRC_TGZ' not found"; \
+		exit 1; \
+	fi; \
+	}
+
+.PHONY: test-all
+test-all:
+	# run tests for all ghc versions
+	# TODO: figure out a way to run even if in nix-shell
+	{ \
+	set -e; \
+	if [ "$$IN_NIX_SHELL" ]; then \
+		echo "Invoked from within nix-shell; exiting"; \
+		exit 1; \
+	else \
+		COMMAND="make build && make package"; \
+		ENVS="7.6.3 7.8.4 7.10.1"; \
+		for e in $$ENVS; do \
+			echo "Testing GHC $$e"; \
+			nix-shell shell-$$e.nix --command "$$COMMAND"; \
+			echo "DONE GHC $$e"; \
+		done; \
+	fi; \
 	}
