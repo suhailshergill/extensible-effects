@@ -58,7 +58,10 @@ package: test
 	}
 
 .PHONY: test-all
-test-all:
+test-all: build package
+
+.PHONY: ci-test
+ci-test:
 	# run tests for all ghc versions
 	# TODO: figure out a way to run even if in nix-shell
 	{ \
@@ -67,7 +70,7 @@ test-all:
 		echo "Invoked from within nix-shell; exiting"; \
 		exit 1; \
 	else \
-		COMMAND="make build && make package"; \
+		COMMAND="make test-all"; \
 		ENVS="7.6.3 7.8.4 7.10.1"; \
 		for e in $$ENVS; do \
 			echo "Testing GHC $$e"; \

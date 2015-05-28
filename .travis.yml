@@ -31,8 +31,6 @@ before_install:
       cabal install --constraint=transformers\ installed happy alex
       export PATH=$HOME/.cabal/bin:$PATH
     fi
-install:
-  - make build
 
 script:
-  - make package # calls test as well
+  - make test-all # calls build, test package
