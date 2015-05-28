@@ -1,3 +1,5 @@
+GHCS = 7.6.3 7.8.4 7.10.1
+
 .PHONY: all
 all: build test package doc tags
 
@@ -70,11 +72,9 @@ ci-test:
 		echo "Invoked from within nix-shell; exiting"; \
 		exit 1; \
 	else \
-		COMMAND="make test-all"; \
-		ENVS="7.6.3 7.8.4 7.10.1"; \
-		for e in $$ENVS; do \
+		for e in $(GHCS); do \
 			echo "Testing GHC $$e"; \
-			nix-shell shell-$$e.nix --command "$$COMMAND"; \
+			nix-shell shell-$$e.nix --command "make test-all"; \
 			echo "DONE GHC $$e"; \
 		done; \
 	fi; \
