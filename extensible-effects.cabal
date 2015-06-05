@@ -72,6 +72,8 @@ library
                        Control.Eff.Reader.Strict
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
+                       Control.Eff.State.Example
+                       Control.Eff.State.Example2
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Control.Eff.Trace
