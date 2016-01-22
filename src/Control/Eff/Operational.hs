@@ -61,7 +61,7 @@ runProgram advent = loop where
 
 -- $usage
 --
--- See 'Control.Eff.Operational.Example' for an example of defining data using
+-- See "Control.Eff.Operational.Example" for an example of defining data using
 -- GADTs and implementing interpreters from the data to effects.
 --
 -- To use the interpreter, see below or consult the tests.
