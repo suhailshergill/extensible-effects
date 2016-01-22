@@ -65,6 +65,7 @@ library
                        Control.Eff.Choose
                        Control.Eff.Coroutine
                        Control.Eff.Cut
+                       Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Lift

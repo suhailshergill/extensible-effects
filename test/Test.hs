@@ -15,6 +15,7 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import Control.Eff
+import Control.Eff.Example as Eg
 import Control.Eff.Exception
 import Control.Eff.Lift
 import Control.Eff.Operational as Op
@@ -62,30 +63,13 @@ safeLast l = Just $ last l
 
 prop_Documentation_example :: [Integer] -> Property
 prop_Documentation_example l = let
-  (total1, ()) = run $ LazyS.runState 0 $ sumAll l
-  (last1, ()) = run $ LazyW.runLastWriter $ writeAll l
-  (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ writeAndAdd l
-  (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ writeAndAdd l
+  (total1, ()) = run $ LazyS.runState 0 $ Eg.sumAll l
+  (last1, ()) = run $ LazyW.runLastWriter $ Eg.writeAll l
+  (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ Eg.writeAndAdd l
+  (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ Eg.writeAndAdd l
   in
    allEqual [safeLast l, last1, last2, last3]
    .&&. allEqual [sum l, total1, total2, total3]
-  where
-    writeAll :: (Typeable a, Member (LazyW.Writer a) e)
-             => [a]
-             -> Eff e ()
-    writeAll = mapM_ LazyW.tell
-
-    sumAll :: (Typeable a, Num a, Member (LazyS.State a) e)
-           => [a]
-           -> Eff e ()
-    sumAll = mapM_ (LazyS.modify . (+))
-
-    writeAndAdd :: (Member (LazyW.Writer Integer) e, Member (LazyS.State Integer) e)
-                => [Integer]
-                -> Eff e ()
-    writeAndAdd lst = do
-        writeAll lst
-        sumAll lst
 
 -- }}}
 
