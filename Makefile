@@ -3,6 +3,9 @@ GHCS = 7.6.3 7.8.4 7.10.1
 .PHONY: all
 all: build test package doc tags
 
+default.nix: extensible-effects.cabal
+	cabal2nix ./. > ./default.nix
+
 .PHONY: init
 init:
 	cabal sandbox init
