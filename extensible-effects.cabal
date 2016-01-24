@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.11.0.1
+version:             1.11.0.2
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -43,7 +43,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==7.10.1, GHC==7.8.4, GHC==7.6.3
+tested-with:         GHC==7.10.3, GHC==7.10.1, GHC==7.8.4, GHC==7.6.3
 
 build-type:          Simple
 
@@ -119,7 +119,7 @@ library
   build-depends:       base >= 4.6 && < 5
                        , type-aligned >= 0.9.3
                        -- For MonadIO instance
-                       , transformers >= 0.3 && < 0.5
+                       , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance
                        , transformers-base == 0.4.*
                        , void >= 0.6 && < 0.8
