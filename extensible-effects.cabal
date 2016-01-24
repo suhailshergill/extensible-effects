@@ -119,7 +119,7 @@ library
   build-depends:       base >= 4.6 && < 5
                        , type-aligned >= 0.9.3
                        -- For MonadIO instance
-                       , transformers >= 0.3 && < 0.5
+                       , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance
                        , transformers-base == 0.4.*
                        , void >= 0.6 && < 0.8
