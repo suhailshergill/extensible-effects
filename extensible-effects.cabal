@@ -145,7 +145,7 @@ test-suite extensible-effects-tests
   build-depends:
     base >= 4.6 && < 5
     , QuickCheck == 2.*
-    , HUnit == 1.2.*
+    , HUnit >= 1.2 && < 1.4
     , test-framework == 0.8.*
     , test-framework-hunit == 0.3.*
     , test-framework-quickcheck2 == 0.3.*
