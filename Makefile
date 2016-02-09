@@ -45,7 +45,7 @@ devel: build
 
 .PHONY: package
 package: test
-	#cabal check
+	cabal check
 	# tests that a source-distribution can be generated
 	cabal sdist
 	# check that the generated source-distribution can be built & installed
