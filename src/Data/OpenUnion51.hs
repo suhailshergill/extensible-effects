@@ -1,3 +1,5 @@
+{-# OPTIONS_HADDOCK show-extensions #-}
+
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds, PolyKinds #-}
@@ -9,28 +11,33 @@
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
--- Open unions (type-indexed co-products) for extensible effects
+-- | Open unions (type-indexed co-products) for extensible effects
 -- All operations are constant-time, and there is no Typeable constraint
-
+--
 -- This is a variation of OpenUion5.hs, which relies on overlapping
 -- instances instead of closed type families. Closed type families
 -- have their problems: overlapping instances can resolve even
 -- for unground types, but closed type families are subject to a
 -- strict apartness condition.
-
+--
 -- This implementation is very similar to OpenUnion1.hs, but without
 -- the annoying Typeable constraint. We sort of emulate it:
-
+--
 -- Our list r of open union components is a small Universe.
 -- Therefore, we can use the Typeable-like evidence in that
 -- universe. We hence can define
 --
+-- @
 -- data Union r v where
---  Union :: t v -> TRep t r -> Union r v -- t is existential
+--   Union :: t v -> TRep t r -> Union r v -- t is existential
+-- @
 -- where
+--
+-- @
 -- data TRep t r where
---  T0 :: TRep t (t ': r)
---  TS :: TRep t r -> TRep (any ': r)
+--   T0 :: TRep t (t ': r)
+--   TS :: TRep t r -> TRep (any ': r)
+-- @
 -- Then Member is a type class that produces TRep
 -- Taken literally it doesn't seem much better than
 -- OpenUinion41.hs. However, we can cheat and use the index of the
@@ -99,9 +106,11 @@ decomp0 (Union _ v) = Right $ unsafeCoerce v
 weaken :: Union r w -> Union (any ': r) w
 weaken (Union n v) = Union (n+1) v
 
--- Find an index of an element in a `list'
+-- | Find an index of an element in a `list'
 -- The element must exist
 -- This is essentially a compile-time computation.
+-- Using overlapping instances here is OK since this class is private to this
+-- module
 class FindElem (t :: * -> *) r where
   elemNo :: P t r
 
@@ -118,12 +127,12 @@ class EQU (a :: k) (b :: k) p | a b -> p
 instance EQU a a 'True
 instance (p ~ 'False) => EQU a b p
 
--- This class is used for emulating monad transformers
+-- | This class is used for emulating monad transformers
 class Member t r => MemberU2 (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
 instance (EQU t1 t2 p, MemberU' p tag t1 (t2 ': r)) => MemberU2 tag t1 (t2 ': r)
 
 class Member t r =>
       MemberU' (f::Bool) (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance MemberU' True tag (tag e) (tag e ': r)
+instance MemberU' 'True tag (tag e) (tag e ': r)
 instance (Member t (t' ': r), MemberU2 tag t r) =>
-           MemberU' False tag t (t' ': r)
+           MemberU' 'False tag t (t' ': r)
