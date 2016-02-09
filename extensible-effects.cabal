@@ -81,6 +81,8 @@ library
                        Control.Monad.Free.Reflection
                        Data.OpenUnion
                        Data.OpenUnion51
+                       Data.FTCQueue1
+                       Control.Eff1
                        Data.OpenUnion.Imports
 
   -- Modules included in this library but not exported.
