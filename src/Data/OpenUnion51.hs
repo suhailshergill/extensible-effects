@@ -1,6 +1,5 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE DataKinds, PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
@@ -113,13 +112,15 @@ instance FindElem t r => FindElem t (t' ': r) where
   elemNo = P $ 1 + (unP $ (elemNo :: P t r))
 
 
-type family EQU (a :: k) (b :: k) :: Bool where
-  EQU a a = True
-  EQU a b = False
+-- | Using overlapping instances here is OK since this class is private to this
+-- module
+class EQU (a :: k) (b :: k) p | a b -> p
+instance EQU a a 'True
+instance (p ~ 'False) => EQU a b p
 
 -- This class is used for emulating monad transformers
 class Member t r => MemberU2 (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance (MemberU' (EQU t1 t2) tag t1 (t2 ': r)) => MemberU2 tag t1 (t2 ': r)
+instance (EQU t1 t2 p, MemberU' p tag t1 (t2 ': r)) => MemberU2 tag t1 (t2 ': r)
 
 class Member t r =>
       MemberU' (f::Bool) (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
