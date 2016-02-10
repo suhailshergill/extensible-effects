@@ -7,7 +7,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE CPP #-}
+
+#if __GLASGOW_HASKELL__ >= 708
 {-# LANGUAGE AllowAmbiguousTypes #-}
+#endif
 
 -- The following is needed to define MonadPlus instance. It is decidable
 -- (there is no recursion!), but GHC cannot see that.
