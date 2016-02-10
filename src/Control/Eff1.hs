@@ -458,15 +458,14 @@ newtype Choose a = Choose [a]
 choose :: Member Choose r => [a] -> Eff r a
 choose lst = send (Choose lst)
 
--- MonadPlus-like operators are expressible via choose
-instance Member Choose r => Alternative (Eff r) where
-  empty     = choose []
-  m1 <|> m2 = choose [m1,m2] >>= id
+-- -- MonadPlus-like operators are expressible via choose
+-- instance Member Choose r => Alternative (Eff r) where
+--   empty     = choose []
+--   m1 <|> m2 = choose [m1,m2] >>= id
 
 -- instance Member Choose r => MonadPlus (Eff r) where
 --   mzero = empty
 --   mplus = (<|>)
-
 
 
 -- The interpreter
@@ -492,6 +491,10 @@ exc11r = ([2,3] ==) $ run exc11
 data NdetEff a where
   MZero :: NdetEff a
   MPlus :: NdetEff Bool
+
+instance Member NdetEff r => Alternative (Eff r) where
+  empty = mzero
+  (<|>) = mplus
 
 instance Member NdetEff r => MonadPlus (Eff r) where
   mzero = send MZero
