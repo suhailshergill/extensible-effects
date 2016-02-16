@@ -60,11 +60,11 @@ data Eff r a = Val a
 {-# INLINABLE qApp #-}
 qApp :: Arrs r b w -> b -> Eff r w
 qApp q x =
-   case inline tviewl q of
-   TOne k  -> k x
-   k :| t -> case k x of
-     Val y -> qApp t y
-     E u q -> E u (q >< t)
+  case inline tviewl q of
+    TOne k  -> k x
+    k :| t -> case k x of
+      Val y -> qApp t y
+      E u q -> E u (q >< t)
 
 {-
 -- A bit more understandable version
