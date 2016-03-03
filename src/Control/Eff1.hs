@@ -1025,12 +1025,11 @@ handDown (E u q) = case decomp u of
 
 
 -- | The yield request: reporting a value of type e and suspending
--- the coroutine. For readability, a coroutine accepts a unit to produce
--- its value.
-data Yield a v = Yield a (() -> v)
+-- the coroutine. Resuming with the value of type b
+data Yield a b v = Yield a (b -> v)
 
 -- | Yield a value of type a and suspend the coroutine.
-yield :: (Member (Yield a) r) => a -> Eff r ()
+yield :: (Member (Yield a b) r) => a -> Eff r b
 yield x = send (Yield x id)
 
 -- | Status of a thread: done or reporting the value of the type a
@@ -1042,25 +1041,28 @@ yield x = send (Yield x id)
 --
 --   Type parameter @w@ is the type of the value returned from the
 --   coroutine when it has completed.
-data Y r a w = Y a (() -> Eff r (Y r a w))
-             | Done w
+data Y r a w = Y a (w -> Eff r (Y r a w))
+             | Done
 
 
 -- Launch a thread and report its status
-runC :: Eff (Yield a ': r) w -> Eff r (Y r a w)
-runC m = handle_relay (return . Done) (\(Yield a f) k -> k . f $ ()) m
+runC :: Eff (Yield a b ': r) w -> Eff r (Y r a b)
+runC m = handle_relay
+  (const $ return Done)
+  (\(Yield a f) k -> return $ Y a (k . f))
+  m
 
 -- First example of coroutines
-yieldInt :: Member (Yield Int) r => Int -> Eff r ()
+yieldInt :: Member (Yield Int ()) r => Int -> Eff r ()
 yieldInt = yield
 
-th1 :: Member (Yield Int) r => Eff r ()
+th1 :: Member (Yield Int ()) r => Eff r ()
 th1 = yieldInt 1 >> yieldInt 2
 
 
 c1 = runTrace (loop =<< runC th1)
  where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
-       loop (Done w)    = trace ("Done2" ++ (show w))
+       loop (Done)    = trace ("Done")
 {-
 1
 2
