@@ -1024,6 +1024,11 @@ handDown (E u q) = case decomp u of
   Left u     -> E u (tsingleton Val) >>= handDown . qApp q
 
 
+
+-- ------------------------------------------------------------------------
+-- Co-routines
+-- The interface is intentionally chosen to be the same as in transf.hs
+
 -- | The yield request: reporting a value of type e and suspending
 -- the coroutine. Resuming with the value of type b
 data Yield a b v = Yield a (b -> v)
@@ -1069,50 +1074,6 @@ c1 = runTrace (loop =<< runC th1)
 Done
 -}
 
-{-
- -- ------------------------------------------------------------------------
--- Co-routines
--- The interface is intentionally chosen to be the same as in transf.hs
-
--- The yield request: reporting the value of type a and suspending
--- the coroutine. Resuming with the value of type b
-data Yield a b v = Yield a (b -> v)
-    deriving (Typeable, Functor)
-
--- The signature is inferred
-yield :: (Typeable a, Typeable b, Member (Yield a b) r) => a -> Eff r b
-yield x = send (inj . Yield x)
-
--- Status of a thread: done or reporting the value of the type a
--- and resuming with the value of type b
-data Y r a b = Done | Y a (b -> Eff r (Y r a b))
-
--- Launch a thread and report its status
-runC :: (Typeable a, Typeable b) =>
-        Eff (Yield a b :> r) w -> Eff r (Y r a b)
-runC m = loop (admin m) where
- loop (Val x) = return Done
- loop (E u)   = handle_relay u loop $
-                 \(Yield x k) -> return (Y x (loop . k))
-
-
--- First example of coroutines
-yieldInt :: Member (Yield Int ()) r => Int -> Eff r ()
-yieldInt = yield
-
-th1 :: Member (Yield Int ()) r => Eff r ()
-th1 = yieldInt 1 >> yieldInt 2
-
-
-c1 = runTrace (loop =<< runC th1)
- where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
-       loop Done    = trace "Done"
-{-
-1
-2
-Done
--}
-
 -- Add dynamic variables
 -- The code is essentially the same as that in transf.hs (only added
 -- a type specializtion on yield). The inferred signature is different though.
@@ -1142,6 +1103,7 @@ c21 = runTrace $ runReader (loop =<< runC th2) (10::Int)
 11
 Done
 -}
+
 
 -- Real example, with two sorts of local rebinding
 th3 :: (Member (Yield Int ()) r, Member (Reader Int) r) => Eff r ()
@@ -1304,6 +1266,8 @@ c7' = runTrace $
 Done
 -}
 
+
+{-
 -- ------------------------------------------------------------------------
 -- An example of non-trivial interaction of effects, handling of two
 -- effects together
