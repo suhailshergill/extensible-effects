@@ -11,7 +11,7 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
   * Effects can be added, removed, and interwoven without changes to code not
     dealing with those effects.
   * You get a better decoupling between an implementation and its interface.
-    For example whether or not you rely on IO for implementing a certain effect or not,
+    For example whether or not you rely on IO for implementing a certain effect,
     is completely transparent to the user.
 
 ## Disadvantages
