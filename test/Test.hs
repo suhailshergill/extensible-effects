@@ -26,6 +26,7 @@ import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
 import qualified Control.Eff.Writer.Strict1 as E1.StrictW
 import Control.Eff.Exception1
 import Control.Monad (liftM2)
+import Data.Monoid
 
 import Control.Eff
 import Control.Eff.Example as Eg
