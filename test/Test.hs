@@ -1,3 +1,6 @@
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -14,16 +17,19 @@ import Test.Framework.TH
 import Test.HUnit hiding (State)
 import Test.QuickCheck
 
+import qualified Control.Eff1 as E1
+import qualified Control.Eff.Reader.Lazy1 as E1.LazyR
+import qualified Control.Eff.Reader.Strict1 as E1.StrictR
+import Control.Monad (liftM2)
+
 import Control.Eff
 import Control.Eff.Example as Eg
 import Control.Eff.Exception
 import Control.Eff.Lift
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
-import Control.Eff.Reader.Lazy as LazyR
 import Control.Eff.State.Lazy as LazyS
 import Control.Eff.Writer.Lazy as LazyW
-import Control.Eff.Reader.Strict as StrictR
 import Control.Eff.State.Strict as StrictS
 import Control.Eff.Writer.Strict as StrictW
 import Data.Void
@@ -73,27 +79,102 @@ prop_Documentation_example l = let
 
 -- }}}
 
+-- {{{ Reader
+
+add = liftM2 (+)
+t1 = E1.LazyR.ask `add` return (1::Int)
+
+case_Lazy1_Reader_t1 :: Assertion
+case_Lazy1_Reader_t1 = let
+  t1' = do v <- E1.LazyR.ask; return (v + 1 :: Int)
+  t1r = E1.LazyR.runReader t1 (10::Int)
+  in
+    -- 'E1.LazyR.run t1' should result in type-error
+    11 @=? (E1.run t1r)
+
+t2 = do
+  v1 <- E1.LazyR.ask
+  v2 <- E1.LazyR.ask
+  return $ fromIntegral (v1 + (1::Int)) + (v2 + (2::Float))
+
+
+case_Lazy1_Reader_t2 :: Assertion
+case_Lazy1_Reader_t2 = let
+  t2r = E1.LazyR.runReader t2 (10::Int)
+  t2rr = flip E1.LazyR.runReader (20::Float) . flip E1.LazyR.runReader (10::Int) $ t2
+  in
+    33.0 @=? (E1.run t2rr)
+
+-- The opposite order of layers
+{- If we mess up, we get an error
+t2rrr1' = run $ runReader (runReader t2 (20::Float)) (10::Float)
+    No instance for (Member (Reader Int) [])
+      arising from a use of `t2'
+-}
+case_Lazy1_Reader_t2' :: Assertion
+case_Lazy1_Reader_t2' = 33.0 @=?
+  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t2 (20::Float)) (10::Int))
+
+
+case_Lazy1_Reader_t3 :: Assertion
+case_Lazy1_Reader_t3 = let
+  t3 = t1 `add` E1.LazyR.local (+ (10::Int)) t1
+  in
+    212 @=? (E1.run $ E1.LazyR.runReader t3 (100::Int))
+
+-- The following example demonstrates true interleaving of Reader Int
+-- and Reader Float layers
+{-
+t4
+  :: (Member (Reader Int) r, Member (Reader Float) r) =>
+     () -> Eff r Float
+-}
+t4 = liftM2 (+) (E1.LazyR.local (+ (10::Int)) t2)
+                (E1.LazyR.local (+ (30::Float)) t2)
+
+case_Lazy1_Reader_t4 :: Assertion
+case_Lazy1_Reader_t4 = 106.0 @=?
+  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t4 (20::Float)) (10::Int))
+
+-- The opposite order of layers gives the same result
+case_Lazy1_Reader_t4' :: Assertion
+case_Lazy1_Reader_t4' = 106.0 @=?
+  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t4 (20::Float)) (10::Int))
+
+-- Map an effectful function
+case_Lazy1_Reader_tmap :: Assertion
+case_Lazy1_Reader_tmap = let
+  tmap = mapM f [1..5]
+  in
+    ([11,12,13,14,15] :: [Int]) @=?
+    (E1.run $ E1.LazyR.runReader tmap (10::Int))
+  where
+    f x = E1.LazyR.ask `add` return x
+
 -- {{{ Reader.runReader
 
-case_Lazy_Reader_runReader :: Assertion
-case_Lazy_Reader_runReader = let
-  e = run $ LazyR.runReader voidReader (undefined :: ())
+case_Lazy1_Reader_runReader :: Assertion
+case_Lazy1_Reader_runReader = let
+  e = E1.run $ E1.LazyR.runReader voidReader (undefined :: ())
   in
    assertNoUndefined (e :: ())
   where
     voidReader = do
-        _ <- (LazyR.ask :: Eff (LazyR.Reader () :> Void) ())
+        _ <- (E1.LazyR.ask :: E1.Eff '[E1.LazyR.Reader ()] ())
         return ()
 
-case_Strict_Reader_runReader :: Assertion
-case_Strict_Reader_runReader = let
-  e = run $ StrictR.runReader voidReader (undefined :: ())
+case_Strict1_Reader_runReader :: Assertion
+case_Strict1_Reader_runReader = let
+  e = E1.run $ E1.StrictR.runReader voidReader (undefined :: ())
   in
    assertUndefined (e :: ())
   where
     voidReader = do
-        _ <- (StrictR.ask :: Eff (StrictR.Reader () :> Void) ())
+        _ <- (E1.StrictR.ask :: E1.Eff '[E1.StrictR.Reader ()] ())
         return ()
+
+
+-- }}}
 
 -- }}}
 
@@ -134,6 +215,11 @@ case_Strict_State_runState = let
 -- }}}
 
 -- {{{ Writer
+
+addGet x = E1.LazyR.ask >>= \i -> return (i+x)
+
+addN n = foldl (>>>) return (replicate n addGet) 0
+ where f >>> g = (>>= g) . f
 
 -- {{{ Writer.censor
 
@@ -218,16 +304,16 @@ testNestedEff :: Property
 testNestedEff = forAll arbitrary (\x -> property (qu x == x))
   where
     qu :: Bool -> Bool
-    qu x = run $ StrictR.runReader (readerAp x) readerId
+    qu x = E1.run $ E1.StrictR.runReader (readerAp x) readerId
 
-    readerAp :: Bool -> Eff (StrictR.Reader (Eff (StrictR.Reader Bool :> Void) Bool) :> Void) Bool
+    readerAp :: Bool -> E1.Eff '[E1.StrictR.Reader (E1.Eff '[E1.StrictR.Reader Bool] Bool)] Bool
     readerAp x = do
-      f <- StrictR.ask
-      return . run $ StrictR.runReader f x
+      f <- E1.StrictR.ask
+      return . E1.run $ E1.StrictR.runReader f x
 
-    readerId :: Eff (StrictR.Reader Bool :> Void) Bool
+    readerId :: E1.Eff '[E1.StrictR.Reader Bool] Bool
     readerId = do
-      x <- StrictR.ask
+      x <- E1.StrictR.ask
       return x
 #endif
 

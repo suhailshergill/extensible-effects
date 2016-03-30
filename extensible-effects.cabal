@@ -69,8 +69,8 @@ library
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Lift
-                       Control.Eff.Reader.Lazy
-                       Control.Eff.Reader.Strict
+                       Control.Eff.Reader.Lazy1
+                       Control.Eff.Reader.Strict1
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Writer.Lazy
