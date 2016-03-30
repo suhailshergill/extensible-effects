@@ -1,10 +1,8 @@
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE GADTs #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
-{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 -- | Strict write-only state
 module Control.Eff.Writer.Strict1( Writer(..)
@@ -31,20 +29,17 @@ import Control.Applicative ((<|>))
 -- writer has no such constraints. If we write a |Writer|-like
 -- interpreter to accumulate the told values in a monoid, it will have
 -- the |Monoid w| constraint then
-data Writer w x where
-  Writer :: !w -> Writer w ()
+data Writer w v = Writer !w v
 
 -- | Write a new value.
 tell :: Member (Writer w) r => w -> Eff r ()
-tell !w = send $ Writer w
+tell !w = send $ Writer w ()
 
 -- | Transform the state being produced.
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
 censor f = interpose return h
   where
-    -- Local signature is needed, as always with GADTs
-    h :: Writer w v -> Arr r v a -> Eff r a
-    h (Writer w) k = tell (f w) >> k ()
+    h (Writer w v) k = tell (f w) >> k v
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate
@@ -52,7 +47,7 @@ censor f = interpose return h
 runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
 runWriter accum !b = handle_relay
   (\x -> return (x, b))
-  (\(Writer w) k -> k () >>= \(x, l) -> return (x, w `accum` l))
+  (\(Writer w v) k -> k v >>= \(x, l) -> return (x, w `accum` l))
   -- the second arg to 'handle_relay' above is same as:
   -- (\(Writer o) k -> second (accum o) `fmap` k ())
   -- where
