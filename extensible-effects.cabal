@@ -74,7 +74,9 @@ library
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Writer.Lazy
+                       Control.Eff.Writer.Lazy1
                        Control.Eff.Writer.Strict
+                       Control.Eff.Writer.Strict1
                        Control.Eff.Trace
                        Control.Eff.Operational
                        Control.Eff.Operational.Example

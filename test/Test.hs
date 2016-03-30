@@ -1,5 +1,6 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE TypeOperators #-}
@@ -18,8 +19,11 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import qualified Control.Eff1 as E1
+import qualified Data.OpenUnion51 as OU51
 import qualified Control.Eff.Reader.Lazy1 as E1.LazyR
 import qualified Control.Eff.Reader.Strict1 as E1.StrictR
+import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
+import qualified Control.Eff.Writer.Strict1 as E1.StrictW
 import Control.Monad (liftM2)
 
 import Control.Eff
@@ -216,31 +220,42 @@ case_Strict_State_runState = let
 
 -- {{{ Writer
 
+addGet :: OU51.Member (E1.LazyR.Reader Int) r  => Int -> E1.Eff r Int
 addGet x = E1.LazyR.ask >>= \i -> return (i+x)
 
 addN n = foldl (>>>) return (replicate n addGet) 0
  where f >>> g = (>>= g) . f
 
+case_Lazy1_Writer_rdwr :: Assertion
+case_Lazy1_Writer_rdwr = (10, ["begin", "end"]) @=?
+  (E1.run . (`E1.LazyR.runReader` (1::Int)) . E1.LazyW.runListWriter $ rdwr)
+  where
+    rdwr = do
+      E1.LazyW.tell "begin"
+      r <- addN 10
+      E1.LazyW.tell "end"
+      return r
+
 -- {{{ Writer.censor
 
-prop_Lazy_Writer_censor :: [Integer] -> Property
-prop_Lazy_Writer_censor l =
+prop_Lazy1_Writer_censor :: [Integer] -> Property
+prop_Lazy1_Writer_censor l =
   property
-  $ listE (mapM_ (LazyW.tell . inc) l) == listE (LazyW.censor inc $ mapM_ LazyW.tell l)
+  $ listE (mapM_ (E1.LazyW.tell . inc) l) == listE (E1.LazyW.censor inc $ mapM_ E1.LazyW.tell l)
   where
     inc :: Integer -> Integer
     inc = (+1)
 
-    listE :: Eff (LazyW.Writer Integer :> Void) () -> [Integer]
-    listE = fst . run . LazyW.runWriter (:) []
+    listE :: E1.Eff '[E1.LazyW.Writer Integer] () -> [Integer]
+    listE = snd . E1.run . E1.LazyW.runListWriter
 
 -- }}}
 
 -- {{{ Writer.runFirstWriter
 
-case_Lazy_Writer_runFirstWriter :: Assertion
-case_Lazy_Writer_runFirstWriter = let
-  (Just m, ()) = run $ LazyW.runFirstWriter $ mapM_ LazyW.tell [(), undefined]
+case_Lazy1_Writer_runFirstWriter :: Assertion
+case_Lazy1_Writer_runFirstWriter = let
+  ((), Just m) = E1.run $ E1.LazyW.runFirstWriter $ mapM_ E1.LazyW.tell [(), undefined]
   in
    assertNoUndefined (m :: ())
 
@@ -248,15 +263,15 @@ case_Lazy_Writer_runFirstWriter = let
 
 -- {{{ Writer.runLastWriter
 
-case_Lazy_Writer_runLastWriter :: Assertion
-case_Lazy_Writer_runLastWriter = let
-  (Just m, ()) = run $ LazyW.runLastWriter $ mapM_ LazyW.tell [undefined, ()]
+case_Lazy1_Writer_runLastWriter :: Assertion
+case_Lazy1_Writer_runLastWriter = let
+  ((), Just m) = E1.run $ E1.LazyW.runLastWriter $ mapM_ E1.LazyW.tell [undefined, ()]
   in
    assertNoUndefined (m :: ())
 
-case_Strict_Writer_runLastWriter :: Assertion
-case_Strict_Writer_runLastWriter = let
-  (Just m, ()) = run $ StrictW.runLastWriter $ mapM_ StrictW.tell [undefined, ()]
+case_Strict1_Writer_runLastWriter :: Assertion
+case_Strict1_Writer_runLastWriter = let
+  ((), Just m) = E1.run $ E1.StrictW.runLastWriter $ mapM_ E1.StrictW.tell [undefined, ()]
   in
    assertUndefined (m :: ())
 

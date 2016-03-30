@@ -231,12 +231,6 @@ local f m = do
 add :: Monad m => m Int -> m Int -> m Int
 add = liftM2 (+)
 
-addGet :: Member (Reader Int) r => Int -> Eff r Int
-addGet x = ask >>= \i -> return (i+x)
-
-addN n = foldl (>>>) return (replicate n addGet) 0
- where f >>> g = (>>= g) . f
-
 -- ------------------------------------------------------------------------
 -- The Writer monad
 
@@ -251,15 +245,6 @@ data Writer o x where
 tell :: Member (Writer o) r => o -> Eff r ()
 tell o = send $ Writer o
 
-
--- rdwr :: (Member (Reader Int) r, Member (Writer String) r)
---  => Eff r Int
-rdwr = do
-  tell "begin"
-  r <- addN 10
-  tell "end"
-  return r
-
 -- We accumulate the told data in a list, hence no Monoid constraints
 -- The code is written to be simple, not optimized.
 -- If performance matters, we should convert it to accumulator
@@ -267,10 +252,6 @@ rdwr = do
 runWriter :: Eff (Writer o ': r) a -> Eff r (a,[o])
 runWriter = handle_relay (\x -> return (x,[]))
                   (\ (Writer o) k -> k () >>= \ (x,l) -> return (x,o:l))
-
-rdwrr :: (Int,[String])
-rdwrr = run . (`runReader` (1::Int)) . runWriter $ rdwr
--- (10,["begin","end"])
 
 -- ------------------------------------------------------------------------
 -- Exceptions
