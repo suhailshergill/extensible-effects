@@ -24,11 +24,11 @@ import qualified Control.Eff.Reader.Lazy1 as E1.LazyR
 import qualified Control.Eff.Reader.Strict1 as E1.StrictR
 import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
 import qualified Control.Eff.Writer.Strict1 as E1.StrictW
+import Control.Eff.Exception1
 import Control.Monad (liftM2)
 
 import Control.Eff
 import Control.Eff.Example as Eg
-import Control.Eff.Exception
 import Control.Eff.Lift
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
@@ -279,21 +279,122 @@ case_Strict1_Writer_runLastWriter = let
 
 -- }}}
 
+-- {{{ Exception
+
+-- The type is inferred
+-- et1 :: Eff r Int
+et1 = return 1 `add` return 2
+
+case_Exception1_et1 :: Assertion
+case_Exception1_et1 = 3 @=? (E1.run et1)
+
+-- The type is inferred
+-- et2 :: Member (Exc Int) r => Eff r Int
+et2 = return 1 `add` throwExc (2::Int)
+
+-- The following won't type: unhandled exception!
+-- ex2rw = E1.run et2
+{-
+    Could not deduce (Data.OpenUnion51.FindElem (Exc Int) '[])
+      arising from a use of `et2'
+-}
+
+case_Exception1_et21 :: Assertion
+case_Exception1_et21 = (Left (2::Int)) @=?
+  (E1.run et21)
+  where
+    -- The inferred type shows that ex21 is now pure
+    -- et21 :: E1.Eff r (Either Int Int)
+
+    et21 = runExc et2
+
+-- {{{ TooBig example from paper
+
+-- The example from the paper
+newtype TooBig = TooBig Int deriving (Eq, Show)
+-- The type is inferred
+ex2 :: OU51.Member (Exc TooBig) r => E1.Eff r Int -> E1.Eff r Int
+ex2 m = do
+  v <- m
+  if v > 5 then throwExc (TooBig v)
+     else return v
+
+-- specialization to tell the type of the exception
+runErrBig :: E1.Eff (Exc TooBig ': r) a -> E1.Eff r (Either TooBig a)
+runErrBig = runExc
+
+case_Exception1_ex2r :: Assertion
+case_Exception1_ex2r = (Right 5) @=? (E1.run ex2r)
+  where
+    ex2r = E1.LazyR.runReader (runErrBig (ex2 E1.LazyR.ask)) (5::Int)
+
+case_Exception1_ex2r1 :: Assertion
+case_Exception1_ex2r1 = (Left (TooBig 7)) @=? (E1.run ex2r1)
+  where
+    ex2r1 = E1.LazyR.runReader (runErrBig (ex2 E1.LazyR.ask)) (7::Int)
+
+-- Different order of handlers (layers)
+case_Exception1_ex2r2 :: Assertion
+case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (E1.run ex2r2)
+  where
+    ex2r2 = runErrBig (E1.LazyR.runReader (ex2 E1.LazyR.ask) (7::Int))
+
+
+-- }}}
+
+-- {{{ Alternative
+
+-- Implementing the operator <|> from Alternative:
+--  a <|> b does
+--   -- tries a, and if succeeds, returns its result
+--   -- otherwise, tries b, and if succeeds, returns its result
+--   -- otherwise, throws mappend of exceptions of a and b
+
+-- We use MemberU2 in the signature rather than Member to
+-- ensure that the computation throws only one type of exceptions.
+-- Otherwise, this construction is not very useful.
+alttry :: forall e r a. (Monoid e, OU51.MemberU2 Exc (Exc e) r) =>
+          E1.Eff r a -> E1.Eff r a -> E1.Eff r a
+alttry ma mb =
+  catchExc ma $ \ea ->
+  catchExc mb $ \eb -> throwExc (mappend (ea::e) eb)
+
+case_Exception1_alttry :: Assertion
+case_Exception1_alttry =
+  [Right 10,Right 10,Right 10,Left "bummer1bummer2"] @=?
+  [
+  E1.run . runExc $
+     (return 1 `add` throwExc "bummer1") `alttry`
+     (return 10),
+  E1.run . runExc $
+     (return 10) `alttry`
+     (return 1 `add` throwExc "bummer2"),
+  E1.run . runExc $
+     (return 10) `alttry` return 20,
+  E1.run . runExc $
+     (return 1 `add` throwExc "bummer1") `alttry`
+     (return 1 `add` throwExc "bummer2")
+     ]
+
+-- }}}
+
 -- {{{ Eff Failure
 
-case_Failure_Effect :: Assertion
-case_Failure_Effect =
-  let go :: Eff (Exc () :> StrictW.Writer Int :> Void) Int
+case_Failure1_Effect :: Assertion
+case_Failure1_Effect =
+  let go :: E1.Eff (Exc () ': E1.StrictW.Writer Int ': '[]) Int
          -> Int
-      go = fst . run . StrictW.runWriter (+) 0 . ignoreFail
+      go = snd . E1.run . E1.StrictW.runWriter (+) 0 . ignoreFail
       ret = go $ do
-        StrictW.tell (1 :: Int)
-        StrictW.tell (2 :: Int)
-        StrictW.tell (3 :: Int)
+        E1.StrictW.tell (1 :: Int)
+        E1.StrictW.tell (2 :: Int)
+        E1.StrictW.tell (3 :: Int)
         () <- die
-        StrictW.tell (4 :: Int)
+        E1.StrictW.tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
+
+-- }}}
 
 -- }}}
 

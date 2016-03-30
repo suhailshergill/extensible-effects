@@ -67,6 +67,7 @@ library
                        Control.Eff.Cut
                        Control.Eff.Example
                        Control.Eff.Exception
+                       Control.Eff.Exception1
                        Control.Eff.Fresh
                        Control.Eff.Lift
                        Control.Eff.Reader.Lazy1

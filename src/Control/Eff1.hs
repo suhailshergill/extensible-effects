@@ -273,29 +273,6 @@ catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
 catchError m handle = interpose return (\(Exc e) _k -> handle e) m
 
--- The type is inferred
-et1 :: Eff r Int
-et1 = return 1 `add` return 2
-
-et1r = 3 == run et1
-
--- The type is inferred
-et2 :: Member (Exc Int) r => Eff r Int
-et2 = return 1 `add` throwError (2::Int)
-
--- The following won't type: unhandled exception!
--- ex2rw = run et2
-{-
-    No instance for (Member (Exc Int) Void)
-      arising from a use of `et2'
--}
-
--- The inferred type shows that ex21 is now pure
-et21 :: Eff r (Either Int Int)
-et21 = runError et2
-
-et21r = Left 2 == run et21
-
 
 -- The example from the paper
 newtype TooBig = TooBig Int deriving (Eq, Show)
@@ -309,50 +286,6 @@ ex2 m = do
 -- specialization to tell the type of the exception
 runErrBig :: Eff (Exc TooBig ': r) a -> Eff r (Either TooBig a)
 runErrBig = runError
-
-ex2r = runReader (runErrBig (ex2 ask)) (5::Int)
-
-ex2rr = Right 5 == run ex2r
-
-ex2rr1 = (Left (TooBig 7) ==) $
-         run $ runReader (runErrBig (ex2 ask)) (7::Int)
-
--- Different order of handlers (layers)
-ex2rr2 = (Left (TooBig 7) ==) $
-         run $ runErrBig (runReader (ex2 ask) (7::Int))
-
--- Implementing the operator <|> from Alternative:
---  a <|> b does
---   -- tries a, and if succeeds, returns its result
---   -- otherwise, tries b, and if succeeds, returns its result
---   -- otherwise, throws mappend of exceptions of a and b
-
--- We use MemberU2 in the signature rather than Member to
--- ensure that the computation throws only one type of exceptions.
--- Otherwise, this construction is not very useful.
-alttry :: forall e r a. (Monoid e, MemberU2 Exc (Exc e) r) =>
-          Eff r a -> Eff r a -> Eff r a
-alttry ma mb =
-  catchError ma $ \ea ->
-  catchError mb $ \eb -> throwError (mappend (ea::e) eb)
-
--- Test case
-t_alttry =
- ([Right 10,Right 10,Right 10,Left "bummer1bummer2"] ==) $
-  [
-  run . runError $
-     (return 1 `add` throwError "bummer1") `alttry`
-     (return 10),
-  run . runError $
-     (return 10) `alttry`
-     (return 1 `add` throwError "bummer2"),
-  run . runError $
-     (return 10) `alttry` return 20,
-  run . runError $
-     (return 1 `add` throwError "bummer1") `alttry`
-     (return 1 `add` throwError "bummer2")
-     ]
-
 
 -- ------------------------------------------------------------------------
 -- Non-determinism (choice)
