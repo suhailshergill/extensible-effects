@@ -63,6 +63,7 @@ library
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
+                       Control.Eff.Choose1
                        Control.Eff.Coroutine
                        Control.Eff.Cut
                        Control.Eff.Example

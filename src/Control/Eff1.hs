@@ -321,13 +321,6 @@ makeChoice =
  handle [x] k = k x
  handle lst k = fmap concat $ mapM k lst
 
-exc1 :: Member Choose r => Eff r Int
-exc1 = return 1 `add` choose [1,2]
-
-exc11 = makeChoice exc1
-
-exc11r = ([2,3] ==) $ run exc11
-
 -- A different implementation, more directly mapping to MonadPlus
 -- interface
 data NdetEff a where

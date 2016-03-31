@@ -26,6 +26,7 @@ import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
 import qualified Control.Eff.Writer.Strict1 as E1.StrictW
 import Control.Eff.Exception1
 import Control.Monad (liftM2)
+import Control.Eff.Choose1 as E1.Choose
 import Data.Monoid
 
 import Control.Eff
@@ -396,6 +397,16 @@ case_Failure1_Effect =
    in assertEqual "Fail should stop writing" 6 ret
 
 -- }}}
+
+-- }}}
+
+-- {{{ Choose
+
+case_Choose1_exc11 :: Assertion
+case_Choose1_exc11 = [2,3] @=? (E1.run exc11)
+  where
+    exc11 = E1.Choose.runChoice exc1
+    exc1 = return 1 `add` E1.Choose.choose [1,2]
 
 -- }}}
 
