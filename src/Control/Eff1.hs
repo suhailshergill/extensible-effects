@@ -1,4 +1,5 @@
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE TypeFamilies #-}
 -- {-# LANGUAGE StandaloneDeriving #-}
@@ -24,6 +25,7 @@ module Control.Eff1 where
 import Control.Monad
 import Control.Applicative
 import Data.OpenUnion51
+import Control.Arrow ((>>>))
 -- import Data.FastTCQueue
 import Data.FTCQueue1
 import GHC.Exts (inline)
@@ -39,13 +41,26 @@ import Data.Monoid                      -- For demos
 -- denoted by r
 type Arr r a b = a -> Eff r b
 
--- An effectful function from 'a' to 'b' that is a composition
+arr :: (a -> b) -> Arrs r a b
+arr f = tsingleton (Val . f)
+
+-- FIXME: convert to 'Arrs'
+first :: Arr r a b -> Arr r (a, c) (b, c)
+first arr = \(a,c) -> (, c) `fmap` arr a
+
+ident :: Arrs r a a
+ident = tsingleton $ Val . id
+
+comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
+comp = (><)
+
+-- | An effectful function from 'a' to 'b' that is a composition
 -- of several effectful functions. The paremeter r describes the overall
 -- effect.
 -- The composition members are accumulated in a type-aligned queue
 type Arrs r a b = FTCQueue (Eff r) a b
 
--- The Eff monad (not a transformer!)
+-- | The Eff monad (not a transformer!)
 -- It is a fairly standard coroutine monad
 -- It is NOT a Free monad! There are no Functor constraints
 -- Status of a coroutine (client): done with the value of type w,
@@ -551,110 +566,6 @@ runState (E u q) s = case decomp u of
   Right Get     -> runState (qApp q s) s
   Right (Put s) -> runState (qApp q ()) s
   Left  u -> E u (tsingleton (\x -> runState (qApp q x) s))
-
-
--- Examples
-
-ts1 :: Member (State Int) r => Eff r Int
-ts1 = do
-  put (10 ::Int)
-  x <- get
-  return (x::Int)
-
-ts1r = ((10,10) ==) $ run (runState ts1 (0::Int))
-
-
-ts2 :: Member (State Int) r => Eff r Int
-ts2 = do
-  put (10::Int)
-  x <- get
-  put (20::Int)
-  y <- get
-  return (x+y)
-
-ts2r = ((30,20) ==) $ run (runState ts2 (0::Int))
-
-
--- An encapsulated State handler, for transactional semantics
--- The global state is updated only if the transactionState finished
--- successfully
-data ProxyState s = ProxyState
-transactionState :: forall s r w. Member (State s) r =>
-                    ProxyState s -> Eff r w -> Eff r w
-transactionState _ m = do s <- get; loop s m
- where
-   loop :: s -> Eff r w -> Eff r w
-   loop s (Val x) = put s >> return x
-   loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
-     Just Get      -> loop s (qApp q s)
-     Just (Put s') -> loop s'(qApp q ())
-     _      -> E u (tsingleton k) where k = qComp q (loop s)
-
--- A different representation of State: decomposing State into
--- mutation (Writer) and Reading. We don't define any new effects:
--- we just handle the existing ones.
--- Thus we define a handler for two effects together.
-
-runStateR :: Eff (Writer s ': Reader s ': r) w -> s -> Eff r (w,s)
-runStateR m s = loop s m
- where
-   loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-   loop s (Val x) = return (x,s)
-   loop s (E u q) = case decomp u of
-     Right (Writer o) -> k o ()
-     Left  u  -> case decomp u of
-       Right Reader -> k s s
-       Left u -> E u (tsingleton (k s))
-    where k s = qComp q (loop s)
-
--- If we had a Writer, we could have decomposed State into Writer and Reader
--- requests.
-
-ts11 :: (Member (Reader Int) r, Member (Writer Int) r) => Eff r Int
-ts11 = do
-  tell (10 ::Int)
-  x <- ask
-  return (x::Int)
-
-ts11r = ((10,10) ==) $ run (runStateR ts11 (0::Int))
-
-
-ts21 :: (Member (Reader Int) r, Member (Writer Int) r) => Eff r Int
-ts21 = do
-  tell (10::Int)
-  x <- ask
-  tell (20::Int)
-  y <- ask
-  return (x+y)
-
-ts21r = ((30,20) ==) $ run (runStateR ts21 (0::Int))
-
-
--- exceptions and state
-incr :: Member (State Int) r => Eff r ()
-incr = get >>= put . (+ (1::Int))
-
-tes1 :: (Member (State Int) r, Member (Exc [Char]) r) => Eff r b
-tes1 = do
- incr
- throwError "exc"
-
-ter1 = ((Left "exc" :: Either String Int,2) ==) $
-       run $ runState (runError tes1) (1::Int)
-
-
-ter2 = ((Left "exc" :: Either String (Int,Int)) ==) $
-       run $ runError (runState tes1 (1::Int))
-
-
-teCatch :: Member (Exc String) r => Eff r a -> Eff r [Char]
-teCatch m = catchError (m >> return "done") (\e -> return (e::String))
-
-ter3 = ((Right "exc" :: Either String String,2) ==) $
-       run $ runState (runError (teCatch tes1)) (1::Int)
-
-ter4 = ((Right ("exc",2) :: Either String (String,Int)) ==) $
-       run $ runError (runState (teCatch tes1) (1::Int))
 
 
 -- Encapsulation of effects

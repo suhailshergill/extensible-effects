@@ -71,10 +71,13 @@ library
                        Control.Eff.Exception1
                        Control.Eff.Fresh
                        Control.Eff.Lift
+                       Control.Eff.NdetEff
                        Control.Eff.Reader.Lazy1
                        Control.Eff.Reader.Strict1
                        Control.Eff.State.Lazy
+                       Control.Eff.State.Lazy1
                        Control.Eff.State.Strict
+                       Control.Eff.State.Strict1
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Lazy1
                        Control.Eff.Writer.Strict
@@ -85,12 +88,12 @@ library
                        Control.Monad.Free.Reflection
                        Data.OpenUnion
                        Data.OpenUnion51
-                       Data.FTCQueue1
                        Control.Eff1
                        Data.OpenUnion.Imports
 
   -- Modules included in this library but not exported.
   other-modules:       Data.OpenUnion.Internal.Base
+                       Data.FTCQueue1
   if impl(ghc >= 7.8.1)
      other-modules:    Data.OpenUnion.Internal.OpenUnion2
   else

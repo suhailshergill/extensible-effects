@@ -24,9 +24,12 @@ import qualified Control.Eff.Reader.Lazy1 as E1.LazyR
 import qualified Control.Eff.Reader.Strict1 as E1.StrictR
 import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
 import qualified Control.Eff.Writer.Strict1 as E1.StrictW
+import qualified Control.Eff.State.Strict1 as E1.StrictS
+import qualified Control.Eff.State.Lazy1 as E1.LazyS
 import Control.Eff.Exception1
-import Control.Monad (liftM2)
 import Control.Eff.Choose1 as E1.Choose
+import Control.Eff.NdetEff
+import Control.Monad (liftM2, msum, guard)
 import Data.Monoid
 
 import Control.Eff
@@ -186,37 +189,111 @@ case_Strict1_Reader_runReader = let
 
 -- {{{ State.runState
 
-case_Lazy_State_runState :: Assertion
-case_Lazy_State_runState = let
-  (r, ()) = run
-            $ LazyS.runState undefined
+-- {{{ Lazy
+
+case_Lazy1_State_runState :: Assertion
+case_Lazy1_State_runState = let
+  (r, ()) = E1.run
+            $ flip E1.LazyS.runState undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
   in
    assertNoUndefined r
   where
-    getVoid :: Eff (LazyS.State () :> Void) ()
-    getVoid = LazyS.get
+    getVoid :: E1.Eff '[E1.LazyS.State ()] ()
+    getVoid = E1.LazyS.get
 
-    putVoid :: () -> Eff (LazyS.State () :> Void) ()
-    putVoid = LazyS.put
+    putVoid :: () -> E1.Eff '[E1.LazyS.State ()] ()
+    putVoid = E1.LazyS.put
 
-case_Strict_State_runState :: Assertion
-case_Strict_State_runState = let
-  (r, ()) = run
-            $ StrictS.runState undefined
+-- }}}
+
+-- {{{ Strict1
+
+case_Strict1_State_runState :: Assertion
+case_Strict1_State_runState = let
+  (r, ()) = E1.run
+            $ (flip E1.StrictS.runState) undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
   in
    assertUndefined r
   where
-    getVoid :: Eff (StrictS.State () :> Void) ()
-    getVoid = StrictS.get
+    getVoid :: E1.Eff '[E1.StrictS.State ()] ()
+    getVoid = E1.StrictS.get
 
-    putVoid :: () -> Eff (StrictS.State () :> Void) ()
-    putVoid = StrictS.put
+    putVoid :: () -> E1.Eff '[E1.StrictS.State ()] ()
+    putVoid = E1.StrictS.put
+
+case_Strict1_State_ts1 :: Assertion
+case_Strict1_State_ts1 = (10,10) @=? (E1.run (E1.StrictS.runState ts1 (0::Int)))
+  where
+    ts1 = do
+      E1.StrictS.put (10 ::Int)
+      x <- E1.StrictS.get
+      return (x::Int)
+
+case_Strict1_State_ts11 :: Assertion
+case_Strict1_State_ts11 =
+  (10,10) @=? (E1.run (E1.StrictS.runStateR ts11 (0::Int)))
+  where
+    ts11 = do
+      E1.StrictW.tell (10 ::Int)
+      x <- E1.StrictR.ask
+      return (x::Int)
+
+case_Strict1_State_ts2 :: Assertion
+case_Strict1_State_ts2 = (30::Int,20::Int) @=?
+  (E1.run (E1.StrictS.runState ts2 (0::Int)))
+  where
+    ts2 = do
+      E1.StrictS.put (10::Int)
+      x <- E1.StrictS.get
+      E1.StrictS.put (20::Int)
+      y <- E1.StrictS.get
+      return (x+y)
+
+case_Strict1_State_ts21 :: Assertion
+case_Strict1_State_ts21 = (30::Int,20::Int) @=?
+  (E1.run (E1.StrictS.runStateR ts21 (0::Int)))
+  where
+    ts21 = do
+      E1.StrictW.tell (10::Int)
+      x <- E1.StrictR.ask
+      E1.StrictW.tell (20::Int)
+      y <- E1.StrictR.ask
+      return (x+y)
+
+tes1 :: (OU51.Member (E1.StrictS.State Int) r
+        , OU51.Member (Exc [Char]) r) => E1.Eff r b
+tes1 = do
+  incr
+  throwExc "exc"
+  where
+    incr = E1.StrictS.get >>= E1.StrictS.put . (+ (1::Int))
+
+case_Strict1_State_ter1 :: Assertion
+case_Strict1_State_ter1 = (Left "exc" :: Either String Int,2) @=?
+  (E1.run $ E1.StrictS.runState (runExc tes1) (1::Int))
+
+case_Strict1_State_ter2 :: Assertion
+case_Strict1_State_ter2 = (Left "exc" :: Either String (Int,Int)) @=?
+  (E1.run $ runExc (E1.StrictS.runState tes1 (1::Int)))
+
+teCatch :: OU51.Member (Exc String) r => E1.Eff r a -> E1.Eff r [Char]
+teCatch m = catchExc (m >> return "done") (\e -> return (e::String))
+
+case_Strict1_State_ter3 :: Assertion
+case_Strict1_State_ter3 = (Right "exc" :: Either String String,2) @=?
+  (E1.run $ E1.StrictS.runState (runExc (teCatch tes1)) (1::Int))
+
+case_Strict1_State_ter4 :: Assertion
+case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
+  (E1.run $ runExc (E1.StrictS.runState (teCatch tes1) (1::Int)))
+
+-- }}}
 
 -- }}}
 
@@ -409,6 +486,14 @@ case_Choose1_exc11 = [2,3] @=? (E1.run exc11)
     exc1 = return 1 `add` E1.Choose.choose [1,2]
 
 -- }}}
+
+-- case_NdetEff_testCA :: Assertion
+-- case_NdetEff_testCA = [1..10] @=? (E1.run $ E1.makeChoiceA testCA)
+--   where
+--     testCA = do
+--       i <- msum . fmap return $ [1..10]
+--       guard (i `mod` 2 == 0)
+--       return i
 
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
