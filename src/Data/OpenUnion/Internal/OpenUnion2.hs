@@ -11,6 +11,12 @@
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
+{-# LANGUAGE CPP #-}
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
+
+
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.
 -- This implementation relies on _closed_ type families added to GHC 7.8. It has
