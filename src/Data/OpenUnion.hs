@@ -11,6 +11,10 @@
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 {-# LANGUAGE FlexibleContexts #-}
 
+#if __GLASGOW_HASKELL__ >= 800
+{-# LANGUAGE UndecidableSuperClasses #-}
+#endif
+
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
