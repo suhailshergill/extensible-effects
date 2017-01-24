@@ -12,6 +12,13 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
 
   * Effects can be added, removed, and interwoven without changes to code not
     dealing with those effects.
+  * You get a better decoupling between an implementation and its interface.
+    For example whether or not you rely on IO for implementing a certain effect,
+    is completely transparent to the user. With extensible-effects it is possible
+    to precisly define what effects your code is allowed to perform, you don't
+    need to allow IO everywhere. The only code that really lives in unrestricted IO
+    is your localized interpreter. This allows for easy testing and better
+    reasoning about your code.
 
 ## Disadvantages
 
