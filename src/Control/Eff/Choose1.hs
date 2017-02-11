@@ -37,6 +37,16 @@ mzero' = choose []
 mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
 mplus' m1 m2 = choose [m1,m2] >>= id
 
+-- FIXME: uncomment
+-- -- MonadPlus-like operators are expressible via choose
+-- instance Member Choose r => Alternative (Eff r) where
+--   empty     = choose []
+--   m1 <|> m2 = choose [m1,m2] >>= id
+
+-- instance Member Choose r => MonadPlus (Eff r) where
+--   mzero = empty
+--   mplus = (<|>)
+
 -- | Run a nondeterministic effect, returning all values.
 runChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
 runChoice = handle_relay
