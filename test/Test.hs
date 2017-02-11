@@ -487,13 +487,14 @@ case_Choose1_exc11 = [2,3] @=? (E1.run exc11)
 
 -- }}}
 
--- case_NdetEff_testCA :: Assertion
--- case_NdetEff_testCA = [1..10] @=? (E1.run $ E1.makeChoiceA testCA)
---   where
---     testCA = do
---       i <- msum . fmap return $ [1..10]
---       guard (i `mod` 2 == 0)
---       return i
+case_NdetEff_testCA :: Assertion
+case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ E1.makeChoiceA testCA)
+  where
+    testCA :: (Integral a) => E1.Eff (E1.NdetEff ': r) a
+    testCA = do
+      i <- msum . fmap return $ [1..10]
+      guard (i `mod` 2 == 0)
+      return i
 
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
