@@ -108,7 +108,7 @@ liftMaybe = maybe die return
 {-# INLINE liftMaybe #-}
 
 -- | `liftMaybe` in a lifted Monad
-liftMaybeM :: (Typeable m, Member Fail r, SetMember Lift (Lift m) r)
+liftMaybeM :: (Typeable1 m, Member Fail r, SetMember Lift (Lift m) r)
            => m (Maybe a)
            -> Eff r a
 liftMaybeM m = lift m >>= liftMaybe
