@@ -1,4 +1,5 @@
 {-# LANGUAGE CPP           #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE PatternGuards #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -7,7 +8,8 @@
 #if __GLASGOW_HASKELL_ >= 708
 {-# LANGUAGE TypeFamilies #-}
 #endif
-{-# LANGUAGE Safe #-}
+-- FIXME: bring back
+--{-# LANGUAGE Safe #-}
 -- | An example of non-trivial interaction of effects, handling of two
 -- effects together
 -- Non-determinism with control (cut)
@@ -46,50 +48,74 @@
 -- We use exceptions for cutfalse
 -- Therefore, the law @cutfalse >>= k = cutfalse@
 -- is satisfied automatically since all exceptions have the above property.
-module Control.Eff.Cut( CutFalse (..)
-                      , call
-                      , cutfalse
+module Control.Eff.Cut( -- CutFalse (..)
+                      -- , call
+                      -- , cutfalse
                       ) where
 
-import Data.Typeable
+import Control.Eff1 hiding (Choose(..), choose, makeChoice, mzero', mplus', Exc(..), CutFalse(..))
+import Control.Eff.Choose1
+import Control.Eff.Exception1
+import Data.OpenUnion51
 
-import Control.Eff
-import Control.Eff.Choose
-import Control.Eff.Exception
+data CutFalse = CutFalse
 
-data CutFalse = CutFalse deriving Typeable
-
+-- FIXME: doesn't work without type
 cutfalse :: Member (Exc CutFalse) r => Eff r a
 cutfalse = throwExc CutFalse
 
--- | The interpreter -- it is like reify . reflect with a twist
--- Compare this implementation with the huge implementation of call
--- in Hinze 2000 (Figure 9)
--- Each clause corresponds to the axiom of call or cutfalse.
--- All axioms are covered.
--- The code clearly expresses the intuition that call watches the choice points
--- of its argument computation. When it encounteres a cutfalse request,
--- it discards the remaining choicepoints.
--- It completely handles CutFalse effects but not non-determinism.
-call :: forall r a . Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
-call = loop [] where
- loop jq = freeMap
-           (\x -> return x `mplus'` next jq)          -- (C2)
-           (\u -> case decomp u of
-               Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
-               Left u' -> check jq u')
+-- -- | The interpreter -- it is like reify . reflect with a twist
+-- -- Compare this implementation with the huge implementation of call
+-- -- in Hinze 2000 (Figure 9)
+-- -- Each clause corresponds to the axiom of call or cutfalse.
+-- -- All axioms are covered.
+-- -- The code clearly expresses the intuition that call watches the choice points
+-- -- of its argument computation. When it encounteres a cutfalse request,
+-- -- it discards the remaining choicepoints.
+-- -- It completely handles CutFalse effects but not non-determinism.
+call :: Member Choose r => Eff (Exc CutFalse ': r) a -> Eff r a
+call m = loop [] m where
+  -- loop :: [Eff (Exc CutFalse ': r) a] -> Eff (Exc CutFalse ': r) a -> Eff r a
+  loop jq (Val x)  = return x `mplus'` next jq         -- (C2)
+  loop jq (E u q)  = case decomp u of
+    Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
+    --Left  u -> E u (tsingleton (k jq))
+    Left u -> check jq u
+    --where k s x = loop s $ qApp q x
 
- check :: Member Choose r
-          => [Eff (Exc CutFalse :> r) a]
-          -> Union r (Eff (Exc CutFalse :> r) a)
-          -> Eff r a
- check jq u | Just (Choose [] _) <- prj u  = next jq  -- (C1)
- check jq u | Just (Choose [x] k) <- prj u = loop jq (k x)  -- (C3), optim
- check jq u | Just (Choose lst k) <- prj u = next $ map k lst ++ jq -- (C3)
- check jq u = send u >>= loop jq      -- (C4)
+  check :: Member Choose r
+        => [Eff (Exc CutFalse ': r) a]
+        -> Union r b
+        -> Eff r a
+  --check = undefined
+  check jq u | Just (Choose []) <- prj u  = next jq  -- (C1)
+  check jq u | Just (Choose [x] k) <- prj u = loop jq (k x)  -- (C3), optim
+--  check jq u | Just (Choose lst k) <- prj u = next $ map k lst ++ jq -- (C3)
+--  check jq u = send u >>= loop jq      -- (C4)
 
- next :: Member Choose r
-         => [Eff (Exc CutFalse :> r) a]
-         -> Eff r a
- next []    = mzero'
- next (h:t) = loop t h
+  next [] = mzero'
+  next (h:t) = loop t h
+
+
+-- call :: forall r a . Member Choose r => Eff (Exc CutFalse :> r) a -> Eff r a
+-- call = loop [] where
+--  loop jq = freeMap
+--            (\x -> return x `mplus'` next jq)          -- (C2)
+--            (\u -> case decomp u of
+--                Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
+--                Left u' -> check jq u')
+
+--  check :: Member Choose r
+--           => [Eff (Exc CutFalse :> r) a]
+--           -> Union r (Eff (Exc CutFalse :> r) a)
+--           -> Eff r a
+--  check jq u | Just (Choose [] _) <- prj u  = next jq  -- (C1)
+--  check jq u | Just (Choose [x] k) <- prj u = loop jq (k x)  -- (C3), optim
+--  check jq u | Just (Choose lst k) <- prj u = next $ map k lst ++ jq -- (C3)
+--  check jq u = send u >>= loop jq      -- (C4)
+
+--  next :: Member Choose r
+--          => [Eff (Exc CutFalse :> r) a]
+--          -> Eff r a
+--  next []    = mzero'
+--  next (h:t) = loop t h

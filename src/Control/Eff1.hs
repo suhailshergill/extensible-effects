@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
@@ -24,7 +25,7 @@ module Control.Eff1 where
 
 import Control.Monad
 import Control.Applicative
-import Data.OpenUnion51
+import safe Data.OpenUnion51
 import Control.Arrow ((>>>))
 -- import Data.FastTCQueue
 import Data.FTCQueue1
@@ -63,7 +64,7 @@ type Arrs r a b = FTCQueue (Eff r) a b
 -- | The Eff monad (not a transformer!)
 -- It is a fairly standard coroutine monad
 -- It is NOT a Free monad! There are no Functor constraints
--- Status of a coroutine (client): done with the value of type w,
+-- Status of a coroutine (client): done with the value of type a,
 -- or sending a request of type Union r with the continuation
 -- Arrs r b a.
 -- Potentially, inline Union into E

@@ -71,6 +71,7 @@ library
                        Control.Eff.Exception1
                        Control.Eff.Fresh
                        Control.Eff.Lift
+                       Control.Eff.Lift1
                        Control.Eff.NdetEff
                        Control.Eff.Reader.Lazy1
                        Control.Eff.Reader.Strict1

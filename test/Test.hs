@@ -38,7 +38,7 @@ import Control.Eff.Lift
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
 import Control.Eff.State.Lazy as LazyS
-import Control.Eff.Writer.Lazy as LazyW
+-- import Control.Eff.Writer.Lazy as LazyW
 import Control.Eff.State.Strict as StrictS
 import Control.Eff.Writer.Strict as StrictW
 import Data.Void
@@ -76,15 +76,15 @@ safeLast l = Just $ last l
 
 -- {{{ Documentation example
 
-prop_Documentation_example :: [Integer] -> Property
-prop_Documentation_example l = let
-  (total1, ()) = run $ LazyS.runState 0 $ Eg.sumAll l
-  (last1, ()) = run $ LazyW.runLastWriter $ Eg.writeAll l
-  (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ Eg.writeAndAdd l
-  (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ Eg.writeAndAdd l
-  in
-   allEqual [safeLast l, last1, last2, last3]
-   .&&. allEqual [sum l, total1, total2, total3]
+-- prop_Documentation_example :: [Integer] -> Property
+-- prop_Documentation_example l = let
+--   (total1, ()) = run $ LazyS.runState 0 $ Eg.sumAll l
+--   (last1, ()) = run $ LazyW.runLastWriter $ Eg.writeAll l
+--   (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ Eg.writeAndAdd l
+--   (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ Eg.writeAndAdd l
+--   in
+--    allEqual [safeLast l, last1, last2, last3]
+--    .&&. allEqual [sum l, total1, total2, total3]
 
 -- }}}
 
@@ -535,16 +535,16 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
 
 -- {{{ Operational Monad
 
-case_Operational_Monad :: Assertion
-case_Operational_Monad =
-  let comp :: (Member (LazyS.State [String]) r
-               , Member (LazyW.Writer String) r)
-              => Eff r ()
-      comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
-      go = fst . run . LazyW.runMonoidWriter . LazyS.evalState ["foo", "bar"] $ comp
-  in
-   assertEqual
-   "Evaluating Operational Monad example"
-   "getting input...\nok\nthe input is foo\n" go
+-- case_Operational_Monad :: Assertion
+-- case_Operational_Monad =
+--   let comp :: (Member (LazyS.State [String]) r
+--                , Member (LazyW.Writer String) r)
+--               => Eff r ()
+--       comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
+--       go = fst . run . LazyW.runMonoidWriter . LazyS.evalState ["foo", "bar"] $ comp
+--   in
+--    assertEqual
+--    "Evaluating Operational Monad example"
+--    "getting input...\nok\nthe input is foo\n" go
 
 -- }}}

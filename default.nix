@@ -7,10 +7,10 @@ mkDerivation {
   pname = "extensible-effects";
   version = "1.11.0.3";
   src = ./.;
-  buildDepends = [
+  libraryHaskellDepends = [
     base transformers transformers-base type-aligned void
   ];
-  testDepends = [
+  testHaskellDepends = [
     base HUnit QuickCheck test-framework test-framework-hunit
     test-framework-quickcheck2 test-framework-th void
   ];

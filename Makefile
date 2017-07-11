@@ -1,4 +1,4 @@
-GHCS = 7.6.3 7.8.4 7.10.1
+GHCS = 7.6.3 7.8.4 7.10.1 8.0.1
 
 .PHONY: all
 all: build test package doc tags
@@ -30,7 +30,7 @@ doc:
 
 .PHONY: tags
 tags:
-	haskdogs -e
+	haskdogs --hasktags-args=-ex
 
 .PHONY: devel
 devel: build
@@ -39,7 +39,7 @@ devel: build
 	EVENTS="-e modify -e move -e delete"; \
 	EXCLUDE="\.#"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
-		make test && make doc && make tags; \
+		make test && make doc; \
 	done; \
 	}
 
