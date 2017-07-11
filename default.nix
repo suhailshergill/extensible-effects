@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "extensible-effects";
-  version = "1.11.0.3";
+  version = "1.11.1.0";
   src = ./.;
   buildDepends = [
     base transformers transformers-base type-aligned void
