@@ -34,7 +34,7 @@ import Data.Monoid
 
 import Control.Eff
 import Control.Eff.Example as Eg
-import Control.Eff.Lift
+import Control.Eff.Lift1
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
 import Control.Eff.State.Lazy as LazyS
@@ -506,7 +506,7 @@ case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ E1.makeChoiceA testCA)
 case_Lift_building :: Assertion
 case_Lift_building = runLift possiblyAmbiguous
   where
-    possiblyAmbiguous :: (Typeable1 m, Monad m, SetMember Lift (Lift m) r) => Eff r ()
+    possiblyAmbiguous :: (Monad m, OU51.MemberU2 Lift (Lift m) r) => E1.Eff r ()
     possiblyAmbiguous = lift $ return ()
 
 -- }}}
@@ -535,16 +535,16 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
 
 -- {{{ Operational Monad
 
--- case_Operational_Monad :: Assertion
--- case_Operational_Monad =
---   let comp :: (Member (LazyS.State [String]) r
---                , Member (LazyW.Writer String) r)
---               => Eff r ()
---       comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
---       go = fst . run . LazyW.runMonoidWriter . LazyS.evalState ["foo", "bar"] $ comp
---   in
---    assertEqual
---    "Evaluating Operational Monad example"
---    "getting input...\nok\nthe input is foo\n" go
+case_Operational_Monad :: Assertion
+case_Operational_Monad =
+  let comp :: (OU51.Member (E1.LazyS.State [String]) r
+               , OU51.Member (E1.LazyW.Writer String) r)
+              => E1.Eff r ()
+      comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
+      go = snd . E1.run . E1.LazyW.runMonoidWriter $ E1.LazyS.evalState comp ["foo", "bar"]
+  in
+   assertEqual
+   "Evaluating Operational Monad example"
+   "getting input...\nok\nthe input is foo\n" go
 
 -- }}}

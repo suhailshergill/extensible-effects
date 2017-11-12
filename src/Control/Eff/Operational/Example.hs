@@ -2,16 +2,17 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE Safe #-}
+-- {-# LANGUAGE Safe #-}
 
 -- | Example usage of "Control.Eff.Operational".
 module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
-import Control.Eff
-import Control.Eff.Lift
-import Control.Eff.Writer.Lazy
-import Control.Eff.State.Lazy
+import Control.Eff1 (Eff(..))
+import Data.OpenUnion51
+import Control.Eff.Lift1
+import Control.Eff.Writer.Lazy1
+import Control.Eff.State.Lazy1
 import Data.Typeable
 
 #if __GLASGOW_HASKELL__ >= 708
@@ -32,7 +33,7 @@ prog = do
    singleton $ Print ("the input is " ++ str)
 
 -- | Then, implements interpreters from the data to effects.
-adventIO :: (Member (Lift IO) r, SetMember Lift (Lift IO) r) => Jail a -> Eff r a
+adventIO :: (Member (Lift IO) r, MemberU2 Lift (Lift IO) r) => Jail a -> Eff r a
 adventIO (Print a) = lift $ putStrLn a
 adventIO Scan = lift getLine
 
