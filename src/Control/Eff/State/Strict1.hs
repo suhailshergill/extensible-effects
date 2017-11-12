@@ -39,6 +39,7 @@ data State s v where
   Put :: !s -> State s ()
 
 -- | Return the current value of the state. The signatures are inferred
+{-# NOINLINE get #-}
 get :: Member (State s) r => Eff r s
 get = send Get
 {-# RULES
@@ -46,6 +47,7 @@ get = send Get
  #-}
 
 -- | Write a new value of the state.
+{-# NOINLINE put #-}
 put :: Member (State s) r => s -> Eff r ()
 put !s = send (Put s)
 {-# RULES

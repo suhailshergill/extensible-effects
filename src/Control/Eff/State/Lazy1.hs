@@ -14,7 +14,7 @@ import Control.Eff1 hiding (State(..), get, put, runState', runState
 import Control.Eff.Writer.Lazy1
 import Control.Eff.Reader.Lazy1
 import Data.OpenUnion51
-import Data.FTCQueue1
+import Data.FTCQueue1 (tsingleton)
 
 -- ------------------------------------------------------------------------
 -- | State, lazy (i.e., on-demand)
@@ -29,6 +29,7 @@ data State s v where
   Delay :: Eff '[State s] a  -> State s a --  Eff as a transformer
 
 -- | Return the current value of the state. The signatures are inferred
+{-# NOINLINE get #-}
 get :: Member (State s) r => Eff r s
 get = send Get
 {-# RULES
@@ -36,6 +37,7 @@ get = send Get
  #-}
 
 -- | Write a new value of the state.
+{-# NOINLINE put #-}
 put :: Member (State s) r => s -> Eff r ()
 put s = send (Put s)
 {-# RULES
