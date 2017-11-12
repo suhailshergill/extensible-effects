@@ -9,8 +9,7 @@
 -- | Lazy state effect
 module Control.Eff.State.Lazy1 where
 
-import Control.Eff1 hiding (State(..), get, put, runState', runState
-                           , Reader(..), Writer(..))
+import Control.Eff1
 import Control.Eff.Writer.Lazy1
 import Control.Eff.Reader.Lazy1
 import Data.OpenUnion51

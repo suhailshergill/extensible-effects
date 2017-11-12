@@ -10,8 +10,7 @@
 -- | Strict state effect
 module Control.Eff.State.Strict1 where
 
-import Control.Eff1 hiding (State(..), get, put, runState', runState
-                           , Reader(..), Writer(..))
+import Control.Eff1
 import Control.Eff.Writer.Strict1
 import Control.Eff.Reader.Strict1
 import Data.OpenUnion51

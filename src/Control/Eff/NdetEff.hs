@@ -24,21 +24,20 @@ data NdetEff a where
   MZero :: NdetEff a
   MPlus :: NdetEff Bool
 
--- FIXME: uncomment
--- instance Member NdetEff r => Alternative (E1.Eff r) where
---   empty = mzero
---   (<|>) = mplus
+instance Member NdetEff r => Alternative (E1.Eff r) where
+  empty = mzero
+  (<|>) = mplus
 
--- instance Member NdetEff r => MonadPlus (E1.Eff r) where
---   mzero = E1.send MZero
---   mplus m1 m2 = E1.send MPlus >>= \x -> if x then m1 else m2
+instance Member NdetEff r => MonadPlus (E1.Eff r) where
+  mzero = E1.send MZero
+  mplus m1 m2 = E1.send MPlus >>= \x -> if x then m1 else m2
 
 -- | An interpreter
 -- The following is very simple, but leaks a lot of memory
 -- The cause probably is mapping every failure to empty
 -- It takes then a lot of timne and space to store those empty
-runChoiceA0 :: Alternative f => E1.Eff (NdetEff ': r) a -> E1.Eff r (f a)
-runChoiceA0 = E1.handle_relay (return . pure) $ \m k -> case m of
+makeChoiceA0 :: Alternative f => E1.Eff (NdetEff ': r) a -> E1.Eff r (f a)
+makeChoiceA0 = E1.handle_relay (return . pure) $ \m k -> case m of
     MZero -> return empty
     MPlus -> liftM2 (<|>) (k True) (k False)
 
@@ -46,8 +45,8 @@ runChoiceA0 = E1.handle_relay (return . pure) $ \m k -> case m of
 -- much less (100 times) less memory.
 -- The benefit of the effect framework is that we can have many
 -- interpreters.
-runChoiceA :: Alternative f => E1.Eff (NdetEff ': r) a -> E1.Eff r (f a)
-runChoiceA m = loop [] m
+makeChoiceA :: Alternative f => E1.Eff (NdetEff ': r) a -> E1.Eff r (f a)
+makeChoiceA m = loop [] m
  where
    loop [] (E1.Val x)    = return (pure x)
    loop (h:t) (E1.Val x) = loop t h >>= \r -> return (pure x <|> r)

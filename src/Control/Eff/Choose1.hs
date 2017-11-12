@@ -3,15 +3,22 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+
+-- The following is needed to define MonadPlus instance. It is decidable
+-- (there is no recursion!), but GHC cannot see that.
+{-# LANGUAGE UndecidableInstances #-}
+
 -- | Nondeterministic choice effect
 module Control.Eff.Choose1( Choose (..)
                           , choose
-                          , runChoice
+                          , makeChoice
                           , mzero'
                           , mplus'
                           ) where
 
-import Control.Eff1 hiding (Choose(..), choose, makeChoice, mzero', mplus')
+import Control.Monad
+import Control.Applicative
+import Control.Eff1
 import Data.OpenUnion51
 
 -- ------------------------------------------------------------------------
@@ -37,7 +44,7 @@ mzero' = choose []
 mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
 mplus' m1 m2 = choose [m1,m2] >>= id
 
--- FIXME: uncomment
+-- FIXME: find a way to uncomment
 -- -- MonadPlus-like operators are expressible via choose
 -- instance Member Choose r => Alternative (Eff r) where
 --   empty     = choose []
@@ -48,8 +55,8 @@ mplus' m1 m2 = choose [m1,m2] >>= id
 --   mplus = (<|>)
 
 -- | Run a nondeterministic effect, returning all values.
-runChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
-runChoice = handle_relay
+makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
+makeChoice = handle_relay
   (return . (:[]))
   (\(Choose lst) k -> handle lst k)
   where

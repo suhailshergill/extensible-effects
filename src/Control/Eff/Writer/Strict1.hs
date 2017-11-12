@@ -15,7 +15,7 @@ module Control.Eff.Writer.Strict1( Writer(..)
                                , runMonoidWriter
                                ) where
 
-import Control.Eff1 hiding (Writer(..), tell, runWriter)
+import Control.Eff1
 import Data.OpenUnion51
 import Data.FTCQueue1
 

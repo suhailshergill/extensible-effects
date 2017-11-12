@@ -34,13 +34,10 @@ import Data.Monoid
 
 import Control.Eff
 import Control.Eff.Example as Eg
+-- fixed below
 import Control.Eff.Lift1
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
-import Control.Eff.State.Lazy as LazyS
--- import Control.Eff.Writer.Lazy as LazyW
-import Control.Eff.State.Strict as StrictS
-import Control.Eff.Writer.Strict as StrictW
 import Data.Void
 
 main :: IO ()
@@ -482,15 +479,17 @@ case_Failure1_Effect =
 case_Choose1_exc11 :: Assertion
 case_Choose1_exc11 = [2,3] @=? (E1.run exc11)
   where
-    exc11 = E1.Choose.runChoice exc1
+    exc11 = E1.Choose.makeChoice exc1
     exc1 = return 1 `add` E1.Choose.choose [1,2]
 
 -- }}}
 
+-- {{{ NdetEff
+
 case_NdetEff_testCA :: Assertion
-case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ E1.makeChoiceA testCA)
+case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ makeChoiceA testCA)
   where
-    testCA :: (Integral a) => E1.Eff (E1.NdetEff ': r) a
+    testCA :: (Integral a) => E1.Eff (NdetEff ': r) a
     testCA = do
       i <- msum . fmap return $ [1..10]
       guard (i `mod` 2 == 0)
@@ -499,6 +498,8 @@ case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ E1.makeChoiceA testCA)
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
 #endif
+
+-- }}}
 
 -- {{{ test Lift building
 
