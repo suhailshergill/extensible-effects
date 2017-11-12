@@ -32,18 +32,13 @@ data Program instr v = forall a. Program (instr a) (a -> v)
 
 -- | Lift a value to a monad.
 singleton :: (Member (Program instr) r) => instr a -> Eff r a
-singleton instr = send . inj $ (Program instr) id
+singleton instr = send $ (Program instr) id
 
 -- | Convert values using given interpreter to effects.
 runProgram :: (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
-runProgram advent = foo where
-  foo = handle_relay
-        return
-        (\ (Program instr k) -> _b)
-  -- loop = freeMap
-  --        return
-  --        (\u -> handle_relay u loop (\ (Program instr k) -> advent instr >>= loop . k))
-
+runProgram advent = handle_relay return h
+  where
+    h (Program instr v) k = advent instr >>= k . v
 
 -- $usage
 --
