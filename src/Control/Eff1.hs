@@ -3,39 +3,20 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE TypeFamilies #-}
--- {-# LANGUAGE StandaloneDeriving #-}
-{-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE NoMonomorphismRestriction #-}
-{-# LANGUAGE CPP #-}
 
-#if __GLASGOW_HASKELL__ >= 708
-{-# LANGUAGE AllowAmbiguousTypes #-}
-#endif
-
--- The following is needed to define MonadPlus instance. It is decidable
--- (there is no recursion!), but GHC cannot see that.
-{-# LANGUAGE UndecidableInstances #-}
-
--- The framework of extensible effects
-
+-- | The framework of extensible effects
 module Control.Eff1 where
 
 import safe Data.OpenUnion51
--- import Data.FastTCQueue
 import Data.FTCQueue1
 import GHC.Exts (inline)
 
--- import Data.IORef                       -- For demonstration of lifting
--- import Data.Monoid                      -- For demos
-
 -- ------------------------------------------------------------------------
--- A monadic library for communication between a handler and
+-- | A monadic library for communication between a handler and
 -- its client, the administered computation
-
+--
 -- Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
 type Arr r a b = a -> Eff r b
@@ -69,8 +50,7 @@ type Arrs r a b = FTCQueue (Eff r) a b
 data Eff r a = Val a
              | forall b. E  (Union r b) (Arrs r b a)
 
--- Application to the `generalized effectful function' Arrs r b w
-
+-- | Application to the `generalized effectful function' Arrs r b w
 {-# INLINABLE qApp #-}
 qApp :: Arrs r b w -> b -> Eff r w
 qApp q x =
@@ -92,15 +72,14 @@ qApp q x = case tviewl q of
    bind' (Impure u q) k = Impure u (q >< k)
 -}
 
--- Compose effectful arrows (and possibly change the effect!)
+-- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h $ qApp g a
 
--- Eff is still a monad and a functor (and Applicative)
+-- | Eff is still a monad and a functor (and Applicative)
 -- (despite the lack of the Functor constraint)
-
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
   fmap f (Val x) = Val (f x)
@@ -150,18 +129,18 @@ reflect (E u) = Eff (\k -> E $ fmap (loop k) u)
 
 
 -- ------------------------------------------------------------------------
--- The initial case, no effects
-
+-- | The initial case, no effects
+--
 -- The type of run ensures that all effects must be handled:
 -- only pure computations may be run.
 run :: Eff '[] w -> w
 run (Val x) = x
-run (E _ _) = error "extensible-effects: the impossible happened!"
--- the other case is unreachable since Union [] a cannot be
+-- | the other case is unreachable since Union [] a cannot be
 -- constructed.
 -- Therefore, run is a total function if its argument terminates.
+run (E _ _) = error "extensible-effects: the impossible happened!"
 
--- A convenient pattern: given a request (open union), either
+-- | A convenient pattern: given a request (open union), either
 -- handle it or relay it.
 {-# INLINE handle_relay #-}
 handle_relay :: (a -> Eff r w) ->
@@ -175,9 +154,23 @@ handle_relay ret h m = loop m
     Left  u0 -> E u0 (tsingleton k)
    where k = qComp q loop
 
--- Add something like Control.Exception.catches? It could be useful
--- for control with cut.
+-- | Parameterized handle_relay
+{-# INLINE handle_relay_s #-}
+handle_relay_s :: s ->
+                (s -> a -> Eff r w) ->
+                (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
+                Eff (t ': r) a -> Eff r w
+handle_relay_s s ret h m = loop s m
+  where
+    loop s0 (Val x)  = ret s0 x
+    loop s0 (E u q)  = case decomp u of
+      Right x -> h s0 x k
+      Left  u0 -> E u0 (tsingleton (k s0))
+     where k s1 x = loop s1 $ qApp q x
 
+-- | Add something like Control.Exception.catches? It could be useful
+-- for control with cut.
+--
 -- Intercept the request and possibly reply to it, but leave it unhandled
 -- (that's why we use the same r all throuout)
 {-# INLINE interpose #-}
@@ -191,17 +184,3 @@ interpose ret h m = loop m
      Just x -> h x k
      _      -> E u (tsingleton k)
     where k = qComp q loop
-
--- Parameterized handle_relay
-{-# INLINE handle_relay_s #-}
-handle_relay_s :: s ->
-                (s -> a -> Eff r w) ->
-                (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay_s s ret h m = loop s m
-  where
-    loop s0 (Val x)  = ret s0 x
-    loop s0 (E u q)  = case decomp u of
-      Right x -> h s0 x k
-      Left  u0 -> E u0 (tsingleton (k s0))
-     where k s1 x = loop s1 $ qApp q x
