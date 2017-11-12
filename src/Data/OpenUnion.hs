@@ -9,6 +9,7 @@
 
 -- Only for SetMember below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 {-# LANGUAGE FlexibleContexts #-}
 
 #if __GLASGOW_HASKELL__ >= 708
