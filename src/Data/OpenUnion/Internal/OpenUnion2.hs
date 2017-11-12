@@ -10,6 +10,7 @@
 
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 -- | Original work at <http://okmij.org/ftp/Haskell/extensible/OpenUnion2.hs>.
 -- Open unions (type-indexed co-products) for extensible effects.

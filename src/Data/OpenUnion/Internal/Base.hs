@@ -9,6 +9,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE Trustworthy #-} -- GHC.Exts.Constraint makes module not 'Safe'
+{-# LANGUAGE UndecidableSuperClasses #-}
 
 #if __GLASGOW_HASKELL__ >= 708
 #define Typeable1 Typeable
