@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -16,8 +17,6 @@ module Control.Eff.Choose1( Choose (..)
                           , mplus'
                           ) where
 
-import Control.Monad
-import Control.Applicative
 import Control.Eff1
 import Data.OpenUnion51
 

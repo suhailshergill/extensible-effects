@@ -66,7 +66,9 @@ library
                        Control.Eff.Choose1
                        Control.Eff.Coroutine
                        Control.Eff.Cut
+                       -- Control.Eff.Cut1
                        Control.Eff.Example
+                       Control.Eff.Example1
                        Control.Eff.Exception
                        Control.Eff.Exception1
                        Control.Eff.Fresh

@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -14,12 +15,13 @@ module Control.Eff.Exception1( Exc (..)
                             , onFail
                             , rethrowExc
                             , liftEither
-                            -- , liftEitherM
+                            , liftEitherM
                             , liftMaybe
                             , ignoreFail
                             ) where
 
-import Control.Eff1 hiding (Exc(..), throwError, runError, catchError)
+import Control.Eff1
+import Control.Eff.Lift1
 import Data.OpenUnion51
 
 import Control.Monad (void)
@@ -82,12 +84,12 @@ liftEither :: (Member (Exc e) r) => Either e a -> Eff r a
 liftEither = either throwExc return
 {-# INLINE liftEither #-}
 
--- -- | `liftEither` in a lifted Monad
--- liftEitherM :: (Typeable1 m, Typeable e, Member (Exc e) r, SetMember Lift (Lift m) r)
---             => m (Either e a)
---             -> Eff r a
--- liftEitherM m = lift m >>= liftEither
--- {-# INLINE liftEitherM #-}
+-- | `liftEither` in a lifted Monad
+liftEitherM :: (Member (Exc e) r, MemberU2 Lift (Lift m) r)
+            => m (Either e a)
+            -> Eff r a
+liftEitherM m = lift m >>= liftEither
+{-# INLINE liftEitherM #-}
 
 -- | Lift a maybe into the 'Fail' effect, causing failure if it's 'Nothing'.
 liftMaybe :: Member Fail r => Maybe a -> Eff r a

@@ -1,7 +1,9 @@
+{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE GADTs, DataKinds #-}
 {-# LANGUAGE Safe #-}
 -- | A Trace effect for debugging
 module Control.Eff.Trace( Trace (..)
@@ -9,23 +11,22 @@ module Control.Eff.Trace( Trace (..)
                         , runTrace
                         ) where
 
-import Data.Typeable
-import Data.Void
-
-import Control.Eff
+import Control.Eff1
+import Data.OpenUnion51
 
 -- | Trace effect for debugging
-data Trace v = Trace String (() -> v)
-    deriving (Typeable, Functor)
+data Trace v where
+  Trace :: String -> Trace ()
 
 -- | Print a string as a trace.
 trace :: Member Trace r => String -> Eff r ()
-trace x = send . inj $ Trace x id
+trace = send . Trace
 
 -- | Run a computation producing Traces.
-runTrace :: Eff (Trace :> Void) w -> IO w
-runTrace = loop
-  where
-    loop = freeMap
-           return
-           (\u -> prjForce u $ \(Trace s k) -> putStrLn s >> loop (k ()))
+-- The handler for IO request: a terminal handler
+runTrace :: Eff '[Trace] w -> IO w
+runTrace (Val x) = return x
+runTrace (E u q) = case decomp u of
+     Right (Trace s) -> putStrLn s >> runTrace (qApp q ())
+     -- Nothing more can occur
+     Left _ -> error "runTrace: the impossible happened!"
