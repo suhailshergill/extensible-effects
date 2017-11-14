@@ -1,13 +1,20 @@
 {-# OPTIONS_HADDOCK show-extensions #-}
 
-{-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE CPP #-}
+
+{-# LANGUAGE TypeFamilies, TypeOperators #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds, PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
-{-# LANGUAGE OverlappingInstances #-}
 {-# LANGUAGE Trustworthy #-}
-{-# OPTIONS_GHC -fno-warn-warnings-deprecations -Wwarn #-}
+{-# OPTIONS_GHC -Wwarn -Wno-redundant-constraints #-}
+
+#if __GLASGOW_HASKELL__ >= 710
+{-# LANGUAGE OverlappingInstances #-}
+{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
+#else
+#endif
 
 -- Only for MemberU below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
@@ -75,6 +82,7 @@ class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)
 
+#if __GLASGOW_HASKELL__ >= 710
 {-
 -- Optimized specialized instance
 instance Member t '[t] where
@@ -83,12 +91,36 @@ instance Member t '[t] where
   inj x           = Union 0 x
   prj (Union _ x) = Just (unsafeCoerce x)
 -}
-
 instance (FindElem t r) => Member t r where
   {-# INLINE inj #-}
   {-# INLINE prj #-}
   inj = inj' (unP $ (elemNo :: P t r))
   prj = prj' (unP $ (elemNo :: P t r))
+#else
+-- | Explicit type-level equality condition is a dirty
+-- hack to eliminate the type annotation in the trivial case,
+-- such as @run (runReader get ())@.
+--
+-- There is no ambiguity when finding instances for
+-- @Member t (a ': b ': r)@, which the second instance is selected.
+--
+-- The only case we have to concerned about is  @Member t '[s]@.
+-- But, in this case, values of definition is the same (if present),
+-- and the first one is chosen according to GHC User Manual, since
+-- the latter one is incoherent. This is the optimal choice.
+instance {-# OVERLAPPING #-} t ~ s => Member t '[s] where
+   {-# INLINE inj #-}
+   {-# INLINE prj #-}
+   inj x           = Union 0 x
+   prj (Union _ x) = Just (unsafeCoerce x)
+
+instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
+  {-# INLINE inj #-}
+  {-# INLINE prj #-}
+  inj = inj' (unP $ (elemNo :: P t r))
+  prj = prj' (unP $ (elemNo :: P t r))
+#endif
+
 
 
 {-# INLINE [2] decomp #-}
@@ -115,10 +147,24 @@ weaken (Union n v) = Union (n+1) v
 class FindElem (t :: * -> *) r where
   elemNo :: P t r
 
+#if __GLASGOW_HASKELL__ >= 710
 instance FindElem t (t ': r) where
+#else
+-- Stopped Using Obsolete -XOverlappingInstances
+-- and explicitly specify to choose the topmost
+-- one for multiple occurence, which is the same
+-- behaviour as OpenUnion51 with GHC 7.10.
+instance {-# INCOHERENT  #-} t ~ s => FindElem t '[s] where
+  elemNo = P 0
+instance {-# INCOHERENT #-} FindElem t (t ': r) where
+#endif
   elemNo = P 0
 
+#if __GLASGOW_HASKELL__ >= 710
 instance FindElem t r => FindElem t (t' ': r) where
+#else
+instance {-# OVERLAPPABLE #-} FindElem t r => FindElem t (t' ': r) where
+#endif
   elemNo = P $ 1 + (unP $ (elemNo :: P t r))
 
 

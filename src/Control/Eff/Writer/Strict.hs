@@ -17,7 +17,6 @@ module Control.Eff.Writer.Strict ( Writer(..)
 
 import Control.Eff
 import Data.OpenUnion
-import Data.FTCQueue1
 
 import Data.Monoid
 import Control.Applicative ((<|>))

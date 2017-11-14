@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Werror #-}
+--{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}

@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Werror -Wno-name-shadowing #-}
+{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
