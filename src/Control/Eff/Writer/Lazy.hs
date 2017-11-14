@@ -15,7 +15,7 @@ module Control.Eff.Writer.Lazy ( Writer(..)
                                ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 import Data.FTCQueue1
 
 import Data.Monoid

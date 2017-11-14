@@ -24,7 +24,7 @@ module Control.Eff.Operational ( Program (..)
                                ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.

@@ -18,7 +18,7 @@ module Control.Eff.Choose ( Choose (..)
                           ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)

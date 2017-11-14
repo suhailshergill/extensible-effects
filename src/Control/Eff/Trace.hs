@@ -12,7 +12,7 @@ module Control.Eff.Trace( Trace (..)
                         ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 
 -- | Trace effect for debugging
 data Trace v where

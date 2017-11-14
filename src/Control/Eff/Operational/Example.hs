@@ -9,7 +9,7 @@ module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
 import Control.Eff (Eff(..))
-import Data.OpenUnion51
+import Data.OpenUnion
 import Control.Eff.Lift
 import Control.Eff.Writer.Lazy
 import Control.Eff.State.Lazy

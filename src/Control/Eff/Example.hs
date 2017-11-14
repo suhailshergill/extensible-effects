@@ -6,7 +6,7 @@
 module Control.Eff.Example where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 import Data.FTCQueue1
 
 import Control.Eff.State.Lazy

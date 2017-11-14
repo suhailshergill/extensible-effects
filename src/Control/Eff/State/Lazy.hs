@@ -12,7 +12,7 @@ module Control.Eff.State.Lazy where
 import Control.Eff
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
-import Data.OpenUnion51
+import Data.OpenUnion
 import Data.FTCQueue1 (tsingleton)
 
 -- ------------------------------------------------------------------------

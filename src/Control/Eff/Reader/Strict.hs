@@ -13,7 +13,7 @@ module Control.Eff.Reader.Strict ( Reader (..)
                               ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 import Data.FTCQueue1
 
 -- ------------------------------------------------------------------------

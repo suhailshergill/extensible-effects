@@ -17,7 +17,7 @@
 module Control.Eff.State.LazyState where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 import Control.Eff.Exception
 
 

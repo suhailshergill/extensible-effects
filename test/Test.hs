@@ -20,7 +20,7 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import qualified Control.Eff as E1
-import qualified Data.OpenUnion51 as OU51
+import qualified Data.OpenUnion as OU51
 import qualified Control.Eff.Reader.Lazy as E1.LazyR
 import qualified Control.Eff.Reader.Strict as E1.StrictR
 import qualified Control.Eff.Writer.Lazy as E1.LazyW

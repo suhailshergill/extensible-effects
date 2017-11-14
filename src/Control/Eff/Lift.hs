@@ -15,7 +15,7 @@ module Control.Eff.Lift ( Lift (..)
                        ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers

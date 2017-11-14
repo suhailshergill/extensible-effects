@@ -16,7 +16,7 @@
 -- effects, consult the tests.
 module Control.Eff where
 
-import safe Data.OpenUnion51
+import safe Data.OpenUnion
 import Data.FTCQueue1
 import GHC.Exts (inline)
 

@@ -13,7 +13,7 @@ module Control.Eff.Coroutine( Yield (..)
 
 import Control.Eff
 import Control.Eff.Reader.Strict
-import Data.OpenUnion51
+import Data.OpenUnion
 import Control.Eff.Trace
 
 -- ------------------------------------------------------------------------

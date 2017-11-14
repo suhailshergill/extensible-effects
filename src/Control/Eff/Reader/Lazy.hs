@@ -13,7 +13,7 @@ module Control.Eff.Reader.Lazy ( Reader (..)
                               ) where
 
 import Control.Eff
-import Data.OpenUnion51
+import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad

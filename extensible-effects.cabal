@@ -81,18 +81,17 @@ library
                        Control.Eff.Trace
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
-                       Control.Monad.Free.Reflection
+                       -- Control.Monad.Free.Reflection
                        Data.OpenUnion
-                       Data.OpenUnion51
-                       Data.OpenUnion.Imports
 
   -- Modules included in this library but not exported.
-  other-modules:       Data.OpenUnion.Internal.Base
-                       Data.FTCQueue1
+  other-modules:       Data.FTCQueue1
   if impl(ghc >= 7.8.1)
-     other-modules:    Data.OpenUnion.Internal.OpenUnion2
+     other-modules:
+                       -- Data.OpenUnion.Internal.OpenUnion2
   else
-     other-modules:    Data.OpenUnion.Internal.OpenUnion1
+     other-modules:
+                       -- Data.OpenUnion.Internal.OpenUnion1
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
