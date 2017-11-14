@@ -6,6 +6,7 @@
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE BangPatterns #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
 import Control.Exception (ErrorCall, catch)
 import Data.Typeable
@@ -18,26 +19,28 @@ import Test.Framework.TH
 import Test.HUnit hiding (State)
 import Test.QuickCheck
 
-import qualified Control.Eff1 as E1
+import qualified Control.Eff as E1
 import qualified Data.OpenUnion51 as OU51
-import qualified Control.Eff.Reader.Lazy1 as E1.LazyR
-import qualified Control.Eff.Reader.Strict1 as E1.StrictR
-import qualified Control.Eff.Writer.Lazy1 as E1.LazyW
-import qualified Control.Eff.Writer.Strict1 as E1.StrictW
-import qualified Control.Eff.State.Strict1 as E1.StrictS
-import qualified Control.Eff.State.Lazy1 as E1.LazyS
-import Control.Eff.Exception1
-import Control.Eff.Choose1 as E1.Choose
+import qualified Control.Eff.Reader.Lazy as E1.LazyR
+import qualified Control.Eff.Reader.Strict as E1.StrictR
+import qualified Control.Eff.Writer.Lazy as E1.LazyW
+import qualified Control.Eff.Writer.Strict as E1.StrictW
+import qualified Control.Eff.State.Strict as E1.StrictS
+import qualified Control.Eff.State.Lazy as E1.LazyS
+import Control.Eff.Exception
+import Control.Eff.Choose as E1.Choose
 import Control.Eff.NdetEff
 import Control.Monad (liftM2, msum, guard)
 import Data.Monoid
 
-import Control.Eff
-import Control.Eff.Example as Eg
--- fixed below
-import Control.Eff.Lift1
+import Control.Eff.Example as E1.Eg
+--import Control.Eff.Cut
+import Control.Eff.Fresh
+import Control.Eff.Lift
 import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
+import Control.Eff.Trace
+import Control.Eff.Coroutine
 import Data.Void
 
 main :: IO ()
@@ -87,6 +90,7 @@ safeLast l = Just $ last l
 
 -- {{{ Reader
 
+add :: Monad m => m Int -> m Int -> m Int
 add = liftM2 (+)
 t1 = E1.LazyR.ask `add` return (1::Int)
 
@@ -178,7 +182,6 @@ case_Strict1_Reader_runReader = let
     voidReader = do
         _ <- (E1.StrictR.ask :: E1.Eff '[E1.StrictR.Reader ()] ())
         return ()
-
 
 -- }}}
 
@@ -415,7 +418,6 @@ case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (E1.run ex2r2)
   where
     ex2r2 = runErrBig (E1.LazyR.runReader (ex2 E1.LazyR.ask) (7::Int))
 
-
 -- }}}
 
 -- {{{ Alternative
@@ -547,5 +549,215 @@ case_Operational_Monad =
    assertEqual
    "Evaluating Operational Monad example"
    "getting input...\nok\nthe input is foo\n" go
+
+-- }}}
+
+-- {{{ Yield
+
+-- case_Coroutines_c1 :: Assertion
+-- case_Coroutines_c1 =
+--   let th1 :: Member (Yield Int ()) r => E1.Eff r ()
+--       th1 = yieldInt 1 >> yieldInt 2
+--       c1 = runTrace (loop =<< runC th1)
+--         where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+--               loop (Done)    = trace ("Done")
+--   in
+--     assertEqual
+--     "Simple coroutines using Eff"
+--     "" c1
+
+-- }}}
+
+-- {{{ TODO: Lift
+
+tl1 = E1.StrictR.ask >>= \(x::Int) -> lift . print $ x
+
+-- tl1r :: IO ()
+tl1r = runLift (E1.StrictR.runReader tl1 (5::Int))
+-- 5
+
+-- Re-implemenation of mapMdebug using Lifting
+-- The signature is inferred
+mapMdebug'  :: (Show a, OU51.MemberU2 Lift (Lift IO) r) =>
+             (a -> E1.Eff r b) -> [a] -> E1.Eff r [b]
+mapMdebug' f [] = return []
+mapMdebug' f (h:t) = do
+ lift $ print h
+ h' <- f h
+ t' <- mapMdebug' f t
+ return (h':t')
+
+tMd' = runLift $ E1.StrictR.runReader (mapMdebug' f [1..5]) (10::Int)
+ where f x = E1.StrictR.ask `add` return x
+{-
+1
+2
+3
+4
+5
+[11,12,13,14,15]
+-}
+
+-- }}}
+
+-- {{{ TODO: Trace
+
+-- Higher-order effectful function
+-- The inferred type shows that the Trace affect is added to the effects
+-- of r
+mapMdebug:: (Show a, OU51.Member Trace r) =>
+     (a -> E1.Eff r b) -> [a] -> E1.Eff r [b]
+mapMdebug f [] = return []
+mapMdebug f (h:t) = do
+ trace $ "mapMdebug: " ++ show h
+ h' <- f h
+ t' <- mapMdebug f t
+ return (h':t')
+
+tMd = runTrace $ E1.StrictR.runReader (mapMdebug f [1..5]) (10::Int)
+ where f x = E1.StrictR.ask `add` return x
+{-
+mapMdebug: 1
+mapMdebug: 2
+mapMdebug: 3
+mapMdebug: 4
+mapMdebug: 5
+[11,12,13,14,15]
+-}
+
+-- duplicate layers
+tdup = runTrace $ E1.StrictR.runReader m (10::Int)
+ where
+ m = do
+     E1.StrictR.runReader tr (20::Int)
+     tr
+ tr = do
+      v <- E1.StrictR.ask
+      trace $ "Asked: " ++ show (v::Int)
+{-
+Asked: 20
+Asked: 10
+-}
+
+-- }}}
+
+-- {{{ TODO: Fresh
+
+
+-- Test
+tfresh' = runTrace $ flip runFresh' 0 $ do
+  n <- fresh
+  trace $ "Fresh " ++ show n
+  n <- fresh
+  trace $ "Fresh " ++ show n
+{-
+Fresh 0
+Fresh 1
+-}
+
+-- }}}
+
+-- {{{ TODO: choice, non-determinism
+
+-- -- primes (very inefficiently -- but a good example of ifte)
+-- test_ifte = do
+--   n <- gen
+--   ifte (do
+--      d <- gen
+--      guard $ d < n && n `mod` d == 0
+--      -- _ <- trace ("d: " ++ show d) (return ())
+--     )
+--     (\_->mzero)
+--     (return n)
+--  where gen = msum . fmap return $ [2..30]
+
+-- test_ifte_run :: [Int]
+-- test_ifte_run = run . makeChoiceA $ test_ifte
+-- -- [2,3,5,7,11,13,17,19,23,29]
+
+-- -- called reflect in the LogicT paper
+-- unmsplit :: Member NdetEff r => (Maybe (a, Eff r a)) -> Eff r a
+-- unmsplit Nothing      = mzero
+-- unmsplit (Just (a,m)) = return a `mplus` m
+
+-- tsplit =
+--   (tell "begin" >> return 1) `mplus`
+--   (tell "end"   >> return 2)
+
+-- tsplitr10, tsplitr11 :: ([Int],[String])
+-- tsplitr10 = run $ runWriter $ makeChoiceA tsplit
+-- tsplitr11 = run $ runWriter $ makeChoiceA (msplit tsplit >>= unmsplit)
+
+
+-- tsplitr20, tsplitr21 :: [(Int,[String])]
+-- tsplitr20 = run $ makeChoiceA $ runWriter tsplit
+-- tsplitr21 = run $ makeChoiceA $ runWriter (msplit tsplit >>= unmsplit)
+
+-- -- ------------------------------------------------------------------------
+-- -- Combining exceptions and non-determinism
+
+-- -- Example from the paper
+
+-- ex2_2 = ([Right 5,Left (TooBig 7),Right 1] ==) $
+--         run . makeChoice . runErrBig $ ex2 (choose [5,7,1])
+
+-- -- just like ex1_1 in transf.hs but not at all like ex2_1 in transf.hs
+
+-- -- with different order of handlers, obtain the desired result of
+-- -- a high-priority exception
+-- ex2_1 = (Left (TooBig 7) ==) $
+--         run . runErrBig . makeChoice $ ex2 (choose [5,7,1])
+
+
+-- -- Errror recovery part
+-- -- The code is the same as in transf1.hs. The inferred signatures differ
+-- -- Was: exRec :: MonadError TooBig m => m Int -> m Int
+-- -- exRec :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
+-- exRec m = catchError m handler
+--  where handler (TooBig n) | n <= 7 = return n
+--        handler e = throwError e
+
+-- ex2r_2 = (Right [5,7,1] ==) $
+--          run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,1]))
+-- -- Compare with ex2r_1 from transf1.hs
+
+-- ex2r_2' = ([Right 5,Right 7,Right 1] ==) $
+--           run . makeChoice . runErrBig $ exRec (ex2 (choose [5,7,1]))
+-- -- Again, all three choices are accounted for.
+
+-- ex2r_1 = (Left (TooBig 11) ==) $
+--          run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,11,1]))
+-- -- Compare with ex2r_2 from transf1.hs
+
+-- }}}
+
+-- {{{ TODO: cut
+
+-- -- The signature is inferred
+-- tcut1 :: (Member Choose r, Member (Exc CutFalse) r) => Eff r Int
+-- tcut1 = (return (1::Int) `mplus'` return 2) `mplus'`
+--          ((cutfalse `mplus'` return 4) `mplus'`
+--           return 5)
+
+-- tcut1r = run . makeChoice $ call tcut1
+-- -- [1,2]
+
+-- tcut2 = return (1::Int) `mplus'`
+--          call (return 2 `mplus'` (cutfalse `mplus'` return 3) `mplus'`
+--                return 4)
+--        `mplus'` return 5
+
+-- -- Here we see nested call. It poses no problems...
+-- tcut2r = run . makeChoice $ call tcut2
+-- -- [1,2,5]
+
+-- -- More nested calls
+-- tcut3 = call tcut1 `mplus'` call (tcut2 `mplus'` cutfalse)
+-- tcut3r = run . makeChoice $ call tcut3
+-- -- [1,2,1,2,5]
+
+-- tcut4 = call tcut1 `mplus'`  (tcut2 `mplus'` cutfalse)
+-- tcut4r = run . makeChoice $ call tcut4
+-- -- [1,2,1,2,5]
 
 -- }}}

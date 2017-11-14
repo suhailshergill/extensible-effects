@@ -14,10 +14,11 @@
 -- extensibility (the delayed computation must be effect-closed, but the
 -- whole computation does not have to be).
 
-module LazyState where
+module Control.Eff.State.LazyState where
 
-import Eff1
-import OpenUnion51
+import Control.Eff
+import Data.OpenUnion51
+import Control.Eff.Exception
 
 
 -- Define a new effect for state on-demand (in ExtEff, the state is
@@ -48,7 +49,7 @@ runStateLazy s = handle_relay_s s (\s x -> return (x,s))
                        LPut s  -> k s ()
                        Delay m -> let ~(x,s1) = run $ runStateLazy s m
                                   in k s1 x)
-                   
+
 
 -- Tests
 
@@ -57,7 +58,7 @@ lex1 = do
   lput (1::Int)
 
 ex1Run :: ((),Int)
-ex1Run = run $ runStateLazy 0 lex1 
+ex1Run = run $ runStateLazy 0 lex1
 -- ((),1)
 
 -- Edward's example
@@ -97,14 +98,14 @@ lex31 = do
 lex5 = do
   lex31
   x <- lget
-  throwError ((take 5 x)::[Int])
+  throwExc ((take 5 x)::[Int])
 
 ex5Run :: Either [Int] a
-ex5Run = fst . run . runStateLazy (undefined::[Int]) . runError $ lex5
+ex5Run = fst . run . runStateLazy (undefined::[Int]) . runExc $ lex5
 -- Left [1,1,1,1,1]
 
 ex51Run :: Either [Int] (a,[Int])
-ex51Run = run . runError . runStateLazy (undefined::[Int]) $ lex5
+ex51Run = run . runExc . runStateLazy (undefined::[Int]) $ lex5
 -- Left [1,1,1,1,1]
 
 -- Backwards state
@@ -177,4 +178,3 @@ ones = snd $ runStateBack $ do
 
 -- take 5 ones
 -- [1,1,1,1,1]
-

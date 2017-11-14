@@ -11,7 +11,7 @@ module Control.Eff.Trace( Trace (..)
                         , runTrace
                         ) where
 
-import Control.Eff1
+import Control.Eff
 import Data.OpenUnion51
 
 -- | Trace effect for debugging

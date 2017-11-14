@@ -13,7 +13,7 @@ module Control.Eff.Fresh( Fresh (..)
                         , runFresh'
                         ) where
 
-import Control.Eff1
+import Control.Eff
 import Data.OpenUnion51
 
 -- There are three possible implementations

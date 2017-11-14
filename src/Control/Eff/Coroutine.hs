@@ -11,8 +11,8 @@ module Control.Eff.Coroutine( Yield (..)
                             , Y (..)
                             ) where
 
-import Control.Eff1
-import Control.Eff.Reader.Strict1
+import Control.Eff
+import Control.Eff.Reader.Strict
 import Data.OpenUnion51
 import Control.Eff.Trace
 

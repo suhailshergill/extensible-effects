@@ -1,20 +1,19 @@
-{-# LANGUAGE BangPatterns #-}
+{-# OPTIONS_GHC -Werror -Wno-name-shadowing #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
--- | Strict read-only state
-module Control.Eff.Reader.Strict1( Reader (..)
+-- | Lazy read-only state
+module Control.Eff.Reader.Lazy ( Reader (..)
                               , ask
                               , local
                               , reader
                               , runReader
                               ) where
 
-import Control.Eff1 hiding (Reader(..), ask, local, runReader, runReader')
+import Control.Eff
 import Data.OpenUnion51
-import Data.FTCQueue1
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad
@@ -43,7 +42,7 @@ ask = send $ Reader id
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
 runReader :: Eff (Reader e ': r) w -> e -> Eff r w
-runReader m !e = handle_relay
+runReader m e = handle_relay
   return
   (\(Reader f) k -> k (f e))
   m

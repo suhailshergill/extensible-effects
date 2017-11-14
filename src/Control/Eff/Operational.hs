@@ -23,7 +23,7 @@ module Control.Eff.Operational ( Program (..)
                                -- $usage
                                ) where
 
-import Control.Eff1
+import Control.Eff
 import Data.OpenUnion51
 
 -- | Lift values to an effect.

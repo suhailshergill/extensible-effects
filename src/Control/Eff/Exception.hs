@@ -1,11 +1,11 @@
-{-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-{-# LANGUAGE DeriveFunctor #-}
+{-# OPTIONS_GHC -Werror #-}
+{-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE CPP #-}
-{-# LANGUAGE Safe #-}
+{-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE TypeOperators #-}
 -- | Exception-producing and exception-handling effects
-module Control.Eff.Exception( Exc (..)
+module Control.Eff.Exception ( Exc (..)
                             , Fail
                             , throwExc
                             , die
@@ -20,25 +20,23 @@ module Control.Eff.Exception( Exc (..)
                             , ignoreFail
                             ) where
 
-import Control.Monad (void)
-import Data.Typeable
-
 import Control.Eff
 import Control.Eff.Lift
+import Data.OpenUnion51
 
-#if __GLASGOW_HASKELL__ >= 708
-#define Typeable1 Typeable
-#endif
+import Control.Monad (void)
 
--- | These are exceptions of the type e. This is akin to the error monad.
+-- ------------------------------------------------------------------------
+-- | Exceptions
+--
+-- exceptions of the type e; no resumption
 newtype Exc e v = Exc e
-    deriving (Functor, Typeable)
 
 type Fail = Exc ()
 
--- | Throw an exception in an effectful computation.
-throwExc :: (Typeable e, Member (Exc e) r) => e -> Eff r a
-throwExc e = send . inj $ Exc e
+-- | Throw an exception in an effectful computation. The type is inferred.
+throwExc :: (Member (Exc e) r) => e -> Eff r a
+throwExc e = send (Exc e)
 {-# INLINE throwExc #-}
 
 -- | Makes an effect fail, preventing future effects from happening.
@@ -47,34 +45,27 @@ die = throwExc ()
 {-# INLINE die #-}
 
 -- | Run a computation that might produce an exception.
-runExc :: Typeable e => Eff (Exc e :> r) a -> Eff r (Either e a)
-runExc = loop
- where
-  loop = freeMap
-         (return . Right)
-         (\u -> handleRelay u loop (\(Exc e) -> return (Left e)))
+runExc :: Eff (Exc e ': r) a -> Eff r (Either e a)
+runExc = handle_relay
+  (return . Right)
+  (\(Exc e) _k -> return (Left e))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
-runFail :: Eff (Fail :> r) a -> Eff r (Maybe a)
+runFail :: Eff (Fail ': r) a -> Eff r (Maybe a)
 runFail = fmap (either (const Nothing) Just) . runExc
 {-# INLINE runFail #-}
 
--- | Run a computation that might produce exceptions,
--- and give it a way to deal with the exceptions that come up.
-catchExc :: (Typeable e, Member (Exc e) r)
-         => Eff r a
-         -> (e -> Eff r a)
-         -> Eff r a
-catchExc m handle = loop m
- where
-  loop = freeMap
-         return
-         (\u -> interpose u loop (\(Exc e) -> handle e))
+-- | Run a computation that might produce exceptions, and give it a way to deal
+-- with the exceptions that come up. The handler is allowed to rethrow the
+-- exception
+catchExc :: Member (Exc e) r =>
+        Eff r a -> (e -> Eff r a) -> Eff r a
+catchExc m handle = interpose return (\(Exc e) _k -> handle e) m
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.
-onFail :: Eff (Fail :> r) a -- ^ The fallible computation.
+onFail :: Eff (Fail ': r) a -- ^ The fallible computation.
        -> Eff r a           -- ^ The computation to run on failure.
        -> Eff r a
 onFail e handle = runFail e >>= maybe handle return
@@ -82,20 +73,19 @@ onFail e handle = runFail e >>= maybe handle return
 
 -- | Run a computation until it produces an exception,
 -- and convert and throw that exception in a new context.
-rethrowExc :: (Typeable e, Typeable e', Member (Exc e') r)
+rethrowExc :: (Member (Exc e') r)
            => (e -> e')
-           -> Eff (Exc e :> r) a
+           -> Eff (Exc e ': r) a
            -> Eff r a
 rethrowExc t eff = runExc eff >>= either (throwExc . t) return
 
 -- | Treat Lefts as exceptions and Rights as return values.
-liftEither :: (Typeable e, Member (Exc e) r) => Either e a -> Eff r a
-liftEither (Left e) = throwExc e
-liftEither (Right a) = return a
+liftEither :: (Member (Exc e) r) => Either e a -> Eff r a
+liftEither = either throwExc return
 {-# INLINE liftEither #-}
 
 -- | `liftEither` in a lifted Monad
-liftEitherM :: (Typeable1 m, Typeable e, Member (Exc e) r, SetMember Lift (Lift m) r)
+liftEitherM :: (Member (Exc e) r, MemberU2 Lift (Lift m) r)
             => m (Either e a)
             -> Eff r a
 liftEitherM m = lift m >>= liftEither
@@ -108,7 +98,7 @@ liftMaybe = maybe die return
 
 -- | Ignores a failure event. Since the event can fail, you cannot inspect its
 --   return type, because it has none on failure. To inspect it, use 'runFail'.
-ignoreFail :: Eff (Fail :> r) a
+ignoreFail :: Eff (Fail ': r) a
            -> Eff r ()
 ignoreFail e = void e `onFail` return ()
 {-# INLINE ignoreFail #-}

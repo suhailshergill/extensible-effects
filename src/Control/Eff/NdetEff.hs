@@ -12,7 +12,7 @@
 -- | Another implementation of nondeterministic choice effect
 module Control.Eff.NdetEff where
 
-import Control.Eff1
+import Control.Eff
 import Data.OpenUnion51
 import Data.FTCQueue1
 

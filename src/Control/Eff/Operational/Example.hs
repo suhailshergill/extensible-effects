@@ -8,11 +8,11 @@
 module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
-import Control.Eff1 (Eff(..))
+import Control.Eff (Eff(..))
 import Data.OpenUnion51
-import Control.Eff.Lift1
-import Control.Eff.Writer.Lazy1
-import Control.Eff.State.Lazy1
+import Control.Eff.Lift
+import Control.Eff.Writer.Lazy
+import Control.Eff.State.Lazy
 import Data.Typeable
 
 #if __GLASGOW_HASKELL__ >= 708
