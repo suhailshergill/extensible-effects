@@ -14,7 +14,6 @@ module Control.Eff.NdetEff where
 
 import Control.Eff
 import Data.OpenUnion
-import Data.FTCQueue1
 
 import Control.Monad
 import Control.Applicative
@@ -56,7 +55,7 @@ makeChoiceA m = loop [] m
        []    -> return empty
        (h:t) -> loop t h
      Right MPlus -> loop (qApp q False : jq) (qApp q True)
-     Left  u0 -> E u0 (tsingleton (\x -> loop jq (qApp q x)))
+     Left  u0 -> E u0 (single (\x -> loop jq (qApp q x)))
 
 -- ------------------------------------------------------------------------
 -- Soft-cut: non-deterministic if-then-else, aka Prolog's *->
@@ -84,7 +83,7 @@ msplit = loop []
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((qApp q False):jq) (qApp q True)
-  _      -> E u (tsingleton k) where k = qComp q (loop jq)
+  _      -> E u (single k) where k = qComp q (loop jq)
 
 -- Other committed choice primitives can be implemented in terms of msplit
 -- The following implementations are directly from the LogicT paper

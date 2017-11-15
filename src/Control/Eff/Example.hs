@@ -7,7 +7,6 @@ module Control.Eff.Example where
 
 import Control.Eff
 import Data.OpenUnion
-import Data.FTCQueue1
 
 import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy
@@ -60,11 +59,11 @@ handUp (Val x) = return x
 handUp (E u q) = case decomp u of
   Right Move -> handDown $ qApp q ()
   -- Relay other requests
-  Left u0     -> E u0 (tsingleton Val) >>= handUp . qApp q
+  Left u0     -> E u0 ident >>= handUp . qApp q
 
 handDown :: Eff (Move ': r) a -> Eff r a
 handDown (Val x) = return x
 handDown (E u q) = case decomp u of
   Right Move -> handUp $ qApp q ()
   -- Relay other requests
-  Left u0     -> E u0 (tsingleton Val) >>= handDown . qApp q
+  Left u0     -> E u0 ident >>= handDown . qApp q

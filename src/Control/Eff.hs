@@ -31,12 +31,15 @@ type Arr r a b = a -> Eff r b
 arr :: (a -> b) -> Arrs r a b
 arr f = tsingleton (Val . f)
 
+ident :: Arrs r a a
+ident = arr id
+
+single :: Arr r a b -> Arrs r a b
+single = tsingleton
+
 -- FIXME: convert to 'Arrs'
 first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
-
-ident :: Arrs r a a
-ident = tsingleton $ Val . id
 
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp = (><)

@@ -14,7 +14,6 @@ module Control.Eff.Reader.Strict ( Reader (..)
 
 import Control.Eff
 import Data.OpenUnion
-import Data.FTCQueue1
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad
