@@ -58,6 +58,11 @@ flag lib-Werror
   default: False
   manual: True
 
+flag force-openunion-51
+  description:         Force usage of OpenUnion51.hs implementation
+  default:             True
+  manual:              True
+
 library
   ghc-options:         -Wall
   -- Modules exported by the library.
@@ -86,12 +91,8 @@ library
 
   -- Modules included in this library but not exported.
   other-modules:       Data.FTCQueue1
-  if impl(ghc >= 7.8.1)
-     other-modules:
-                       -- Data.OpenUnion.Internal.OpenUnion2
-  else
-     other-modules:
-                       -- Data.OpenUnion.Internal.OpenUnion1
+  if flag(force-openunion-51)
+    cpp-options:       -DFORCE_OU51
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns

@@ -10,7 +10,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# OPTIONS_GHC -Wwarn -Wno-redundant-constraints #-}
 
-#if __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 {-# LANGUAGE OverlappingInstances #-}
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 #else
@@ -82,7 +82,7 @@ class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)
 
-#if __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 {-
 -- Optimized specialized instance
 instance Member t '[t] where
@@ -147,7 +147,7 @@ weaken (Union n v) = Union (n+1) v
 class FindElem (t :: * -> *) r where
   elemNo :: P t r
 
-#if __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 instance FindElem t (t ': r) where
 #else
 -- Stopped Using Obsolete -XOverlappingInstances
@@ -160,7 +160,7 @@ instance {-# INCOHERENT #-} FindElem t (t ': r) where
 #endif
   elemNo = P 0
 
-#if __GLASGOW_HASKELL__ >= 710
+#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 instance FindElem t r => FindElem t (t' ': r) where
 #else
 instance {-# OVERLAPPABLE #-} FindElem t r => FindElem t (t' ': r) where
