@@ -86,7 +86,6 @@ library
                        Control.Eff.Trace
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
-                       -- Control.Monad.Free.Reflection
                        Data.OpenUnion
 
   -- Modules included in this library but not exported.
