@@ -89,7 +89,7 @@ library
                        Data.OpenUnion
 
   -- Modules included in this library but not exported.
-  other-modules:       Data.FTCQueue1
+  other-modules:       Data.FTCQueue
   if flag(force-openunion-51)
     cpp-options:       -DFORCE_OU51
 

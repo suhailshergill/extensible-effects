@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE Safe #-}
 
 -- Fast type-aligned queue optimized to effectful functions
 -- (a -> m b)
@@ -6,7 +7,7 @@
 -- Constant-time append and snoc and
 -- average constant-time left-edge deconstruction
 
-module Data.FTCQueue1 (
+module Data.FTCQueue (
   FTCQueue,
   tsingleton,
   (|>), -- snoc

@@ -17,7 +17,7 @@
 module Control.Eff where
 
 import safe Data.OpenUnion
-import Data.FTCQueue1
+import safe Data.FTCQueue
 import GHC.Exts (inline)
 
 -- ------------------------------------------------------------------------
