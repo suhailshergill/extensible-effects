@@ -1,4 +1,4 @@
-{-# OPTIONS_GHC -Werror #-}
+--{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE DeriveDataTypeable #-}
@@ -37,7 +37,7 @@ fresh = send Fresh
 runFresh' :: Eff (Fresh ': r) w -> Int -> Eff r w
 runFresh' m s =
   handle_relay_s s (\_s x -> return x)
-                   (\s0 Fresh k -> (k $! s0 + 1) s)
+                   (\s' Fresh k -> (k $! s' + 1) s')
                    m
 
 {-

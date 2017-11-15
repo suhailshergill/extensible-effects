@@ -19,21 +19,21 @@ import Test.Framework.TH
 import Test.HUnit hiding (State)
 import Test.QuickCheck
 
-import qualified Control.Eff as E1
-import qualified Data.OpenUnion as OU51
-import qualified Control.Eff.Reader.Lazy as E1.LazyR
-import qualified Control.Eff.Reader.Strict as E1.StrictR
-import qualified Control.Eff.Writer.Lazy as E1.LazyW
-import qualified Control.Eff.Writer.Strict as E1.StrictW
-import qualified Control.Eff.State.Strict as E1.StrictS
-import qualified Control.Eff.State.Lazy as E1.LazyS
+import Control.Eff
+import Data.OpenUnion
+import qualified Control.Eff.Reader.Lazy as LazyR
+import qualified Control.Eff.Reader.Strict as StrictR
+import qualified Control.Eff.Writer.Lazy as LazyW
+import qualified Control.Eff.Writer.Strict as StrictW
+import qualified Control.Eff.State.Strict as StrictS
+import qualified Control.Eff.State.Lazy as LazyS
 import Control.Eff.Exception
-import Control.Eff.Choose as E1.Choose
+import Control.Eff.Choose as Choose
 import Control.Eff.NdetEff
-import Control.Monad (liftM2, msum, guard)
+import Control.Monad (liftM2, msum, guard, mzero, mplus)
 import Data.Monoid
 
-import Control.Eff.Example as E1.Eg
+import Control.Eff.Example as Eg
 --import Control.Eff.Cut
 import Control.Eff.Fresh
 import Control.Eff.Lift
@@ -43,17 +43,32 @@ import Control.Eff.Trace
 import Control.Eff.Coroutine
 import Data.Void
 
-main :: IO ()
-main = defaultMain tests
+-- {{{ utils: TODO: move them out
 
-tests = [
-  $(testGroupGenerator)
-#if __GLASGOW_HASKELL__ >= 708
-  , testProperty "Test nested Eff." testNestedEff
-#endif
-        ]
+import GHC.IO.Handle
+import System.IO
+import System.Directory
 
--- {{{ utils
+-- | capture stdout
+-- [[https://stackoverflow.com/a/9664017][source]]
+catchOutput :: IO a -> IO (a, String)
+catchOutput f = do
+  tmpd <- getTemporaryDirectory
+  (tmpf, tmph) <- openTempFile tmpd "haskell_stdout"
+  stdout_dup <- hDuplicate stdout
+  hDuplicateTo tmph stdout
+  hClose tmph
+  fVal <- f
+  hDuplicateTo stdout_dup stdout
+  str <- readFile tmpf
+  removeFile tmpf
+  return (fVal, str)
+
+showLn :: Show a => a -> String
+showLn x = unlines $ [show x]
+
+showLines :: Show a => [a] -> String
+showLines xs = unlines $ map show xs
 
 withError :: a -> ErrorCall -> a
 withError a _ = a
@@ -74,17 +89,27 @@ safeLast l = Just $ last l
 
 -- }}}
 
+main :: IO ()
+main = defaultMain tests
+
+tests = [
+  $(testGroupGenerator)
+#if __GLASGOW_HASKELL__ >= 708
+  , testProperty "Test nested Eff." testNestedEff
+#endif
+        ]
+
 -- {{{ Documentation example
 
--- prop_Documentation_example :: [Integer] -> Property
--- prop_Documentation_example l = let
---   (total1, ()) = run $ LazyS.runState 0 $ Eg.sumAll l
---   (last1, ()) = run $ LazyW.runLastWriter $ Eg.writeAll l
---   (total2, (last2, ())) = run $ LazyS.runState 0 $ LazyW.runLastWriter $ Eg.writeAndAdd l
---   (last3, (total3, ())) = run $ LazyW.runLastWriter $ LazyS.runState 0 $ Eg.writeAndAdd l
---   in
---    allEqual [safeLast l, last1, last2, last3]
---    .&&. allEqual [sum l, total1, total2, total3]
+prop_Documentation_example :: [Integer] -> Property
+prop_Documentation_example l = let
+  ((), total1) = run $ LazyS.runState (Eg.sumAll l) 0
+  ((), last1) = run $ LazyW.runLastWriter $ Eg.writeAll l
+  (((), last2), total2) = run $ LazyS.runState (LazyW.runLastWriter (Eg.writeAndAdd l)) 0
+  (((), total3), last3) = run $ LazyW.runLastWriter $ LazyS.runState (Eg.writeAndAdd l) 0
+  in
+   allEqual [safeLast l, last1, last2, last3]
+   .&&. allEqual [sum l, total1, total2, total3]
 
 -- }}}
 
@@ -92,28 +117,28 @@ safeLast l = Just $ last l
 
 add :: Monad m => m Int -> m Int -> m Int
 add = liftM2 (+)
-t1 = E1.LazyR.ask `add` return (1::Int)
+t1 = LazyR.ask `add` return (1::Int)
 
 case_Lazy1_Reader_t1 :: Assertion
 case_Lazy1_Reader_t1 = let
-  t1' = do v <- E1.LazyR.ask; return (v + 1 :: Int)
-  t1r = E1.LazyR.runReader t1 (10::Int)
+  t1' = do v <- LazyR.ask; return (v + 1 :: Int)
+  t1r = LazyR.runReader t1 (10::Int)
   in
-    -- 'E1.LazyR.run t1' should result in type-error
-    11 @=? (E1.run t1r)
+    -- 'LazyR.run t1' should result in type-error
+    11 @=? (run t1r)
 
 t2 = do
-  v1 <- E1.LazyR.ask
-  v2 <- E1.LazyR.ask
+  v1 <- LazyR.ask
+  v2 <- LazyR.ask
   return $ fromIntegral (v1 + (1::Int)) + (v2 + (2::Float))
 
 
 case_Lazy1_Reader_t2 :: Assertion
 case_Lazy1_Reader_t2 = let
-  t2r = E1.LazyR.runReader t2 (10::Int)
-  t2rr = flip E1.LazyR.runReader (20::Float) . flip E1.LazyR.runReader (10::Int) $ t2
+  t2r = LazyR.runReader t2 (10::Int)
+  t2rr = flip LazyR.runReader (20::Float) . flip LazyR.runReader (10::Int) $ t2
   in
-    33.0 @=? (E1.run t2rr)
+    33.0 @=? (run t2rr)
 
 -- The opposite order of layers
 {- If we mess up, we get an error
@@ -123,14 +148,14 @@ t2rrr1' = run $ runReader (runReader t2 (20::Float)) (10::Float)
 -}
 case_Lazy1_Reader_t2' :: Assertion
 case_Lazy1_Reader_t2' = 33.0 @=?
-  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t2 (20::Float)) (10::Int))
+  (run $ LazyR.runReader (LazyR.runReader t2 (20::Float)) (10::Int))
 
 
 case_Lazy1_Reader_t3 :: Assertion
 case_Lazy1_Reader_t3 = let
-  t3 = t1 `add` E1.LazyR.local (+ (10::Int)) t1
+  t3 = t1 `add` LazyR.local (+ (10::Int)) t1
   in
-    212 @=? (E1.run $ E1.LazyR.runReader t3 (100::Int))
+    212 @=? (run $ LazyR.runReader t3 (100::Int))
 
 -- The following example demonstrates true interleaving of Reader Int
 -- and Reader Float layers
@@ -139,17 +164,17 @@ t4
   :: (Member (Reader Int) r, Member (Reader Float) r) =>
      () -> Eff r Float
 -}
-t4 = liftM2 (+) (E1.LazyR.local (+ (10::Int)) t2)
-                (E1.LazyR.local (+ (30::Float)) t2)
+t4 = liftM2 (+) (LazyR.local (+ (10::Int)) t2)
+                (LazyR.local (+ (30::Float)) t2)
 
 case_Lazy1_Reader_t4 :: Assertion
 case_Lazy1_Reader_t4 = 106.0 @=?
-  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t4 (20::Float)) (10::Int))
+  (run $ LazyR.runReader (LazyR.runReader t4 (20::Float)) (10::Int))
 
 -- The opposite order of layers gives the same result
 case_Lazy1_Reader_t4' :: Assertion
 case_Lazy1_Reader_t4' = 106.0 @=?
-  (E1.run $ E1.LazyR.runReader (E1.LazyR.runReader t4 (20::Float)) (10::Int))
+  (run $ LazyR.runReader (LazyR.runReader t4 (20::Float)) (10::Int))
 
 -- Map an effectful function
 case_Lazy1_Reader_tmap :: Assertion
@@ -157,30 +182,30 @@ case_Lazy1_Reader_tmap = let
   tmap = mapM f [1..5]
   in
     ([11,12,13,14,15] :: [Int]) @=?
-    (E1.run $ E1.LazyR.runReader tmap (10::Int))
+    (run $ LazyR.runReader tmap (10::Int))
   where
-    f x = E1.LazyR.ask `add` return x
+    f x = LazyR.ask `add` return x
 
 -- {{{ Reader.runReader
 
 case_Lazy1_Reader_runReader :: Assertion
 case_Lazy1_Reader_runReader = let
-  e = E1.run $ E1.LazyR.runReader voidReader (undefined :: ())
+  e = run $ LazyR.runReader voidReader (undefined :: ())
   in
    assertNoUndefined (e :: ())
   where
     voidReader = do
-        _ <- (E1.LazyR.ask :: E1.Eff '[E1.LazyR.Reader ()] ())
+        _ <- (LazyR.ask :: Eff '[LazyR.Reader ()] ())
         return ()
 
 case_Strict1_Reader_runReader :: Assertion
 case_Strict1_Reader_runReader = let
-  e = E1.run $ E1.StrictR.runReader voidReader (undefined :: ())
+  e = run $ StrictR.runReader voidReader (undefined :: ())
   in
    assertUndefined (e :: ())
   where
     voidReader = do
-        _ <- (E1.StrictR.ask :: E1.Eff '[E1.StrictR.Reader ()] ())
+        _ <- (StrictR.ask :: Eff '[StrictR.Reader ()] ())
         return ()
 
 -- }}}
@@ -193,19 +218,19 @@ case_Strict1_Reader_runReader = let
 
 case_Lazy1_State_runState :: Assertion
 case_Lazy1_State_runState = let
-  (r, ()) = E1.run
-            $ flip E1.LazyS.runState undefined
+  (r, ()) = run
+            $ flip LazyS.runState undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
   in
    assertNoUndefined r
   where
-    getVoid :: E1.Eff '[E1.LazyS.State ()] ()
-    getVoid = E1.LazyS.get
+    getVoid :: Eff '[LazyS.State ()] ()
+    getVoid = LazyS.get
 
-    putVoid :: () -> E1.Eff '[E1.LazyS.State ()] ()
-    putVoid = E1.LazyS.put
+    putVoid :: () -> Eff '[LazyS.State ()] ()
+    putVoid = LazyS.put
 
 -- }}}
 
@@ -213,85 +238,85 @@ case_Lazy1_State_runState = let
 
 case_Strict1_State_runState :: Assertion
 case_Strict1_State_runState = let
-  (r, ()) = E1.run
-            $ (flip E1.StrictS.runState) undefined
+  (r, ()) = run
+            $ (flip StrictS.runState) undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
   in
    assertUndefined r
   where
-    getVoid :: E1.Eff '[E1.StrictS.State ()] ()
-    getVoid = E1.StrictS.get
+    getVoid :: Eff '[StrictS.State ()] ()
+    getVoid = StrictS.get
 
-    putVoid :: () -> E1.Eff '[E1.StrictS.State ()] ()
-    putVoid = E1.StrictS.put
+    putVoid :: () -> Eff '[StrictS.State ()] ()
+    putVoid = StrictS.put
 
 case_Strict1_State_ts1 :: Assertion
-case_Strict1_State_ts1 = (10,10) @=? (E1.run (E1.StrictS.runState ts1 (0::Int)))
+case_Strict1_State_ts1 = (10,10) @=? (run (StrictS.runState ts1 (0::Int)))
   where
     ts1 = do
-      E1.StrictS.put (10 ::Int)
-      x <- E1.StrictS.get
+      StrictS.put (10 ::Int)
+      x <- StrictS.get
       return (x::Int)
 
 case_Strict1_State_ts11 :: Assertion
 case_Strict1_State_ts11 =
-  (10,10) @=? (E1.run (E1.StrictS.runStateR ts11 (0::Int)))
+  (10,10) @=? (run (StrictS.runStateR ts11 (0::Int)))
   where
     ts11 = do
-      E1.StrictW.tell (10 ::Int)
-      x <- E1.StrictR.ask
+      StrictW.tell (10 ::Int)
+      x <- StrictR.ask
       return (x::Int)
 
 case_Strict1_State_ts2 :: Assertion
 case_Strict1_State_ts2 = (30::Int,20::Int) @=?
-  (E1.run (E1.StrictS.runState ts2 (0::Int)))
+  (run (StrictS.runState ts2 (0::Int)))
   where
     ts2 = do
-      E1.StrictS.put (10::Int)
-      x <- E1.StrictS.get
-      E1.StrictS.put (20::Int)
-      y <- E1.StrictS.get
+      StrictS.put (10::Int)
+      x <- StrictS.get
+      StrictS.put (20::Int)
+      y <- StrictS.get
       return (x+y)
 
 case_Strict1_State_ts21 :: Assertion
 case_Strict1_State_ts21 = (30::Int,20::Int) @=?
-  (E1.run (E1.StrictS.runStateR ts21 (0::Int)))
+  (run (StrictS.runStateR ts21 (0::Int)))
   where
     ts21 = do
-      E1.StrictW.tell (10::Int)
-      x <- E1.StrictR.ask
-      E1.StrictW.tell (20::Int)
-      y <- E1.StrictR.ask
+      StrictW.tell (10::Int)
+      x <- StrictR.ask
+      StrictW.tell (20::Int)
+      y <- StrictR.ask
       return (x+y)
 
-tes1 :: (OU51.Member (E1.StrictS.State Int) r
-        , OU51.Member (Exc [Char]) r) => E1.Eff r b
+tes1 :: (Member (StrictS.State Int) r
+        , Member (Exc [Char]) r) => Eff r b
 tes1 = do
   incr
   throwExc "exc"
   where
-    incr = E1.StrictS.get >>= E1.StrictS.put . (+ (1::Int))
+    incr = StrictS.get >>= StrictS.put . (+ (1::Int))
 
 case_Strict1_State_ter1 :: Assertion
 case_Strict1_State_ter1 = (Left "exc" :: Either String Int,2) @=?
-  (E1.run $ E1.StrictS.runState (runExc tes1) (1::Int))
+  (run $ StrictS.runState (runExc tes1) (1::Int))
 
 case_Strict1_State_ter2 :: Assertion
 case_Strict1_State_ter2 = (Left "exc" :: Either String (Int,Int)) @=?
-  (E1.run $ runExc (E1.StrictS.runState tes1 (1::Int)))
+  (run $ runExc (StrictS.runState tes1 (1::Int)))
 
-teCatch :: OU51.Member (Exc String) r => E1.Eff r a -> E1.Eff r [Char]
+teCatch :: Member (Exc String) r => Eff r a -> Eff r [Char]
 teCatch m = catchExc (m >> return "done") (\e -> return (e::String))
 
 case_Strict1_State_ter3 :: Assertion
 case_Strict1_State_ter3 = (Right "exc" :: Either String String,2) @=?
-  (E1.run $ E1.StrictS.runState (runExc (teCatch tes1)) (1::Int))
+  (run $ StrictS.runState (runExc (teCatch tes1)) (1::Int))
 
 case_Strict1_State_ter4 :: Assertion
 case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
-  (E1.run $ runExc (E1.StrictS.runState (teCatch tes1) (1::Int)))
+  (run $ runExc (StrictS.runState (teCatch tes1) (1::Int)))
 
 -- }}}
 
@@ -299,20 +324,20 @@ case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
 
 -- {{{ Writer
 
-addGet :: OU51.Member (E1.LazyR.Reader Int) r  => Int -> E1.Eff r Int
-addGet x = E1.LazyR.ask >>= \i -> return (i+x)
+addGet :: Member (LazyR.Reader Int) r  => Int -> Eff r Int
+addGet x = LazyR.ask >>= \i -> return (i+x)
 
 addN n = foldl (>>>) return (replicate n addGet) 0
  where f >>> g = (>>= g) . f
 
 case_Lazy1_Writer_rdwr :: Assertion
 case_Lazy1_Writer_rdwr = (10, ["begin", "end"]) @=?
-  (E1.run . (`E1.LazyR.runReader` (1::Int)) . E1.LazyW.runListWriter $ rdwr)
+  (run . (`LazyR.runReader` (1::Int)) . LazyW.runListWriter $ rdwr)
   where
     rdwr = do
-      E1.LazyW.tell "begin"
+      LazyW.tell "begin"
       r <- addN 10
-      E1.LazyW.tell "end"
+      LazyW.tell "end"
       return r
 
 -- {{{ Writer.censor
@@ -320,13 +345,13 @@ case_Lazy1_Writer_rdwr = (10, ["begin", "end"]) @=?
 prop_Lazy1_Writer_censor :: [Integer] -> Property
 prop_Lazy1_Writer_censor l =
   property
-  $ listE (mapM_ (E1.LazyW.tell . inc) l) == listE (E1.LazyW.censor inc $ mapM_ E1.LazyW.tell l)
+  $ listE (mapM_ (LazyW.tell . inc) l) == listE (LazyW.censor inc $ mapM_ LazyW.tell l)
   where
     inc :: Integer -> Integer
     inc = (+1)
 
-    listE :: E1.Eff '[E1.LazyW.Writer Integer] () -> [Integer]
-    listE = snd . E1.run . E1.LazyW.runListWriter
+    listE :: Eff '[LazyW.Writer Integer] () -> [Integer]
+    listE = snd . run . LazyW.runListWriter
 
 -- }}}
 
@@ -334,7 +359,7 @@ prop_Lazy1_Writer_censor l =
 
 case_Lazy1_Writer_runFirstWriter :: Assertion
 case_Lazy1_Writer_runFirstWriter = let
-  ((), Just m) = E1.run $ E1.LazyW.runFirstWriter $ mapM_ E1.LazyW.tell [(), undefined]
+  ((), Just m) = run $ LazyW.runFirstWriter $ mapM_ LazyW.tell [(), undefined]
   in
    assertNoUndefined (m :: ())
 
@@ -344,13 +369,13 @@ case_Lazy1_Writer_runFirstWriter = let
 
 case_Lazy1_Writer_runLastWriter :: Assertion
 case_Lazy1_Writer_runLastWriter = let
-  ((), Just m) = E1.run $ E1.LazyW.runLastWriter $ mapM_ E1.LazyW.tell [undefined, ()]
+  ((), Just m) = run $ LazyW.runLastWriter $ mapM_ LazyW.tell [undefined, ()]
   in
    assertNoUndefined (m :: ())
 
 case_Strict1_Writer_runLastWriter :: Assertion
 case_Strict1_Writer_runLastWriter = let
-  ((), Just m) = E1.run $ E1.StrictW.runLastWriter $ mapM_ E1.StrictW.tell [undefined, ()]
+  ((), Just m) = run $ StrictW.runLastWriter $ mapM_ StrictW.tell [undefined, ()]
   in
    assertUndefined (m :: ())
 
@@ -365,14 +390,14 @@ case_Strict1_Writer_runLastWriter = let
 et1 = return 1 `add` return 2
 
 case_Exception1_et1 :: Assertion
-case_Exception1_et1 = 3 @=? (E1.run et1)
+case_Exception1_et1 = 3 @=? (run et1)
 
 -- The type is inferred
 -- et2 :: Member (Exc Int) r => Eff r Int
 et2 = return 1 `add` throwExc (2::Int)
 
 -- The following won't type: unhandled exception!
--- ex2rw = E1.run et2
+-- ex2rw = run et2
 {-
     Could not deduce (Data.OpenUnion51.FindElem (Exc Int) '[])
       arising from a use of `et2'
@@ -380,10 +405,10 @@ et2 = return 1 `add` throwExc (2::Int)
 
 case_Exception1_et21 :: Assertion
 case_Exception1_et21 = (Left (2::Int)) @=?
-  (E1.run et21)
+  (run et21)
   where
     -- The inferred type shows that ex21 is now pure
-    -- et21 :: E1.Eff r (Either Int Int)
+    -- et21 :: Eff r (Either Int Int)
 
     et21 = runExc et2
 
@@ -392,31 +417,31 @@ case_Exception1_et21 = (Left (2::Int)) @=?
 -- The example from the paper
 newtype TooBig = TooBig Int deriving (Eq, Show)
 -- The type is inferred
-ex2 :: OU51.Member (Exc TooBig) r => E1.Eff r Int -> E1.Eff r Int
+ex2 :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
 ex2 m = do
   v <- m
   if v > 5 then throwExc (TooBig v)
      else return v
 
 -- specialization to tell the type of the exception
-runErrBig :: E1.Eff (Exc TooBig ': r) a -> E1.Eff r (Either TooBig a)
+runErrBig :: Eff (Exc TooBig ': r) a -> Eff r (Either TooBig a)
 runErrBig = runExc
 
 case_Exception1_ex2r :: Assertion
-case_Exception1_ex2r = (Right 5) @=? (E1.run ex2r)
+case_Exception1_ex2r = (Right 5) @=? (run ex2r)
   where
-    ex2r = E1.LazyR.runReader (runErrBig (ex2 E1.LazyR.ask)) (5::Int)
+    ex2r = LazyR.runReader (runErrBig (ex2 LazyR.ask)) (5::Int)
 
 case_Exception1_ex2r1 :: Assertion
-case_Exception1_ex2r1 = (Left (TooBig 7)) @=? (E1.run ex2r1)
+case_Exception1_ex2r1 = (Left (TooBig 7)) @=? (run ex2r1)
   where
-    ex2r1 = E1.LazyR.runReader (runErrBig (ex2 E1.LazyR.ask)) (7::Int)
+    ex2r1 = LazyR.runReader (runErrBig (ex2 LazyR.ask)) (7::Int)
 
 -- Different order of handlers (layers)
 case_Exception1_ex2r2 :: Assertion
-case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (E1.run ex2r2)
+case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (run ex2r2)
   where
-    ex2r2 = runErrBig (E1.LazyR.runReader (ex2 E1.LazyR.ask) (7::Int))
+    ex2r2 = runErrBig (LazyR.runReader (ex2 LazyR.ask) (7::Int))
 
 -- }}}
 
@@ -431,8 +456,8 @@ case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (E1.run ex2r2)
 -- We use MemberU2 in the signature rather than Member to
 -- ensure that the computation throws only one type of exceptions.
 -- Otherwise, this construction is not very useful.
-alttry :: forall e r a. (Monoid e, OU51.MemberU2 Exc (Exc e) r) =>
-          E1.Eff r a -> E1.Eff r a -> E1.Eff r a
+alttry :: forall e r a. (Monoid e, MemberU2 Exc (Exc e) r) =>
+          Eff r a -> Eff r a -> Eff r a
 alttry ma mb =
   catchExc ma $ \ea ->
   catchExc mb $ \eb -> throwExc (mappend (ea::e) eb)
@@ -441,15 +466,15 @@ case_Exception1_alttry :: Assertion
 case_Exception1_alttry =
   [Right 10,Right 10,Right 10,Left "bummer1bummer2"] @=?
   [
-  E1.run . runExc $
+  run . runExc $
      (return 1 `add` throwExc "bummer1") `alttry`
      (return 10),
-  E1.run . runExc $
+  run . runExc $
      (return 10) `alttry`
      (return 1 `add` throwExc "bummer2"),
-  E1.run . runExc $
+  run . runExc $
      (return 10) `alttry` return 20,
-  E1.run . runExc $
+  run . runExc $
      (return 1 `add` throwExc "bummer1") `alttry`
      (return 1 `add` throwExc "bummer2")
      ]
@@ -460,15 +485,15 @@ case_Exception1_alttry =
 
 case_Failure1_Effect :: Assertion
 case_Failure1_Effect =
-  let go :: E1.Eff (Exc () ': E1.StrictW.Writer Int ': '[]) Int
+  let go :: Eff (Exc () ': StrictW.Writer Int ': '[]) Int
          -> Int
-      go = snd . E1.run . E1.StrictW.runWriter (+) 0 . ignoreFail
+      go = snd . run . StrictW.runWriter (+) 0 . ignoreFail
       ret = go $ do
-        E1.StrictW.tell (1 :: Int)
-        E1.StrictW.tell (2 :: Int)
-        E1.StrictW.tell (3 :: Int)
+        StrictW.tell (1 :: Int)
+        StrictW.tell (2 :: Int)
+        StrictW.tell (3 :: Int)
         () <- die
-        E1.StrictW.tell (4 :: Int)
+        StrictW.tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
 
@@ -479,27 +504,104 @@ case_Failure1_Effect =
 -- {{{ Choose
 
 case_Choose1_exc11 :: Assertion
-case_Choose1_exc11 = [2,3] @=? (E1.run exc11)
+case_Choose1_exc11 = [2,3] @=? (run exc11)
   where
-    exc11 = E1.Choose.makeChoice exc1
-    exc1 = return 1 `add` E1.Choose.choose [1,2]
+    exc11 = Choose.makeChoice exc1
+    exc1 = return 1 `add` Choose.choose [1,2]
+
+case_Choose_ex2 :: Assertion
+case_Choose_ex2 =
+  let ex2_1 = run . makeChoice . runErrBig $ ex2 (Choose.choose [5,7,1])
+      ex2_2 = run . runErrBig . makeChoice $ ex2 (Choose.choose [5,7,1])
+  in
+    assertEqual "Choose: Combining exceptions and non-determinism: ex2_1"
+    expected1 ex2_1
+    >> assertEqual "Choose: Combining exceptions and non-determinism: ex2_2"
+    expected2 ex2_2
+  where
+    expected1 = [Right 5,Left (TooBig 7),Right 1]
+    expected2 = Left (TooBig 7)
+
+case_Choose_exRec :: Assertion
+case_Choose_exRec =
+  let exRec_1 = run . runErrBig . makeChoice $ exRec (ex2 (Choose.choose [5,7,1]))
+      exRec_2 = run . makeChoice . runErrBig $ exRec (ex2 (Choose.choose [5,7,1]))
+      exRec_3 = run . runErrBig . makeChoice $ exRec (ex2 (Choose.choose [5,7,11,1]))
+  in
+    assertEqual "Choose: error recovery: exRec_1" expected1 exRec_1
+    >> assertEqual "Choose: error recovery: exRec_2" expected2 exRec_2
+    >> assertEqual "Choose: error recovery: exRec_1" expected3 exRec_3
+  where
+    expected1 = Right [5,7,1]
+    expected2 = [Right 5,Right 7,Right 1]
+    expected3 = Left (TooBig 11)
+    -- Errror recovery part
+    -- The code is the same as in transf1.hs. The inferred signatures differ
+    -- Was: exRec :: MonadError TooBig m => m Int -> m Int
+    -- exRec :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
+    exRec m = catchExc m handler
+      where handler (TooBig n) | n <= 7 = return n
+            handler e = throwExc e
 
 -- }}}
 
 -- {{{ NdetEff
 
 case_NdetEff_testCA :: Assertion
-case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ makeChoiceA testCA)
+case_NdetEff_testCA = [2, 4..10] @=? (run $ makeChoiceA testCA)
   where
-    testCA :: (Integral a) => E1.Eff (NdetEff ': r) a
+    testCA :: (Integral a) => Eff (NdetEff ': r) a
     testCA = do
       i <- msum . fmap return $ [1..10]
       guard (i `mod` 2 == 0)
       return i
 
-#if __GLASGOW_HASKELL__ >= 708
-#define Typeable1 Typeable
-#endif
+case_NdetEff_ifte :: Assertion
+case_NdetEff_ifte =
+  let primes = ifte_test_run
+  in
+    assertEqual "NdetEff: test ifte using primes"
+    [2,3,5,7,11,13,17,19,23,29] primes
+  where
+    ifte_test = do
+      n <- gen
+      ifte (do
+               d <- gen
+               guard $ d < n && n `mod` d == 0
+               -- _ <- trace ("d: " ++ show d) (return ())
+           )
+        (\_ -> mzero)
+        (return n)
+        where gen = msum . fmap return $ [2..30]
+
+    ifte_test_run :: [Int]
+    ifte_test_run = run . makeChoiceA $ ifte_test
+
+
+-- called reflect in the LogicT paper
+case_NdetEff_reflect :: Assertion
+case_NdetEff_reflect =
+  let tsplitr10 = run $ StrictW.runListWriter $ makeChoiceA tsplit
+      tsplitr11 = run $ StrictW.runListWriter $ makeChoiceA (msplit tsplit >>= unmsplit)
+      tsplitr20 = run $ makeChoiceA $ StrictW.runListWriter tsplit
+      tsplitr21 = run $ makeChoiceA $ StrictW.runListWriter (msplit tsplit >>= unmsplit)
+  in
+    assertEqual "tsplitr10" expected1 tsplitr10
+    >> assertEqual "tsplitr11" expected1 tsplitr11
+    >> assertEqual "tsplitr20" expected2 tsplitr20
+    >> assertEqual "tsplitr21" expected21 tsplitr21
+  where
+    expected1 = ([1, 2],["begin", "end"])
+    expected2 = [(1, ["begin"]), (2, ["end"])]
+    expected21 = [(1, ["begin"]), (2, ["begin", "end"])]
+
+    unmsplit :: Member NdetEff r => (Maybe (a, Eff r a)) -> Eff r a
+    unmsplit Nothing      = mzero
+    unmsplit (Just (a,m)) = return a `mplus` m
+
+    tsplit =
+      (StrictW.tell "begin" >> return 1) `mplus`
+      (StrictW.tell "end"   >> return 2)
 
 -- }}}
 
@@ -509,30 +611,28 @@ case_NdetEff_testCA = [2, 4..10] @=? (E1.run $ makeChoiceA testCA)
 case_Lift_building :: Assertion
 case_Lift_building = runLift possiblyAmbiguous
   where
-    possiblyAmbiguous :: (Monad m, OU51.MemberU2 Lift (Lift m) r) => E1.Eff r ()
+    possiblyAmbiguous :: (Monad m, MemberU2 Lift (Lift m) r) => Eff r ()
     possiblyAmbiguous = lift $ return ()
 
 -- }}}
 
 -- {{{ Nested Eff
 
-#if __GLASGOW_HASKELL__ >= 708
 testNestedEff :: Property
 testNestedEff = forAll arbitrary (\x -> property (qu x == x))
   where
     qu :: Bool -> Bool
-    qu x = E1.run $ E1.StrictR.runReader (readerAp x) readerId
+    qu x = run $ StrictR.runReader (readerAp x) readerId
 
-    readerAp :: Bool -> E1.Eff '[E1.StrictR.Reader (E1.Eff '[E1.StrictR.Reader Bool] Bool)] Bool
+    readerAp :: Bool -> Eff '[StrictR.Reader (Eff '[StrictR.Reader Bool] Bool)] Bool
     readerAp x = do
-      f <- E1.StrictR.ask
-      return . E1.run $ E1.StrictR.runReader f x
+      f <- StrictR.ask
+      return . run $ StrictR.runReader f x
 
-    readerId :: E1.Eff '[E1.StrictR.Reader Bool] Bool
+    readerId :: Eff '[StrictR.Reader Bool] Bool
     readerId = do
-      x <- E1.StrictR.ask
+      x <- StrictR.ask
       return x
-#endif
 
 -- }}}
 
@@ -540,194 +640,341 @@ testNestedEff = forAll arbitrary (\x -> property (qu x == x))
 
 case_Operational_Monad :: Assertion
 case_Operational_Monad =
-  let comp :: (OU51.Member (E1.LazyS.State [String]) r
-               , OU51.Member (E1.LazyW.Writer String) r)
-              => E1.Eff r ()
+  let comp :: (Member (LazyS.State [String]) r
+               , Member (LazyW.Writer String) r)
+              => Eff r ()
       comp = Op.runProgram Op.Eg.adventPure Op.Eg.prog
-      go = snd . E1.run . E1.LazyW.runMonoidWriter $ E1.LazyS.evalState comp ["foo", "bar"]
+      go = snd . run . LazyW.runMonoidWriter $ LazyS.evalState comp ["foo", "bar"]
   in
    assertEqual
    "Evaluating Operational Monad example"
-   "getting input...\nok\nthe input is foo\n" go
+   (unlines ["getting input...",
+             "ok",
+             "the input is foo"]) go
 
 -- }}}
 
 -- {{{ Yield
 
--- case_Coroutines_c1 :: Assertion
--- case_Coroutines_c1 =
---   let th1 :: Member (Yield Int ()) r => E1.Eff r ()
---       th1 = yieldInt 1 >> yieldInt 2
---       c1 = runTrace (loop =<< runC th1)
---         where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
---               loop (Done)    = trace ("Done")
---   in
---     assertEqual
---     "Simple coroutines using Eff"
---     "" c1
+yieldInt :: Member (Yield Int ()) r => Int -> Eff r ()
+yieldInt = yield
+
+case_Coroutines_c1 :: Assertion
+case_Coroutines_c1 = do
+  ((), actual) <- catchOutput c1
+  assertEqual
+    "Coroutine: Simple coroutines using Eff"
+    (unlines ["1", "2", "Done"]) actual
+  where
+    th1 :: Member (Yield Int ()) r => Eff r ()
+    th1 = yieldInt 1 >> yieldInt 2
+
+    c1 = runTrace (loop =<< runC th1)
+      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+            loop (Done)    = trace ("Done")
+
+case_Coroutines_c2 :: Assertion
+case_Coroutines_c2 = do
+  ((), actual1) <- catchOutput c2
+  assertEqual "Coroutine: Add dynamic variables"
+    (unlines ["10", "10", "Done"]) actual1
+  ((), actual2) <- catchOutput c21
+  assertEqual "Coroutine: locally changing the dynamic environment for the suspension"
+    (unlines ["10", "11", "Done"]) actual2
+  where
+    -- The code is essentially the same as that in transf.hs (only added
+    -- a type specializtion on yield). The inferred signature is different though.
+    -- Before it was
+    --    th2 :: MonadReader Int m => CoT Int m ()
+    -- Now it is more general:
+    th2 :: (Member (Yield Int ()) r, Member (StrictR.Reader Int) r) => Eff r ()
+    th2 = StrictR.ask >>= yieldInt >> (StrictR.ask >>= yieldInt)
+
+    -- Code is essentially the same as in transf.hs; no liftIO though
+    c2 = runTrace $ StrictR.runReader (loop =<< runC th2) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+            loop Done    = trace "Done"
+
+    -- locally changing the dynamic environment for the suspension
+    c21 = runTrace $ StrictR.runReader (loop =<< runC th2) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> StrictR.local (+(1::Int)) (k ()) >>= loop
+            loop Done    = trace "Done"
+
+case_Coroutines_c3 :: Assertion
+case_Coroutines_c3 = do
+  ((), actual1) <- catchOutput c3
+  assertEqual "Coroutine: two sorts of local rebinding"
+    (unlines ["10", "10", "20", "20", "Done"]) actual1
+  ((), actual2) <- catchOutput c31
+  let expected2 = (unlines ["10", "11", "21", "21", "Done"])
+  assertEqual "Coroutine: locally changing the dynamic environment for the suspension"
+    expected2 actual2
+  ((), actual3) <- catchOutput c4
+  assertEqual "Coroutine: abstracting the client computation"
+    expected2 actual3
+  where
+    local = StrictR.local
+    ask = StrictR.ask
+    runReader = StrictR.runReader
+
+    th3 :: (Member (Yield Int ()) r, Member (StrictR.Reader Int) r) => Eff r ()
+    th3 = ay >> ay >> local (+(10::Int)) (ay >> ay)
+      where ay = ask >>= yieldInt
+
+    c3 = runTrace $ runReader (loop =<< runC th3) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+            loop Done    = trace "Done"
+
+    -- The desired result: the coroutine shares the dynamic environment with its
+    -- parent; however, when the environment is locally rebound, it becomes
+    -- private to coroutine.
+    c31 = runTrace $ runReader (loop =<< runC th3) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
+            loop Done    = trace "Done"
+
+    -- We now make explicit that the client computation, run by th4,
+    -- is abstract. We abstract it out of th4
+    c4 = runTrace $ runReader (loop =<< runC (th4 client)) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
+            loop Done    = trace "Done"
+
+            -- cl, client, ay are monomorphic bindings
+            th4 cl = cl >> local (+(10::Int)) cl
+            client = ay >> ay
+            ay     = ask >>= yieldInt
+
+case_Corountines_c5 :: Assertion
+case_Corountines_c5 = do
+  ((), actual) <- catchOutput c5
+  let expected = unlines ["10"
+                         ,"11"
+                         ,"12"
+                         ,"18"
+                         ,"18"
+                         ,"18"
+                         ,"29"
+                         ,"29"
+                         ,"29"
+                         ,"29"
+                         ,"29"
+                         ,"29"
+                         ,"Done"
+                         ]
+  assertEqual "Corountine: Even more dynamic example"
+    expected actual
+  where
+    local = StrictR.local
+    ask = StrictR.ask
+    runReader = StrictR.runReader
+
+    c5 = runTrace $ runReader (loop =<< runC (th client)) (10::Int)
+      where loop (Y x k) = trace (show (x::Int)) >> local (\y->x+1) (k ()) >>= loop
+            loop Done    = trace "Done"
+
+            -- cl, client, ay are monomorphic bindings
+            client = ay >> ay >> ay
+            ay     = ask >>= yieldInt
+
+            -- There is no polymorphic recursion here
+            th cl = do
+              cl
+              v <- ask
+              (if v > (20::Int) then id else local (+(5::Int))) cl
+              if v > (20::Int) then return () else local (+(10::Int)) (th cl)
+
+case_Coroutines_c7 :: Assertion
+case_Coroutines_c7 = do
+  ((), actual) <- catchOutput c7
+  let expected = unlines ["1010"
+                         ,"1021"
+                         ,"1032"
+                         ,"1048"
+                         ,"1064"
+                         ,"1080"
+                         ,"1101"
+                         ,"1122"
+                         ,"1143"
+                         ,"1169"
+                         ,"1195"
+                         ,"1221"
+                         ,"1252"
+                         ,"1283"
+                         ,"1314"
+                         ,"1345"
+                         ,"1376"
+                         ,"1407"
+                         ,"Done"
+                         ]
+  assertEqual "Coroutine: And even more dynamic example"
+    expected actual
+  where
+    local = StrictR.local
+    ask = StrictR.ask
+    runReader = StrictR.runReader
+
+    c7 = runTrace $
+          runReader (runReader (loop =<< runC (th client)) (10::Int)) (1000::Double)
+     where loop (Y x k) = trace (show (x::Int)) >>
+                          local (\y->fromIntegral (x+1)::Double) (k ()) >>= loop
+           loop Done    = trace "Done"
+
+           -- cl, client, ay are monomorphic bindings
+           client = ay >> ay >> ay
+           ay     = ask >>= \x -> ask >>=
+                     \y -> yieldInt (x + round (y::Double))
+
+           -- There is no polymorphic recursion here
+           th cl = do
+             cl
+             v <- ask
+             (if v > (20::Int) then id else local (+(5::Int))) cl
+             if v > (20::Int) then return () else local (+(10::Int)) (th cl)
+
+case_Coroutines_c7' :: Assertion
+case_Coroutines_c7' = do
+  ((), actual) <- catchOutput c7'
+  let expected = unlines ["1010"
+                         ,"1021"
+                         ,"1032"
+                         ,"1048"
+                         ,"1048"
+                         ,"1048"
+                         ,"1069"
+                         ,"1090"
+                         ,"1111"
+                         ,"1137"
+                         ,"1137"
+                         ,"1137"
+                         ,"1168"
+                         ,"1199"
+                         ,"1230"
+                         ,"1261"
+                         ,"1292"
+                         ,"1323"
+                         ,"Done"
+                         ]
+  assertEqual "Coroutine: And even more dynamic example"
+    expected actual
+  where
+    local = StrictR.local
+    ask = StrictR.ask
+    runReader = StrictR.runReader
+
+    c7' = runTrace $
+          runReader (runReader (loop =<< runC (th client)) (10::Int)) (1000::Double)
+     where loop (Y x k) = trace (show (x::Int)) >>
+                          local (\y->fromIntegral (x+1)::Double) (k ()) >>= loop
+           loop Done    = trace "Done"
+
+           -- cl, client, ay are monomorphic bindings
+           client = ay >> ay >> ay
+           ay     = ask >>= \x -> ask >>=
+                     \y -> yieldInt (x + round (y::Double))
+
+           -- There is no polymorphic recursion here
+           th cl = do
+             cl
+             v <- ask
+             (if v > (20::Int) then id else local (+(5::Double))) cl
+             if v > (20::Int) then return () else local (+(10::Int)) (th cl)
 
 -- }}}
 
--- {{{ TODO: Lift
+-- {{{ Lift
 
-tl1 = E1.StrictR.ask >>= \(x::Int) -> lift . print $ x
+case_Lift_tl1r :: Assertion
+case_Lift_tl1r = do
+  ((), output) <- catchOutput tl1r
+  assertEqual "Test tl1r" (showLn input) output
+  where
+    input = (5::Int)
+    -- tl1r :: IO ()
+    tl1r = runLift (StrictR.runReader tl1 input)
+      where
+        tl1 = StrictR.ask >>= \(x::Int) -> lift . print $ x
 
--- tl1r :: IO ()
-tl1r = runLift (E1.StrictR.runReader tl1 (5::Int))
--- 5
+case_Lift_tMd' :: Assertion
+case_Lift_tMd' = do
+  actual <- catchOutput tMd'
+  let expected = (output, (showLines input))
+  assertEqual "Test mapMdebug using Lift" expected actual
+  where
+    input = [1..5]
+    val = (10::Int)
+    output = map (+ val) input
 
--- Re-implemenation of mapMdebug using Lifting
--- The signature is inferred
-mapMdebug'  :: (Show a, OU51.MemberU2 Lift (Lift IO) r) =>
-             (a -> E1.Eff r b) -> [a] -> E1.Eff r [b]
-mapMdebug' f [] = return []
-mapMdebug' f (h:t) = do
- lift $ print h
- h' <- f h
- t' <- mapMdebug' f t
- return (h':t')
+    tMd' = runLift $ StrictR.runReader (mapMdebug' f input) val
+      where f x = StrictR.ask `add` return x
 
-tMd' = runLift $ E1.StrictR.runReader (mapMdebug' f [1..5]) (10::Int)
- where f x = E1.StrictR.ask `add` return x
-{-
-1
-2
-3
-4
-5
-[11,12,13,14,15]
--}
-
--- }}}
-
--- {{{ TODO: Trace
-
--- Higher-order effectful function
--- The inferred type shows that the Trace affect is added to the effects
--- of r
-mapMdebug:: (Show a, OU51.Member Trace r) =>
-     (a -> E1.Eff r b) -> [a] -> E1.Eff r [b]
-mapMdebug f [] = return []
-mapMdebug f (h:t) = do
- trace $ "mapMdebug: " ++ show h
- h' <- f h
- t' <- mapMdebug f t
- return (h':t')
-
-tMd = runTrace $ E1.StrictR.runReader (mapMdebug f [1..5]) (10::Int)
- where f x = E1.StrictR.ask `add` return x
-{-
-mapMdebug: 1
-mapMdebug: 2
-mapMdebug: 3
-mapMdebug: 4
-mapMdebug: 5
-[11,12,13,14,15]
--}
-
--- duplicate layers
-tdup = runTrace $ E1.StrictR.runReader m (10::Int)
- where
- m = do
-     E1.StrictR.runReader tr (20::Int)
-     tr
- tr = do
-      v <- E1.StrictR.ask
-      trace $ "Asked: " ++ show (v::Int)
-{-
-Asked: 20
-Asked: 10
--}
+    -- Re-implemenation of mapMdebug using Lifting
+    -- The signature is inferred
+    mapMdebug'  :: (Show a, MemberU2 Lift (Lift IO) r) =>
+                   (a -> Eff r b) -> [a] -> Eff r [b]
+    mapMdebug' f [] = return []
+    mapMdebug' f (h:t) = do
+      lift $ print h
+      h' <- f h
+      t' <- mapMdebug' f t
+      return (h':t')
 
 -- }}}
 
--- {{{ TODO: Fresh
+-- {{{ Trace
 
+case_Trace_tdup :: Assertion
+case_Trace_tdup = do
+  ((), actual) <- catchOutput tdup
+  assertEqual "Trace: duplicate layers"
+    (unlines ["Asked: 20", "Asked: 10"]) actual
+  where
+    tdup = runTrace $ StrictR.runReader m (10::Int)
+     where
+     m = do
+         StrictR.runReader tr (20::Int)
+         tr
+     tr = do
+          v <- StrictR.ask
+          trace $ "Asked: " ++ show (v::Int)
 
--- Test
-tfresh' = runTrace $ flip runFresh' 0 $ do
-  n <- fresh
-  trace $ "Fresh " ++ show n
-  n <- fresh
-  trace $ "Fresh " ++ show n
-{-
-Fresh 0
-Fresh 1
--}
+case_Trace_tMd :: Assertion
+case_Trace_tMd = do
+  actual <- catchOutput tMd
+  assertEqual "Trace: higher-order effectful function"
+    (map (+ val) input, unlines $ map (("mapMdebug: " ++) . show) input) actual
+  where
+    val = (10::Int)
+    input = [1..5]
+    tMd = runTrace $ StrictR.runReader (mapMdebug f input) val
+      where
+        f x = StrictR.ask `add` return x
+
+        -- Higher-order effectful function
+        -- The inferred type shows that the Trace affect is added to the effects
+        -- of r
+        mapMdebug:: (Show a, Member Trace r) =>
+                    (a -> Eff r b) -> [a] -> Eff r [b]
+        mapMdebug f [] = return []
+        mapMdebug f (h:t) = do
+          trace $ "mapMdebug: " ++ show h
+          h' <- f h
+          t' <- mapMdebug f t
+          return (h':t')
 
 -- }}}
 
--- {{{ TODO: choice, non-determinism
+-- {{{ Fresh
 
--- -- primes (very inefficiently -- but a good example of ifte)
--- test_ifte = do
---   n <- gen
---   ifte (do
---      d <- gen
---      guard $ d < n && n `mod` d == 0
---      -- _ <- trace ("d: " ++ show d) (return ())
---     )
---     (\_->mzero)
---     (return n)
---  where gen = msum . fmap return $ [2..30]
-
--- test_ifte_run :: [Int]
--- test_ifte_run = run . makeChoiceA $ test_ifte
--- -- [2,3,5,7,11,13,17,19,23,29]
-
--- -- called reflect in the LogicT paper
--- unmsplit :: Member NdetEff r => (Maybe (a, Eff r a)) -> Eff r a
--- unmsplit Nothing      = mzero
--- unmsplit (Just (a,m)) = return a `mplus` m
-
--- tsplit =
---   (tell "begin" >> return 1) `mplus`
---   (tell "end"   >> return 2)
-
--- tsplitr10, tsplitr11 :: ([Int],[String])
--- tsplitr10 = run $ runWriter $ makeChoiceA tsplit
--- tsplitr11 = run $ runWriter $ makeChoiceA (msplit tsplit >>= unmsplit)
-
-
--- tsplitr20, tsplitr21 :: [(Int,[String])]
--- tsplitr20 = run $ makeChoiceA $ runWriter tsplit
--- tsplitr21 = run $ makeChoiceA $ runWriter (msplit tsplit >>= unmsplit)
-
--- -- ------------------------------------------------------------------------
--- -- Combining exceptions and non-determinism
-
--- -- Example from the paper
-
--- ex2_2 = ([Right 5,Left (TooBig 7),Right 1] ==) $
---         run . makeChoice . runErrBig $ ex2 (choose [5,7,1])
-
--- -- just like ex1_1 in transf.hs but not at all like ex2_1 in transf.hs
-
--- -- with different order of handlers, obtain the desired result of
--- -- a high-priority exception
--- ex2_1 = (Left (TooBig 7) ==) $
---         run . runErrBig . makeChoice $ ex2 (choose [5,7,1])
-
-
--- -- Errror recovery part
--- -- The code is the same as in transf1.hs. The inferred signatures differ
--- -- Was: exRec :: MonadError TooBig m => m Int -> m Int
--- -- exRec :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
--- exRec m = catchError m handler
---  where handler (TooBig n) | n <= 7 = return n
---        handler e = throwError e
-
--- ex2r_2 = (Right [5,7,1] ==) $
---          run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,1]))
--- -- Compare with ex2r_1 from transf1.hs
-
--- ex2r_2' = ([Right 5,Right 7,Right 1] ==) $
---           run . makeChoice . runErrBig $ exRec (ex2 (choose [5,7,1]))
--- -- Again, all three choices are accounted for.
-
--- ex2r_1 = (Left (TooBig 11) ==) $
---          run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,11,1]))
--- -- Compare with ex2r_2 from transf1.hs
+case_Fresh_tfresh' :: Assertion
+case_Fresh_tfresh' = do
+  ((), actual) <- catchOutput tfresh'
+  assertEqual "Fresh: test"
+    (unlines ["Fresh 0", "Fresh 1"]) actual
+  where
+    tfresh' = runTrace $ flip runFresh' 0 $ do
+      n <- fresh
+      trace $ "Fresh " ++ show n
+      n <- fresh
+      trace $ "Fresh " ++ show n
 
 -- }}}
 
