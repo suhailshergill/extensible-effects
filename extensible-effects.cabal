@@ -69,8 +69,6 @@ library
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
                        Control.Eff.Coroutine
-                       -- Control.Eff.Cut
-                       -- Control.Eff.Cut1
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
