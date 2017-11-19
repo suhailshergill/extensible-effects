@@ -1,9 +1,9 @@
---{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE Safe #-}
 -- | Exception-producing and exception-handling effects
 module Control.Eff.Exception ( Exc (..)
                             , Fail

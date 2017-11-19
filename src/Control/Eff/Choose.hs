@@ -1,10 +1,9 @@
---{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
-
+{-# LANGUAGE Safe #-}
 -- The following is needed to define MonadPlus instance. It is decidable
 -- (there is no recursion!), but GHC cannot see that.
 {-# LANGUAGE UndecidableInstances #-}
