@@ -107,6 +107,7 @@ instance Functor (Eff r) where
   fmap f (E u q) = E u (q |> (Val . f)) -- does no mapping yet!
 
 instance Applicative (Eff r) where
+  {-# INLINE pure #-}
   pure = Val
   Val f <*> Val x = Val $ f x
   Val f <*> E u q = E u (q |> (Val . f))
@@ -116,7 +117,7 @@ instance Applicative (Eff r) where
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
-  return x = Val x
+  return = pure
   Val x >>= k = k x
   E u q >>= k = E u (q |> k)          -- just accumulates continuations
 {-
