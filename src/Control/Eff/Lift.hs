@@ -21,8 +21,8 @@ import Data.OpenUnion
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift (m a)
 
--- | We make the Lift layer to be unique, using MemberU2
-lift :: (MemberU2 Lift (Lift m) r) => m a -> Eff r a
+-- | We make the Lift layer to be unique, using SetMember
+lift :: (SetMember Lift (Lift m) r) => m a -> Eff r a
 lift = send . Lift
 
 -- | The handler of Lift requests. It is meant to be terminal:

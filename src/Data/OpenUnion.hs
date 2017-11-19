@@ -57,7 +57,7 @@
 --
 -- The interface is the same as of other OpenUnion*.hs
 module Data.OpenUnion (Union, inj, prj, decomp,
-                   Member, MemberU2, weaken
+                   Member, SetMember, weaken
                   ) where
 
 import Unsafe.Coerce(unsafeCoerce)
@@ -179,11 +179,11 @@ instance EQU a a 'True
 instance (p ~ 'False) => EQU a b p
 
 -- | This class is used for emulating monad transformers
-class Member t r => MemberU2 (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
-instance (EQU t1 t2 p, MemberU' p tag t1 (t2 ': r)) => MemberU2 tag t1 (t2 ': r)
+class Member t r => SetMember (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
+instance (EQU t1 t2 p, MemberU' p tag t1 (t2 ': r)) => SetMember tag t1 (t2 ': r)
 
 class Member t r =>
       MemberU' (f::Bool) (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t
 instance MemberU' 'True tag (tag e) (tag e ': r)
-instance (Member t (t' ': r), MemberU2 tag t r) =>
+instance (Member t (t' ': r), SetMember tag t r) =>
            MemberU' 'False tag t (t' ': r)

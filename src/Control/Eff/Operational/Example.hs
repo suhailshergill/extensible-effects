@@ -33,7 +33,7 @@ prog = do
    singleton $ Print ("the input is " ++ str)
 
 -- | Then, implements interpreters from the data to effects.
-adventIO :: (Member (Lift IO) r, MemberU2 Lift (Lift IO) r) => Jail a -> Eff r a
+adventIO :: (Member (Lift IO) r, SetMember Lift (Lift IO) r) => Jail a -> Eff r a
 adventIO (Print a) = lift $ putStrLn a
 adventIO Scan = lift getLine
 

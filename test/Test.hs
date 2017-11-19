@@ -453,10 +453,10 @@ case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (run ex2r2)
 --   -- otherwise, tries b, and if succeeds, returns its result
 --   -- otherwise, throws mappend of exceptions of a and b
 
--- We use MemberU2 in the signature rather than Member to
+-- We use SetMember in the signature rather than Member to
 -- ensure that the computation throws only one type of exceptions.
 -- Otherwise, this construction is not very useful.
-alttry :: forall e r a. (Monoid e, MemberU2 Exc (Exc e) r) =>
+alttry :: forall e r a. (Monoid e, SetMember Exc (Exc e) r) =>
           Eff r a -> Eff r a -> Eff r a
 alttry ma mb =
   catchExc ma $ \ea ->
@@ -611,7 +611,7 @@ case_NdetEff_reflect =
 case_Lift_building :: Assertion
 case_Lift_building = runLift possiblyAmbiguous
   where
-    possiblyAmbiguous :: (Monad m, MemberU2 Lift (Lift m) r) => Eff r ()
+    possiblyAmbiguous :: (Monad m, SetMember Lift (Lift m) r) => Eff r ()
     possiblyAmbiguous = lift $ return ()
 
 -- }}}
@@ -908,7 +908,7 @@ case_Lift_tMd' = do
 
     -- Re-implemenation of mapMdebug using Lifting
     -- The signature is inferred
-    mapMdebug'  :: (Show a, MemberU2 Lift (Lift IO) r) =>
+    mapMdebug'  :: (Show a, SetMember Lift (Lift IO) r) =>
                    (a -> Eff r b) -> [a] -> Eff r [b]
     mapMdebug' f [] = return []
     mapMdebug' f (h:t) = do

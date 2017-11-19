@@ -86,7 +86,7 @@ liftEither = either throwExc return
 {-# INLINE liftEither #-}
 
 -- | `liftEither` in a lifted Monad
-liftEitherM :: (Member (Exc e) r, MemberU2 Lift (Lift m) r)
+liftEitherM :: (Member (Exc e) r, SetMember Lift (Lift m) r)
             => m (Either e a)
             -> Eff r a
 liftEitherM m = lift m >>= liftEither
@@ -98,7 +98,7 @@ liftMaybe = maybe die return
 {-# INLINE liftMaybe #-}
 
 -- | `liftMaybe` in a lifted Monad
-liftMaybeM :: (Member Fail r, MemberU2 Lift (Lift m) r)
+liftMaybeM :: (Member Fail r, SetMember Lift (Lift m) r)
            => m (Maybe a)
            -> Eff r a
 liftMaybeM m = lift m >>= liftMaybe
