@@ -17,6 +17,7 @@ module Control.Eff.Exception ( Exc (..)
                             , liftEither
                             , liftEitherM
                             , liftMaybe
+                            , liftMaybeM
                             , ignoreFail
                             ) where
 
@@ -95,6 +96,13 @@ liftEitherM m = lift m >>= liftEither
 liftMaybe :: Member Fail r => Maybe a -> Eff r a
 liftMaybe = maybe die return
 {-# INLINE liftMaybe #-}
+
+-- | `liftMaybe` in a lifted Monad
+liftMaybeM :: (Member Fail r, MemberU2 Lift (Lift m) r)
+           => m (Maybe a)
+           -> Eff r a
+liftMaybeM m = lift m >>= liftMaybe
+{-# INLINE liftMaybeM #-}
 
 -- | Ignores a failure event. Since the event can fail, you cannot inspect its
 --   return type, because it has none on failure. To inspect it, use 'runFail'.
