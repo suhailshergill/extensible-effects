@@ -1,18 +1,17 @@
-{ mkDerivation, base, HUnit, QuickCheck, stdenv, test-framework
-, test-framework-hunit, test-framework-quickcheck2
+{ mkDerivation, base, directory, HUnit, QuickCheck, stdenv
+, test-framework, test-framework-hunit, test-framework-quickcheck2
 , test-framework-th, transformers, transformers-base, type-aligned
-, void
 }:
 mkDerivation {
   pname = "extensible-effects";
-  version = "1.11.1.0";
+  version = "2.0.0.0";
   src = ./.;
-  buildDepends = [
-    base transformers transformers-base type-aligned void
+  libraryHaskellDepends = [
+    base transformers transformers-base type-aligned
   ];
-  testDepends = [
-    base HUnit QuickCheck test-framework test-framework-hunit
-    test-framework-quickcheck2 test-framework-th void
+  testHaskellDepends = [
+    base directory HUnit QuickCheck test-framework test-framework-hunit
+    test-framework-quickcheck2 test-framework-th
   ];
   homepage = "https://github.com/suhailshergill/extensible-effects";
   description = "An Alternative to Monad Transformers";

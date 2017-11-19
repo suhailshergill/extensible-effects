@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             1.11.1.0
+version:             2.0.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -43,7 +43,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.0.1, GHC==7.10.3, GHC==7.10.1, GHC==7.8.4, GHC==7.6.3
+tested-with:         GHC==8.2.1, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
 
 build-type:          Simple
 
@@ -58,19 +58,25 @@ flag lib-Werror
   default: False
   manual: True
 
+flag force-openunion-51
+  description:         Force usage of OpenUnion51.hs implementation
+  default:             True
+  manual:              True
+
 library
   ghc-options:         -Wall
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
                        Control.Eff.Coroutine
-                       Control.Eff.Cut
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Lift
+                       Control.Eff.NdetEff
                        Control.Eff.Reader.Lazy
                        Control.Eff.Reader.Strict
+                       Control.Eff.State.LazyState
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Writer.Lazy
@@ -78,16 +84,12 @@ library
                        Control.Eff.Trace
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
-                       Control.Monad.Free.Reflection
                        Data.OpenUnion
-                       Data.OpenUnion.Imports
 
   -- Modules included in this library but not exported.
-  other-modules:       Data.OpenUnion.Internal.Base
-  if impl(ghc >= 7.8.1)
-     other-modules:    Data.OpenUnion.Internal.OpenUnion2
-  else
-     other-modules:    Data.OpenUnion.Internal.OpenUnion1
+  other-modules:       Data.FTCQueue
+  if flag(force-openunion-51)
+    cpp-options:       -DFORCE_OU51
 
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
@@ -114,6 +116,8 @@ library
                        , UndecidableInstances
   if impl(ghc < 7.8.1)
      other-extensions: OverlappingInstances
+  if impl(ghc >= 8.2)
+     ghc-options:      -Wno-simplifiable-class-constraints
 
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.6 && < 5
@@ -122,7 +126,6 @@ library
                        , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance
                        , transformers-base == 0.4.*
-                       , void >= 0.6 && < 0.8
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -132,8 +135,8 @@ library
 
   -- TODO: uncomment when https://github.com/haskell/cabal/issues/2527 is
   -- resolved
-  -- if flag(lib-Werror)
-  --   ghc-options: -Werror
+  if flag(lib-Werror)
+     ghc-options: -Werror
 
 test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
@@ -143,15 +146,15 @@ test-suite extensible-effects-tests
   ghc-options: -Wall
 
   build-depends:
-    base >= 4.6 && < 5
-    , QuickCheck == 2.*
-    , HUnit >= 1.2 && < 1.4
-    , test-framework == 0.8.*
-    , test-framework-hunit == 0.3.*
-    , test-framework-quickcheck2 == 0.3.*
-    , test-framework-th >= 0.2
-    , extensible-effects
-    , void >= 0.6 && < 0.8
+                base >= 4.6 && < 5
+              , QuickCheck == 2.*
+              , HUnit >= 1.2 && < 1.4
+              , test-framework == 0.8.*
+              , test-framework-hunit == 0.3.*
+              , test-framework-quickcheck2 == 0.3.*
+              , test-framework-th >= 0.2
+              , extensible-effects
+              , directory >= 1.2 && < 1.4
 
   default-language:    Haskell2010
 

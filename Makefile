@@ -1,4 +1,4 @@
-GHCS = 7.6.3 7.8.4 7.10.1
+GHCS = 7.8.4 7.10.3 8.0.2 8.2.1
 
 .PHONY: all
 all: build test package doc tags
@@ -13,8 +13,7 @@ init:
 
 .PHONY: build
 build: init
-	cabal install --only-dependencies --enable-tests --enable-benchmarks \
-	--with-hsc2hs=`which hsc2hs`
+	cabal install --only-dependencies --enable-tests --enable-benchmarks
 	cabal configure -flib-Werror --enable-tests --enable-benchmarks -v2 -O2
 	cabal build
 
@@ -30,7 +29,7 @@ doc:
 
 .PHONY: tags
 tags:
-	haskdogs -e
+	haskdogs --hasktags-args=-ex
 
 .PHONY: devel
 devel: build
@@ -39,7 +38,7 @@ devel: build
 	EVENTS="-e modify -e move -e delete"; \
 	EXCLUDE="\.#"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
-		make test && make doc && make tags; \
+		make test && make doc; \
 	done; \
 	}
 

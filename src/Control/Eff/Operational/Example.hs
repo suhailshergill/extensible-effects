@@ -2,13 +2,14 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE Safe #-}
+-- {-# LANGUAGE Safe #-}
 
 -- | Example usage of "Control.Eff.Operational".
 module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
-import Control.Eff
+import Control.Eff (Eff(..))
+import Data.OpenUnion
 import Control.Eff.Lift
 import Control.Eff.Writer.Lazy
 import Control.Eff.State.Lazy
