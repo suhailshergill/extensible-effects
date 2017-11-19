@@ -1,6 +1,7 @@
 {-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeOperators, GADTs, DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE Safe #-}
 
 -- | Example usage of "Control.Eff1"
 module Control.Eff.Example where

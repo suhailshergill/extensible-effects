@@ -4,6 +4,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
+{-# LANGUAGE Safe #-}
 
 -- | On-demand state computation:
 -- example taken from Edward Kmett's comment here:

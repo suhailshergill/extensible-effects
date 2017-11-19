@@ -1,11 +1,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
-#if __GLASGOW_HASKELL__ < 708
-{-# LANGUAGE Trustworthy #-}
-#else
 {-# LANGUAGE Safe #-}
-#endif
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).

@@ -6,12 +6,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
-{-# LANGUAGE DeriveDataTypeable #-}
-#if __GLASGOW_HASKELL__ < 708
-{-# LANGUAGE Trustworthy #-}
-#else
 {-# LANGUAGE Safe #-}
-#endif
 
 -- | Operational Monad (<https://wiki.haskell.org/Operational>) implemented with
 -- extensible effects.
@@ -50,6 +45,7 @@ runProgram advent = handle_relay return h
 -- @
 --main :: IO ()
 --main = do
---    putStrLn . fst . 'run' . 'runMonoidWriter' . 'evalState' [\"foo\",\"bar\"] $ 'runProgram' adventPure prog
+--    let comp = 'runProgram' adventPure prog
+--    putStrLn . fst . 'run' . 'runMonoidWriter' $ 'evalState' comp [\"foo\",\"bar\"]
 --    'runLift' $ 'runProgram' adventIO prog
 -- @

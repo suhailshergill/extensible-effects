@@ -6,6 +6,7 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE Trustworthy #-}
 -- | Lazy state effect
 module Control.Eff.State.Lazy where
 

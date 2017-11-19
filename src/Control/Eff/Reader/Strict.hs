@@ -4,6 +4,7 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE Safe #-}
 -- | Strict read-only state
 module Control.Eff.Reader.Strict ( Reader (..)
                               , ask

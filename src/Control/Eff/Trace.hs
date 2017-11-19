@@ -1,6 +1,5 @@
 {-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE DeriveFunctor #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs, DataKinds #-}
