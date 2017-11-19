@@ -13,8 +13,7 @@ init:
 
 .PHONY: build
 build: init
-	cabal install --only-dependencies --enable-tests --enable-benchmarks \
-	--with-hsc2hs=`which hsc2hs`
+	cabal install --only-dependencies --enable-tests --enable-benchmarks
 	cabal configure -flib-Werror --enable-tests --enable-benchmarks -v2 -O2
 	cabal build
 
