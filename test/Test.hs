@@ -7,6 +7,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE BangPatterns #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
 {-# OPTIONS -fno-warn-missing-signatures #-}
 import Control.Exception (ErrorCall, catch)
 import Data.Typeable
@@ -27,6 +28,7 @@ import qualified Control.Eff.Writer.Lazy as LazyW
 import qualified Control.Eff.Writer.Strict as StrictW
 import qualified Control.Eff.State.Strict as StrictS
 import qualified Control.Eff.State.Lazy as LazyS
+import qualified Control.Eff.State.LazyState as LazierS
 import Control.Eff.Exception
 import Control.Eff.Choose as Choose
 import Control.Eff.NdetEff
@@ -40,7 +42,6 @@ import Control.Eff.Operational as Op
 import Control.Eff.Operational.Example as Op.Eg
 import Control.Eff.Trace
 import Control.Eff.Coroutine
-import Data.Void
 
 -- {{{ utils: TODO: move them out
 
@@ -974,5 +975,100 @@ case_Fresh_tfresh' = do
       trace $ "Fresh " ++ show n
       n <- fresh
       trace $ "Fresh " ++ show n
+
+-- }}}
+
+-- {{{ LazyState
+
+case_LazierState_ex1 :: Assertion
+case_LazierState_ex1 =
+  let actual = run $ LazierS.runStateLazy 0 lex1
+  in
+    assertEqual "LazyState: ex1"
+    ((), 1::Int) actual
+  where
+    lex1 = do
+      LazierS.onDemand lex1
+      LazierS.lput (1::Int)
+
+case_LazierState_ex3 :: Assertion
+case_LazierState_ex3 =
+  let (x,s) = run $ LazierS.runStateLazy (undefined::[Int]) lex3
+  in assertEqual "LazyState: ex3"
+     ((),[1,1,1,1,1]) (x,take 5 s)
+  where
+    lex3 = do
+      LazierS.onDemand lex3
+      LazierS.lmodify ((1::Int):)
+
+-- a bit more interesting
+case_LazierState_ex4 =
+  let (x,s) = run $ LazierS.runStateLazy [] lex4
+  in assertEqual "LazyState: ex4"
+     expect (take 7 $ x,take 5 $ s)
+  where
+    expect = ([3,2,3,2,3,2,3],[3,2,3,2,3])
+    lex4 :: Eff '[LazierS.LazyState [Int]] [Int]
+    lex4 = do
+      LazierS.lmodify ((0::Int):)
+      LazierS.onDemand lex4
+      LazierS.lmodify ((1::Int):)
+      LazierS.onDemand (LazierS.onDemand lex4 :: Eff '[LazierS.LazyState [Int]] [Int])
+      LazierS.lmodify ((2::Int):)
+      LazierS.lmodify ((3::Int):)
+      LazierS.lget
+
+
+-- Edward's example plus exceptions
+case_LazierState_ex5 :: Assertion
+case_LazierState_ex5 =
+  let
+    -- the annotations below are needed for assertEqual
+    ex5Run :: Either [Int] () = fst . run . LazierS.runStateLazy (undefined::[Int]) . runExc $ lex5
+    ex51Run :: Either [Int] ((), [Int]) = run . runExc . LazierS.runStateLazy (undefined::[Int]) $ lex5
+  in
+    assertEqual "LazyState ex5" (Left ones) ex5Run
+    >> assertEqual "LazyState ex51" (Left ones) ex51Run
+  where
+    ones = take 5 $ repeat (1::Int)
+    lex31 :: Member (LazierS.LazyState [Int]) r => Eff r ()
+    lex31 = do
+      LazierS.onDemand (lex31 :: Eff '[LazierS.LazyState [Int]] ())
+      LazierS.lmodify ((1::Int):)
+
+    lex5 = do
+      lex31
+      x <- LazierS.lget
+      throwExc ((take 5 x)::[Int])
+
+case_LazierState_st :: Assertion
+case_LazierState_st = let
+  stF :: ((Int,Int,Int),Int) = run $ LazierS.runStateLazy (0::Int) st
+  stB0 :: ((Int,Int,Int),Int) = LazierS.runStateBack0 st
+  stB :: ((Int,Int,Int),Int) = LazierS.runStateBack st
+  in
+    assertEqual "LazyState stF" ((0,1,3),4) stF
+    >> assertEqual "LazyState stB0" ((1,2,4),1) stB0
+    >> assertEqual "LazyState stB" ((1,2,4),1) stB
+  where
+    st = do
+      x <- LazierS.lget
+      LazierS.lput (1::Int)
+      LazierS.lput (1::Int)
+      y <- LazierS.lget
+      LazierS.lput (2::Int)
+      LazierS.lput (10::Int)
+      LazierS.lput (3::Int)
+      z <- LazierS.lget
+      LazierS.lput (4::Int)
+      return (x,y,z)
+
+case_LazierState_ones :: Assertion
+case_LazierState_ones =
+  let ones :: [Int] = snd $ LazierS.runStateBack $ do
+        s <- LazierS.lget
+        LazierS.lput ((1::Int):s)
+  in
+    assertEqual "LazyState ones" [1,1,1,1,1] (take 5 ones)
 
 -- }}}

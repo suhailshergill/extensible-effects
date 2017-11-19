@@ -53,7 +53,7 @@ local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local f m = do
   e <- reader f
-  let h (Reader f) g = g (f e)
+  let h (Reader f0) g = g (f0 e)
   interpose return h m
 
 -- | Request the environment value using a transformation function.

@@ -12,9 +12,7 @@ module Control.Eff.Coroutine( Yield (..)
                             ) where
 
 import Control.Eff
-import Control.Eff.Reader.Strict
 import Data.OpenUnion
-import Control.Eff.Trace
 
 -- ------------------------------------------------------------------------
 -- | Co-routines

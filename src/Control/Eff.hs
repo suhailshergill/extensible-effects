@@ -6,6 +6,8 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE DataKinds #-}
 
+{-# LANGUAGE CPP #-}
+
 -- | Original work available at <http://okmij.org/ftp/Haskell/extensible/tutorial.html>.
 -- This module implements extensible effects as an alternative to monad transformers,
 -- as described in <http://okmij.org/ftp/Haskell/extensible/exteff.pdf> and
@@ -16,6 +18,9 @@
 -- effects, consult the tests.
 module Control.Eff where
 
+#if __GLASGOW_HASKELL__ < 710
+import Control.Applicative
+#endif
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)

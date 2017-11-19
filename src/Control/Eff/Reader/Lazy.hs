@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wno-name-shadowing #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -48,12 +47,13 @@ runReader m e = handle_relay
   m
 
 -- | Locally rebind the value in the dynamic environment This function is like a
--- relay; it is both an admin for Reader requests, and a requestor of them
+-- relay; it is both an admin for Reader requests, and a requestor of them.
+-- The underscore is used to disable name-shadowing warning.
 local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
-local f m = do
-  e <- reader f
-  let h (Reader f) g = g (f e)
+local _f m = do
+  e <- reader _f
+  let h (Reader _f) g = g (_f e)
   interpose return h m
 
 -- | Request the environment value using a transformation function.

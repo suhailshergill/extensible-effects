@@ -8,11 +8,15 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE Trustworthy #-}
+{-# OPTIONS_GHC -Wwarn #-}
+
+#if __GLASGOW_HASKELL__ >= 800
 {-# OPTIONS_GHC -Wwarn -Wno-redundant-constraints #-}
+#endif
 
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
-{-# LANGUAGE OverlappingInstances #-}
 {-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
+{-# LANGUAGE OverlappingInstances #-}
 #else
 #endif
 
@@ -50,7 +54,7 @@
 -- Taken literally it doesn't seem much better than
 -- OpenUinion41.hs. However, we can cheat and use the index of the
 -- type t in the list r as the TRep. (We will need UnsafeCoerce then).
-
+--
 -- The interface is the same as of other OpenUnion*.hs
 module Data.OpenUnion (Union, inj, prj, decomp,
                    Member, MemberU2, weaken
