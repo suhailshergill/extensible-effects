@@ -1,6 +1,8 @@
 extensible-effects is based on the work
 [Extensible Effects: An Alternative to Monad Transformers](http://okmij.org/ftp/Haskell/extensible/).
-Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for details.
+Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) and
+the followup [freer paper](http://okmij.org/ftp/Haskell/extensible/more.pdf) for
+details. Additional explanation behind the approach can be found on [Oleg's website](http://okmij.org/ftp/Haskell/extensible/).
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -9,13 +11,13 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
 
 ## Advantages
 
-
   * Effects can be added, removed, and interwoven without changes to code not
     dealing with those effects.
 
 ## Disadvantages
 
-### For GHC version 7.8 and upwards
+### Current implementation only supports GHC version 7.8 and above
+### Ambiguity-Flexibility tradeoff
   * The extensibility comes at the cost of some ambiguity. Note, however, that
     the extensibility can be traded back, but that detracts from some of the
     advantages. For details see section 4.1 in the
@@ -33,13 +35,3 @@ Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) for 
       point of having the grouping in the first place.
     * Code requires greater number of type annotations. For details see
       [#31](https://github.com/suhailshergill/extensible-effects/issues/31).
-  * Requires a `Typeable` instance on the return type. This is no longer a
-    limitation on GHC versions 7.8 and above.
-    * fixed by
-      [#38](https://github.com/suhailshergill/extensible-effects/issues/38).
-
-### For GHC versions prior to 7.8
-  * Neither `Eff` nor `(:>)` has a `Typeable` instance, and can thus often not
-    be used as a return type (e.g. `State` type) for other `Eff`s. 
-    * fixed by
-      [#38](https://github.com/suhailshergill/extensible-effects/issues/38). 
