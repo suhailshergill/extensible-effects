@@ -3,15 +3,26 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Safe #-}
 
--- | Example usage of "Control.Eff1"
+-- | Example usage of "Control.Eff"
 module Control.Eff.Example where
 
 import Control.Eff
+import Control.Eff.Exception
 import Data.OpenUnion
 
 import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy
 
+  -- {{{ TooBig
+
+-- | The datatype for the example from the paper. See the tests for the example
+newtype TooBig = TooBig Int deriving (Eq, Show)
+
+-- | specialization to tell the type of the exception
+runErrBig :: Eff (Exc TooBig ': r) a -> Eff r (Either TooBig a)
+runErrBig = runExc
+
+  -- }}}
 
 -- | Write the elements of a list of numbers, in order.
 writeAll :: (Member (Writer a) e)
