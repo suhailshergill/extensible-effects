@@ -163,7 +163,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Writer.Lazy.Test
                 , Control.Eff.Writer.Strict.Test
 
-  ghc-options: -Wall
+  ghc-options: -Wall -Wwarn
 
   build-depends:
                 base >= 4.6 && < 5
