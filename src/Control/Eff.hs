@@ -8,7 +8,11 @@
 
 {-# LANGUAGE CPP #-}
 
--- | Original work available at <http://okmij.org/ftp/Haskell/extensible/tutorial.html>.
+-- ------------------------------------------------------------------------
+-- | A monadic library for communication between a handler and
+-- its client, the administered computation
+--
+-- Original work available at <http://okmij.org/ftp/Haskell/extensible/tutorial.html>.
 -- This module implements extensible effects as an alternative to monad transformers,
 -- as described in <http://okmij.org/ftp/Haskell/extensible/exteff.pdf> and
 -- <http://okmij.org/ftp/Haskell/extensible/more.pdf>.
@@ -25,20 +29,17 @@ import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
 
--- ------------------------------------------------------------------------
--- | A monadic library for communication between a handler and
--- its client, the administered computation
---
--- Effectful arrow type: a function from a to b that also does effects
+-- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
 type Arr r a b = a -> Eff r b
 
-arr :: (a -> b) -> Arrs r a b
-arr f = tsingleton (Val . f)
+-- | An effectful function from 'a' to 'b' that is a composition
+-- of several effectful functions. The paremeter r describes the overall
+-- effect.
+-- The composition members are accumulated in a type-aligned queue
+type Arrs r a b = FTCQueue (Eff r) a b
 
-ident :: Arrs r a a
-ident = arr id
-
+{-# INLINE single #-}
 single :: Arr r a b -> Arrs r a b
 single = tsingleton
 
@@ -46,14 +47,14 @@ single = tsingleton
 first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
+arr :: (a -> b) -> Arrs r a b
+arr f = single (Val . f)
+
+ident :: Arrs r a a
+ident = arr id
+
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp = (><)
-
--- | An effectful function from 'a' to 'b' that is a composition
--- of several effectful functions. The paremeter r describes the overall
--- effect.
--- The composition members are accumulated in a type-aligned queue
-type Arrs r a b = FTCQueue (Eff r) a b
 
 -- | The Eff monad (not a transformer!). It is a fairly standard coroutine monad
 -- where the type @r@ is the type of effects that can be handled, and the
@@ -135,20 +136,6 @@ send t = E (inj t) (tsingleton Val)
 {-# RULES
   "send/bind" [~3] forall t k. send t >>= k = E (inj t) (tsingleton k)
  #-}
-
-
-{-
--- The opposite of admin, occasionally useful
--- See the soft-cut for an example
--- It is currently quite inefficient. There are better ways
-reflect :: VE a r -> Eff r a
-reflect (Val x) = return x
-reflect (E u) = Eff (\k -> E $ fmap (loop k) u)
- where
- loop :: (a -> VE w r) -> VE a r -> VE w r
- loop k (Val x) = k x
- loop k (E u)   = E $ fmap (loop k) u
--}
 
 
 -- ------------------------------------------------------------------------

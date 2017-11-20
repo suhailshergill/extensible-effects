@@ -20,7 +20,7 @@
 #else
 #endif
 
--- Only for MemberU below, when emulating Monad Transformers
+-- Only for SetMember below, when emulating Monad Transformers
 {-# LANGUAGE FunctionalDependencies, UndecidableInstances #-}
 
 -- | Open unions (type-indexed co-products) for extensible effects
@@ -62,8 +62,8 @@ module Data.OpenUnion (Union, inj, prj, decomp,
 
 import Unsafe.Coerce(unsafeCoerce)
 
--- The data constructors of Union are not exported
-
+-- | The data constructors of Union are not exported
+--
 -- Strong Sum (Existential with the evidence) is an open union
 -- t is can be a GADT and hence not necessarily a Functor.
 -- Int is the index of t in the list r; that is, the index of t in the
