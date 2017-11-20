@@ -1,3 +1,4 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -16,7 +17,9 @@ module Control.Eff.Choose ( Choose (..)
                           , mplus'
                           ) where
 
+import Control.Applicative
 import Control.Eff
+import Control.Monad
 import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
@@ -42,15 +45,14 @@ mzero' = choose []
 mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
 mplus' m1 m2 = choose [m1,m2] >>= id
 
--- FIXME: find a way to uncomment
--- -- MonadPlus-like operators are expressible via choose
--- instance Member Choose r => Alternative (Eff r) where
---   empty     = choose []
---   m1 <|> m2 = choose [m1,m2] >>= id
+-- | MonadPlus-like operators are expressible via choose
+instance Member Choose r => Alternative (Eff r) where
+  empty = mzero'
+  (<|>) = mplus'
 
--- instance Member Choose r => MonadPlus (Eff r) where
---   mzero = empty
---   mplus = (<|>)
+instance Member Choose r => MonadPlus (Eff r) where
+  mzero = empty
+  mplus = (<|>)
 
 -- | Run a nondeterministic effect, returning all values.
 makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
