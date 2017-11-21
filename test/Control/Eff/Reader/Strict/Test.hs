@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-name-shadowing #-}
 
 module Control.Eff.Reader.Strict.Test (testGroups) where
 

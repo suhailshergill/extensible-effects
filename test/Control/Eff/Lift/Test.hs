@@ -1,6 +1,7 @@
 {-# LANGUAGE FlexibleContexts, ScopedTypeVariables, NoMonomorphismRestriction #-}
 {-# LANGUAGE DeriveDataTypeable #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-name-shadowing #-}
 
 module Control.Eff.Lift.Test (testGroups) where
 
