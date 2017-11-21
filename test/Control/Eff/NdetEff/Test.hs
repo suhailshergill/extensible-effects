@@ -8,9 +8,8 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.NdetEff
 import Control.Eff.Writer.Strict
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
+import Control.Monad (msum, guard, mzero, mplus)
 import Data.OpenUnion
-import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit

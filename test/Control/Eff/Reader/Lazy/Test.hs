@@ -2,14 +2,14 @@
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-unused-binds #-}
 
 module Control.Eff.Reader.Lazy.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Reader.Lazy
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
-import Data.OpenUnion
+import Control.Monad
 import Utils
 
 import Test.Framework.TH

@@ -7,9 +7,7 @@ module Control.Eff.State.Lazy.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
-import Control.Eff.Exception
 import Control.Eff.State.Lazy
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

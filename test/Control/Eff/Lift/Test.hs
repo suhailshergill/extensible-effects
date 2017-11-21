@@ -55,7 +55,7 @@ case_Lift_tMd' = do
     -- The signature is inferred
     mapMdebug'  :: (Show a, SetMember Lift (Lift IO) r) =>
                    (a -> Eff r b) -> [a] -> Eff r [b]
-    mapMdebug' f [] = return []
+    mapMdebug' _f [] = return []
     mapMdebug' f (h:t) = do
       lift $ print h
       h' <- f h
@@ -159,7 +159,7 @@ case_catchDynE_test2' = do
     m = do
       modify ("begin":)
       x <- ask
-      r <- exfn x `catchDynE` (\ (MyException s) -> return False)
+      r <- exfn x `catchDynE` (\ (MyException _s) -> return False)
       modify ("end":)
       return r
 

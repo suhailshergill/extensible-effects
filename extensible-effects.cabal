@@ -163,7 +163,8 @@ test-suite extensible-effects-tests
                 , Control.Eff.Writer.Lazy.Test
                 , Control.Eff.Writer.Strict.Test
 
-  ghc-options: -Wall -Wwarn
+  ghc-options: -Wall -fno-warn-missing-signatures
+               -fno-warn-type-defaults -fno-warn-name-shadowing
 
   build-depends:
                 base >= 4.6 && < 5

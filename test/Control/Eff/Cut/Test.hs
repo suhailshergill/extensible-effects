@@ -8,7 +8,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Choose
 import Control.Eff.Cut
-import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit

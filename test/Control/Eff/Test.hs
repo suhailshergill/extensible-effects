@@ -5,11 +5,9 @@
 
 module Control.Eff.Test (testGroups) where
 
-import Test.HUnit hiding (State)
 import Test.QuickCheck
 import Control.Eff
 import Control.Eff.Reader.Strict
-import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.QuickCheck2

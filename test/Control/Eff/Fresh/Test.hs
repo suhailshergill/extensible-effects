@@ -6,11 +6,8 @@
 module Control.Eff.Fresh.Test (testGroups) where
 
 import Test.HUnit hiding (State)
-import Control.Eff
 import Control.Eff.Fresh
 import Control.Eff.Trace
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

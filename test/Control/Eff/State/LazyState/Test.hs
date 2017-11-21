@@ -2,6 +2,7 @@
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Control.Eff.State.LazyState.Test (testGroups) where
 
@@ -10,7 +11,6 @@ import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.State.LazyState
 import Data.OpenUnion
-import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit

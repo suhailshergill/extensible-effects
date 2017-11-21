@@ -9,7 +9,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Writer.Strict
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
 import Data.Monoid
 import Data.OpenUnion
 import Utils

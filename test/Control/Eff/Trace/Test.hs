@@ -9,7 +9,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Reader.Strict
 import Control.Eff.Trace
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
 import Data.OpenUnion
 import Utils
 
@@ -50,7 +49,7 @@ case_Trace_tMd = do
         -- of r
         mapMdebug:: (Show a, Member Trace r) =>
                     (a -> Eff r b) -> [a] -> Eff r [b]
-        mapMdebug f [] = return []
+        mapMdebug _f [] = return []
         mapMdebug f (h:t) = do
           trace $ "mapMdebug: " ++ show h
           h' <- f h

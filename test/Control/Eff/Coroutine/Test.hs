@@ -2,6 +2,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -fno-warn-unused-do-bind #-}
 
 module Control.Eff.Coroutine.Test (testGroups) where
 
@@ -122,7 +123,7 @@ case_Corountines_c5 = do
     expected actual
   where
     c5 = runTrace $ runReader (loop =<< runC (th client)) (10::Int)
-      where loop (Y x k) = trace (show (x::Int)) >> local (\y->x+1) (k ()) >>= loop
+      where loop (Y x k) = trace (show (x::Int)) >> local (\_y->x+1) (k ()) >>= loop
             loop Done    = trace "Done"
 
             -- cl, client, ay are monomorphic bindings
@@ -165,7 +166,7 @@ case_Coroutines_c7 = do
     c7 = runTrace $
           runReader (runReader (loop =<< runC (th client)) (10::Int)) (1000::Double)
      where loop (Y x k) = trace (show (x::Int)) >>
-                          local (\y->fromIntegral (x+1)::Double) (k ()) >>= loop
+                          local (\_y->fromIntegral (x+1)::Double) (k ()) >>= loop
            loop Done    = trace "Done"
 
            -- cl, client, ay are monomorphic bindings
@@ -209,7 +210,7 @@ case_Coroutines_c7' = do
     c7' = runTrace $
           runReader (runReader (loop =<< runC (th client)) (10::Int)) (1000::Double)
      where loop (Y x k) = trace (show (x::Int)) >>
-                          local (\y->fromIntegral (x+1)::Double) (k ()) >>= loop
+                          local (\_y->fromIntegral (x+1)::Double) (k ()) >>= loop
            loop Done    = trace "Done"
 
            -- cl, client, ay are monomorphic bindings

@@ -8,8 +8,6 @@ module Control.Eff.Reader.Strict.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Reader.Strict
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

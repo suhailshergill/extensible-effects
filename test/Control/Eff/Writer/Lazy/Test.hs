@@ -11,7 +11,6 @@ import Test.QuickCheck
 import Control.Eff
 import Control.Eff.Reader.Lazy
 import Control.Eff.Writer.Lazy
-import Control.Monad (liftM2, msum, guard, mzero, mplus)
 import Data.OpenUnion
 import Utils
 

@@ -12,7 +12,6 @@ import Control.Eff.Operational.Example as Eg
 import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy
 import Data.OpenUnion
-import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit
