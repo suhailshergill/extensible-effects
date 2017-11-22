@@ -11,7 +11,6 @@ import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Writer.Strict
 import Data.Monoid
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH
@@ -33,7 +32,7 @@ et2 = return 1 `add` throwExc (2::Int)
 -- The following won't type: unhandled exception!
 -- ex2rw = run et2
 {-
-    Could not deduce (Data.OpenUnion51.FindElem (Exc Int) '[])
+    Could not deduce (Data.OpenUnion.FindElem (Exc Int) '[])
       arising from a use of `et2'
 -}
 

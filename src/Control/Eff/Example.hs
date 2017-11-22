@@ -8,7 +8,6 @@ module Control.Eff.Example where
 
 import Control.Eff
 import Control.Eff.Exception
-import Data.OpenUnion
 
 import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy

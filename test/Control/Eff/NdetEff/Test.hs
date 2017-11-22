@@ -10,7 +10,6 @@ import Control.Eff
 import Control.Eff.NdetEff
 import Control.Eff.Writer.Strict
 import Control.Monad (msum, guard, mzero, mplus)
-import Data.OpenUnion
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit

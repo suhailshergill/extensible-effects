@@ -12,7 +12,6 @@ import Control.Eff.Exception
 import Control.Eff.State.Strict
 import Control.Eff.Reader.Strict
 import Control.Eff.Writer.Strict
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

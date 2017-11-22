@@ -13,7 +13,6 @@ module Control.Eff.State.Lazy where
 import Control.Eff
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | State, lazy (i.e., on-demand)

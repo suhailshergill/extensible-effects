@@ -11,7 +11,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.State.LazyState
-import Data.OpenUnion
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit

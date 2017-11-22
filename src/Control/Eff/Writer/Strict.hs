@@ -17,7 +17,6 @@ module Control.Eff.Writer.Strict ( Writer(..)
                                ) where
 
 import Control.Eff
-import Data.OpenUnion
 
 import Data.Monoid
 import Control.Applicative ((<|>))

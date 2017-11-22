@@ -20,7 +20,6 @@ module Control.Eff.Choose ( Choose (..)
 import Control.Applicative
 import Control.Eff
 import Control.Monad
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)

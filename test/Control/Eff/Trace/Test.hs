@@ -10,7 +10,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Reader.Strict
 import Control.Eff.Trace
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

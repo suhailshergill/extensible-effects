@@ -13,7 +13,6 @@ module Control.Eff.Lift ( Lift (..)
 
 import Control.Eff
 import qualified Control.Exception as Exc
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers

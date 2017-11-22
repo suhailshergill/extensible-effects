@@ -12,7 +12,6 @@ import Control.Eff.Lift
 import Control.Eff.Reader.Strict
 import Control.Eff.State.Strict
 import qualified Control.Exception as Exc
-import Data.OpenUnion
 import Data.Typeable
 import Utils
 

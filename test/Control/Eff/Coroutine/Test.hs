@@ -12,7 +12,6 @@ import Control.Eff
 import Control.Eff.Coroutine
 import Control.Eff.Trace
 import Control.Eff.Reader.Strict
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

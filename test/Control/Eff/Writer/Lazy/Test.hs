@@ -12,7 +12,6 @@ import Test.QuickCheck
 import Control.Eff
 import Control.Eff.Reader.Lazy
 import Control.Eff.Writer.Lazy
-import Data.OpenUnion
 import Utils
 
 import Test.Framework.TH

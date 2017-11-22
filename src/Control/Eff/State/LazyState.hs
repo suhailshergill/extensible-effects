@@ -16,7 +16,6 @@
 module Control.Eff.State.LazyState where
 
 import Control.Eff
-import Data.OpenUnion
 
 -- | Define a new effect for state on-demand (in ExtEff, the state is
 -- by default strict -- as it should be if we want the predictable performance

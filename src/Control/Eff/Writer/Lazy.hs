@@ -16,7 +16,6 @@ module Control.Eff.Writer.Lazy ( Writer(..)
                                ) where
 
 import Control.Eff
-import Data.OpenUnion
 
 import Data.Monoid
 import Control.Applicative ((<|>))

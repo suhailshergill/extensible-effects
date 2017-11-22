@@ -23,7 +23,6 @@ module Control.Eff.Exception ( Exc (..)
 
 import Control.Eff
 import Control.Eff.Lift
-import Data.OpenUnion
 
 import Control.Monad (void)
 

@@ -20,7 +20,10 @@
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example can be found under "Control.Eff.Example". To run the
 -- effects, consult the tests.
-module Control.Eff where
+module Control.Eff (
+  module Control.Eff
+  , module Data.OpenUnion
+  ) where
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
