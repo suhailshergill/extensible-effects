@@ -1,7 +1,6 @@
 {-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-name-shadowing #-}
 
 module Control.Eff.NdetEff.Test (testGroups) where
 

@@ -1,6 +1,5 @@
 {-# LANGUAGE FlexibleContexts, AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-name-shadowing #-}
 
 module Control.Eff.Choose.Test (testGroups) where
 

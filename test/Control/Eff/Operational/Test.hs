@@ -2,7 +2,6 @@
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE DataKinds, TypeOperators #-}
 {-# LANGUAGE TemplateHaskell #-}
-{-# OPTIONS_GHC -fno-warn-missing-signatures -fno-warn-type-defaults -fno-warn-name-shadowing #-}
 
 module Control.Eff.Operational.Test (testGroups) where
 
