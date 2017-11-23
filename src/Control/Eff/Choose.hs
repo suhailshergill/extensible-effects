@@ -1,9 +1,11 @@
+{-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE CPP #-}
 -- The following is needed to define MonadPlus instance. It is decidable
 -- (there is no recursion!), but GHC cannot see that.
 {-# LANGUAGE UndecidableInstances #-}
@@ -17,7 +19,10 @@ module Control.Eff.Choose ( Choose (..)
                           ) where
 
 import Control.Eff
-import Data.OpenUnion
+#if __GLASGOW_HASKELL__ > 708
+import Control.Applicative
+import Control.Monad
+#endif
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)
@@ -42,15 +47,16 @@ mzero' = choose []
 mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
 mplus' m1 m2 = choose [m1,m2] >>= id
 
--- FIXME: find a way to uncomment
--- -- MonadPlus-like operators are expressible via choose
--- instance Member Choose r => Alternative (Eff r) where
---   empty     = choose []
---   m1 <|> m2 = choose [m1,m2] >>= id
+#if __GLASGOW_HASKELL__ > 708
+-- | MonadPlus-like operators are expressible via choose
+instance Member Choose r => Alternative (Eff r) where
+  empty = mzero'
+  (<|>) = mplus'
 
--- instance Member Choose r => MonadPlus (Eff r) where
---   mzero = empty
---   mplus = (<|>)
+instance Member Choose r => MonadPlus (Eff r) where
+  mzero = empty
+  mplus = (<|>)
+#endif
 
 -- | Run a nondeterministic effect, returning all values.
 makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]

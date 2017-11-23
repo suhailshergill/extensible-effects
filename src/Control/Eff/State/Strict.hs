@@ -14,7 +14,6 @@ module Control.Eff.State.Strict where
 import Control.Eff
 import Control.Eff.Writer.Strict
 import Control.Eff.Reader.Strict
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | State, strict

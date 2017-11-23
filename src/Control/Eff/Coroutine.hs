@@ -11,7 +11,6 @@ module Control.Eff.Coroutine( Yield (..)
                             ) where
 
 import Control.Eff
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | Co-routines

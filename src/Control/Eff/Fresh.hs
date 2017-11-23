@@ -12,7 +12,6 @@ module Control.Eff.Fresh( Fresh (..)
                         ) where
 
 import Control.Eff
-import Data.OpenUnion
 
 -- There are three possible implementations
 -- The first one uses State Fresh where

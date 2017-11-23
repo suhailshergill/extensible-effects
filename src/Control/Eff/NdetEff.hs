@@ -14,7 +14,6 @@
 module Control.Eff.NdetEff where
 
 import Control.Eff
-import Data.OpenUnion
 
 import Control.Monad
 import Control.Applicative

@@ -43,7 +43,6 @@ module Control.Eff.Cut where
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Choose
-import Data.OpenUnion
 
 data CutFalse = CutFalse
 

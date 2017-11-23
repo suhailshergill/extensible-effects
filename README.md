@@ -14,9 +14,15 @@ details. Additional explanation behind the approach can be found on [Oleg's webs
   * Effects can be added, removed, and interwoven without changes to code not
     dealing with those effects.
 
-## Disadvantages
+## Limitations
 
 ### Current implementation only supports GHC version 7.8 and above
+This is not a fundamental limitation of the design or the approach, but there is
+an overhead with making the code compatible across a large number of GHC
+versions. If this is needed, patches are welcome :)
+
+## Disadvantages
+
 ### Ambiguity-Flexibility tradeoff
   * The extensibility comes at the cost of some ambiguity. Note, however, that
     the extensibility can be traded back, but that detracts from some of the

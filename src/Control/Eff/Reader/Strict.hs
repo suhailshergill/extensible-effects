@@ -14,7 +14,6 @@ module Control.Eff.Reader.Strict ( Reader (..)
                               ) where
 
 import Control.Eff
-import Data.OpenUnion
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad

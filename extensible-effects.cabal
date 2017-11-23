@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.0.1.0
+version:             2.1.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -75,16 +75,16 @@ library
                        Control.Eff.Fresh
                        Control.Eff.Lift
                        Control.Eff.NdetEff
+                       Control.Eff.Operational
+                       Control.Eff.Operational.Example
                        Control.Eff.Reader.Lazy
                        Control.Eff.Reader.Strict
                        Control.Eff.State.LazyState
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
+                       Control.Eff.Trace
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
-                       Control.Eff.Trace
-                       Control.Eff.Operational
-                       Control.Eff.Operational.Example
                        Data.OpenUnion
 
   -- Modules included in this library but not exported.
@@ -143,6 +143,25 @@ test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
   main-is: Test.hs
   hs-source-dirs: test/
+  other-modules:  Utils
+                , Control.Eff.Test
+                , Control.Eff.Choose.Test
+                , Control.Eff.Coroutine.Test
+                , Control.Eff.Cut.Test
+                , Control.Eff.Example.Test
+                , Control.Eff.Exception.Test
+                , Control.Eff.Fresh.Test
+                , Control.Eff.Lift.Test
+                , Control.Eff.NdetEff.Test
+                , Control.Eff.Operational.Test
+                , Control.Eff.Reader.Lazy.Test
+                , Control.Eff.Reader.Strict.Test
+                , Control.Eff.State.Lazy.Test
+                , Control.Eff.State.LazyState.Test
+                , Control.Eff.State.Strict.Test
+                , Control.Eff.Trace.Test
+                , Control.Eff.Writer.Lazy.Test
+                , Control.Eff.Writer.Strict.Test
 
   ghc-options: -Wall
 
