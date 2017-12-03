@@ -140,11 +140,11 @@ instance Monad (Eff r) where
 -- computation).
 {-# INLINE [2] send #-}
 send :: Member t r => t v -> Eff r v
-send t = E (inj t) (tsingleton Val)
+send t = E (inj t) (singleK Val)
 -- This seems to be a very beneficial rule! On micro-benchmarks, cuts
 -- the needed memory in half and speeds up almost twice.
 {-# RULES
-  "send/bind" [~3] forall t k. send t >>= k = E (inj t) (tsingleton k)
+  "send/bind" [~3] forall t k. send t >>= k = E (inj t) (singleK k)
  #-}
 
 
@@ -171,7 +171,7 @@ handle_relay ret h m = loop m
   loop (Val x)  = ret x
   loop (E u q)  = case decomp u of
     Right x -> h x k
-    Left  u0 -> E u0 (tsingleton k)
+    Left  u0 -> E u0 (singleK k)
    where k = qComp q loop
 
 -- | Parameterized handle_relay
@@ -185,7 +185,7 @@ handle_relay_s s ret h m = loop s m
     loop s0 (Val x)  = ret s0 x
     loop s0 (E u q)  = case decomp u of
       Right x -> h s0 x k
-      Left  u0 -> E u0 (tsingleton (k s0))
+      Left  u0 -> E u0 (singleK (k s0))
      where k s1 x = loop s1 $ qApp q x
 
 -- | Add something like Control.Exception.catches? It could be useful
@@ -202,5 +202,5 @@ interpose ret h m = loop m
    loop (Val x)  = ret x
    loop (E u q)  = case prj u of
      Just x -> h x k
-     _      -> E u (tsingleton k)
+     _      -> E u (singleK k)
     where k = qComp q loop
