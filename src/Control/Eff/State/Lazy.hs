@@ -75,7 +75,7 @@ runState (E u0 q) s0 = case decomp u0 of
   Right (Put s1) -> runState (qApp q ()) s1
   Right (Delay m1) -> let ~(x,s1) = run $ runState m1 s0
                       in runState (qApp q x) s1
-  Left  u -> E u (single (\x -> runState (qApp q x) s0))
+  Left  u -> E u (singleK (\x -> runState (qApp q x) s0))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -101,7 +101,7 @@ runStateR m0 s0 = loop s0 m0
      Right (Writer w v) -> k w v
      Left  u  -> case decomp u of
        Right (Reader f) -> k s (f s)
-       Left u1 -> E u1 (single (k s))
+       Left u1 -> E u1 (singleK (k s))
     where k x = qComp q (loop x)
 
 -- | Backwards state

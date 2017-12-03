@@ -42,16 +42,16 @@ type Arr r a b = a -> Eff r b
 -- The composition members are accumulated in a type-aligned queue
 type Arrs r a b = FTCQueue (Eff r) a b
 
-{-# INLINE single #-}
-single :: Arr r a b -> Arrs r a b
-single = tsingleton
+{-# INLINE singleK #-}
+singleK :: Arr r a b -> Arrs r a b
+singleK = tsingleton
 
 -- FIXME: convert to 'Arrs'
 first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
 arr :: (a -> b) -> Arrs r a b
-arr f = single (Val . f)
+arr f = singleK (Val . f)
 
 ident :: Arrs r a a
 ident = arr id
@@ -77,7 +77,7 @@ data Eff r a = Val a
 
 -- | Application to the `generalized effectful function' Arrs r b w
 {-# INLINABLE qApp #-}
-qApp :: Arrs r b w -> b -> Eff r w
+qApp :: Arrs r b w -> Arr r b w
 qApp q x =
   case inline tviewl q of
     TOne k  -> k x
