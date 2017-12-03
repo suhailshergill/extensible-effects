@@ -42,13 +42,15 @@ type Arr r a b = a -> Eff r b
 -- The composition members are accumulated in a type-aligned queue
 type Arrs r a b = FTCQueue (Eff r) a b
 
+first :: Arr r a b -> Arr r (a, c) (b, c)
+first x = \(a,c) -> (, c) `fmap` x a
+
 {-# INLINE singleK #-}
 singleK :: Arr r a b -> Arrs r a b
 singleK = tsingleton
 
--- FIXME: convert to 'Arrs'
-first :: Arr r a b -> Arr r (a, c) (b, c)
-first x = \(a,c) -> (, c) `fmap` x a
+firsts :: Arrs r a b -> Arrs r (a, c) (b, c)
+firsts = singleK . first . qApp
 
 arr :: (a -> b) -> Arrs r a b
 arr f = singleK (Val . f)
