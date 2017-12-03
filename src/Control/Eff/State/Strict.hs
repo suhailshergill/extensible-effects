@@ -104,7 +104,7 @@ transactionState _ m = do s <- get; loop s m
    loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
      Just Get      -> loop s (qApp q s)
      Just (Put s') -> loop s'(qApp q ())
-     _      -> E u (singleK k) where k = qComp q (loop s)
+     _             -> E u (qComps q (loop s))
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
