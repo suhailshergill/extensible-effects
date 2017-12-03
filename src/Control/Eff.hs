@@ -105,6 +105,11 @@ qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h $ qApp g a
 
+-- | Compose effectful arrows (and possibly change the effect!)
+{-# INLINE qComps #-}
+qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
+qComps g h = singleK $ qComp g h
+
 -- | Eff is still a monad and a functor (and Applicative)
 -- (despite the lack of the Functor constraint)
 instance Functor (Eff r) where

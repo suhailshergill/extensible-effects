@@ -83,7 +83,7 @@ msplit = loop []
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((qApp q False):jq) (qApp q True)
-  _      -> E u (singleK k) where k = qComp q (loop jq)
+  _          -> E u (qComps q (loop jq))
 
 -- Other committed choice primitives can be implemented in terms of msplit
 -- The following implementations are directly from the LogicT paper
