@@ -1,6 +1,6 @@
 {-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE Trustworthy #-}
-{-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE TupleSections #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE GADTs #-}
@@ -79,11 +79,12 @@ data Eff r a = Val a
 
 -- | Application to the `generalized effectful function' Arrs r b w
 {-# INLINABLE qApp #-}
-qApp :: Arrs r b w -> Arr r b w
-qApp q x =
-  case inline tviewl q of
-    TOne k  -> k x
-    k :| t -> case k x of
+qApp :: forall r b w. Arrs r b w -> Arr r b w
+qApp q x = viewlMap (inline tviewl q) tone cons
+  where
+    tone = \k -> k x
+    cons :: forall x. Arr r b x -> Arrs r x w -> Eff r w
+    cons = \k t -> case k x of
       Val y -> qApp t y
       E u q0 -> E u (q0 >< t)
 
