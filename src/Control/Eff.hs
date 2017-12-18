@@ -28,6 +28,8 @@ module Control.Eff (
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
 #endif
+import qualified Control.Arrow as A
+import qualified Control.Category as C
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
@@ -39,18 +41,24 @@ type Arr r a b = a -> Eff r b
 -- | An effectful function from 'a' to 'b' that is a composition
 -- of several effectful functions. The paremeter r describes the overall
 -- effect.
--- The composition members are accumulated in a type-aligned queue
-type Arrs r a b = FTCQueue (Eff r) a b
+-- The composition members are accumulated in a type-aligned queue.
+-- Using a newtype here enables us to define `Category' and `Arrow' instances.
+newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
+
+instance C.Category (Arrs r) where
+  id = ident
+  f . g = comp g f
+
+instance A.Arrow (Arrs r) where
+  arr = arr
+  first = singleK . first . qApp
 
 first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
 {-# INLINE singleK #-}
 singleK :: Arr r a b -> Arrs r a b
-singleK = tsingleton
-
-firsts :: Arrs r a b -> Arrs r (a, c) (b, c)
-firsts = singleK . first . qApp
+singleK = Arrs . tsingleton
 
 arr :: (a -> b) -> Arrs r a b
 arr f = singleK (Val . f)
@@ -59,7 +67,7 @@ ident :: Arrs r a a
 ident = arr id
 
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
-comp = (><)
+comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
 -- | The Eff monad (not a transformer!). It is a fairly standard coroutine monad
 -- where the type @r@ is the type of effects that can be handled, and the
@@ -80,12 +88,12 @@ data Eff r a = Val a
 -- | Application to the `generalized effectful function' Arrs r b w
 {-# INLINABLE qApp #-}
 qApp :: forall r b w. Arrs r b w -> Arr r b w
-qApp q x = viewlMap (inline tviewl q) ($ x) cons
+qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
   where
-    cons :: forall x. Arr r b x -> Arrs r x w -> Eff r w
+    cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
     cons = \k t -> case k x of
-      Val y -> qApp t y
-      E u q0 -> E u (q0 >< t)
+      Val y -> qApp (Arrs t) y
+      E u (Arrs q0) -> E u (Arrs (q0 >< t))
 
 {-
 -- A bit more understandable version
@@ -115,22 +123,22 @@ qComps g h = singleK $ qComp g h
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
   fmap f (Val x) = Val (f x)
-  fmap f (E u q) = E u (q |> (Val . f)) -- does no mapping yet!
+  fmap f (E u (Arrs q)) = E u (Arrs (q |> (Val . f))) -- does no mapping yet!
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
   pure = Val
   Val f <*> Val x = Val $ f x
-  Val f <*> E u q = E u (q |> (Val . f))
-  E u q <*> Val x = E u (q |> (Val . ($ x)))
-  E u q <*> m     = E u (q |> (`fmap` m))
+  Val f <*> E u (Arrs q) = E u (Arrs (q |> (Val . f)))
+  E u (Arrs q) <*> Val x = E u (Arrs (q |> (Val . ($ x))))
+  E u (Arrs q) <*> m     = E u (Arrs (q |> (`fmap` m)))
 
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
   Val x >>= k = k x
-  E u q >>= k = E u (q |> k)          -- just accumulates continuations
+  E u (Arrs q) >>= k = E u (Arrs (q |> k))          -- just accumulates continuations
 {-
   Val _ >> m = m
   E u q >> m = E u (q |> const m)
