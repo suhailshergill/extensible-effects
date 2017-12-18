@@ -80,9 +80,8 @@ data Eff r a = Val a
 -- | Application to the `generalized effectful function' Arrs r b w
 {-# INLINABLE qApp #-}
 qApp :: forall r b w. Arrs r b w -> Arr r b w
-qApp q x = viewlMap (inline tviewl q) tone cons
+qApp q x = viewlMap (inline tviewl q) ($ x) cons
   where
-    tone = \k -> k x
     cons :: forall x. Arr r b x -> Arrs r x w -> Eff r w
     cons = \k t -> case k x of
       Val y -> qApp t y
