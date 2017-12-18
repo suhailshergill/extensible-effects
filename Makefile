@@ -18,7 +18,7 @@ build: init
 	cabal build
 
 .PHONY: test
-test:
+test: build
 	cabal test --show-details=always --test-options="-a 1000 \
 	--maximum-unsuitable-generated-tests=100000 --color"
 
@@ -35,7 +35,7 @@ tags:
 	haskdogs --hasktags-args=-ex
 
 .PHONY: devel
-devel: build
+devel: test bench
 	{ \
 	DIRS="*.hs *.cabal ./src ./test ./benchmark"; \
 	EVENTS="-e modify -e move -e delete"; \
