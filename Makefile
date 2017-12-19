@@ -35,13 +35,13 @@ tags:
 	haskdogs --hasktags-args=-ex
 
 .PHONY: devel
-devel: test bench
+devel: test
 	{ \
 	DIRS="*.hs *.cabal ./src ./test ./benchmark"; \
 	EVENTS="-e modify -e move -e delete"; \
 	EXCLUDE="\.#"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
-		make test && make bench && make doc; \
+		make test && make doc; \
 	done; \
 	}
 
