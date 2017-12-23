@@ -69,6 +69,9 @@ ident = arr id
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
+(^|>) :: Arrs r a b -> Arr r b c -> Arrs r a c
+(Arrs f) ^|> g = Arrs (f |> g)
+
 -- | The Eff monad (not a transformer!). It is a fairly standard coroutine monad
 -- where the type @r@ is the type of effects that can be handled, and the
 -- missing type @a@ (from the type application) is the type of value that is
@@ -123,25 +126,23 @@ qComps g h = singleK $ qComp g h
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
   fmap f (Val x) = Val (f x)
-  fmap f (E u (Arrs q)) = E u (Arrs (q |> (Val . f))) -- does no mapping yet!
+  fmap f (E u q) = E u (q ^|> (Val . f)) -- does no mapping yet!
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
   pure = Val
-  Val f <*> Val x = Val $ f x
-  Val f <*> E u (Arrs q) = E u (Arrs (q |> (Val . f)))
-  E u (Arrs q) <*> Val x = E u (Arrs (q |> (Val . ($ x))))
-  E u (Arrs q) <*> m     = E u (Arrs (q |> (`fmap` m)))
+  Val f <*> e = f `fmap` e
+  E u q <*> e = E u (q ^|> (`fmap` e))
 
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
   Val x >>= k = k x
-  E u (Arrs q) >>= k = E u (Arrs (q |> k))          -- just accumulates continuations
+  E u q >>= k = E u (q ^|> k)          -- just accumulates continuations
 {-
   Val _ >> m = m
-  E u q >> m = E u (q |> const m)
+  E u q >> m = E u (q ^|> const m)
 -}
 
 -- | Send a request and wait for a reply (resulting in an effectful
