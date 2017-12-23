@@ -122,7 +122,7 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.6 && < 5
-                       , type-aligned >= 0.9.6
+                       , type-aligned >= 0.9.3
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance

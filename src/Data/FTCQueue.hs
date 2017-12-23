@@ -18,16 +18,11 @@ module Data.FTCQueue (
   )
   where
 
-import qualified Data.TASequence.FastCatQueue as TA.FTCQ
-import qualified Data.TASequence as TA
-import Control.Arrow (Kleisli (..))
-
 -- | Non-empty tree. Deconstruction operations make it more and more
 -- left-leaning
-newtype FTCQueue m a b = FTCQueue (TA.FTCQ.FastTCQueue (Kleisli m) a b)
-
--- | Left-edge deconstruction
-newtype ViewL m a b = ViewL (TA.TAViewL TA.FTCQ.FastTCQueue (Kleisli m) a b)
+data FTCQueue m a b where
+  Leaf :: (a -> m b) -> FTCQueue m a b
+  Node :: FTCQueue m a x -> FTCQueue m x b -> FTCQueue m a b
 
 
 -- Exported operations
@@ -36,17 +31,23 @@ newtype ViewL m a b = ViewL (TA.TAViewL TA.FTCQ.FastTCQueue (Kleisli m) a b)
 -- The names are chosen for compatibility with FastTCQueue
 {-# INLINE tsingleton #-}
 tsingleton :: (a -> m b) -> FTCQueue m a b
-tsingleton = FTCQueue . TA.tsingleton . Kleisli
+tsingleton r = Leaf r
 
 -- | snoc: clearly constant-time
 {-# INLINE (|>) #-}
 (|>) :: FTCQueue m a x -> (x -> m b) -> FTCQueue m a b
-(FTCQueue t) |> r = FTCQueue $ t TA.|> (Kleisli r)
+t |> r = Node t (Leaf r)
 
 -- | append: clearly constant-time
 {-# INLINE (><) #-}
 (><) :: FTCQueue m a x -> FTCQueue m x b -> FTCQueue m a b
-(FTCQueue t1) >< (FTCQueue t2) = FTCQueue $ t1 TA.>< t2
+t1 >< t2 = Node t1 t2
+
+
+-- | Left-edge deconstruction
+data ViewL m a b where
+  TOne  :: (a -> m b) -> ViewL m a b
+  (:|)  :: (a -> m x) -> (FTCQueue m x b) -> ViewL m a b
 
 -- | Process the Left-edge deconstruction
 {-# INLINE viewlMap #-}
@@ -54,12 +55,15 @@ viewlMap :: ViewL m a b
          -> ((a -> m b) -> c)
          -> (forall x. (a -> m x) -> (FTCQueue m x b) -> c)
          -> c
-viewlMap (ViewL tav) tone cons = case tav of
-  TA.TAEmptyL -> error "Impossibility: FTCQueue constructor allowed to create empty sequence"
-  (Kleisli k) TA.:< t1 -> case TA.tviewl t1 of
-    TA.TAEmptyL -> tone k
-    _ -> k `cons` (FTCQueue t1)
+viewlMap view tone cons = case view of
+  TOne k -> tone k
+  k :| t -> cons k t
 
 {-# INLINABLE tviewl #-}
 tviewl :: FTCQueue m a b -> ViewL m a b
-tviewl (FTCQueue t1) = ViewL $ TA.tviewl t1
+tviewl (Leaf r) = TOne r
+tviewl (Node t1 t2) = go t1 t2
+ where
+   go :: FTCQueue m a x -> FTCQueue m x b -> ViewL m a b
+   go (Leaf r) tr = r :| tr
+   go (Node tl1 tl2) tr = go tl1 (Node tl2 tr)
