@@ -38,37 +38,72 @@ import GHC.Exts (inline)
 -- denoted by r
 type Arr r a b = a -> Eff r b
 
--- | An effectful function from 'a' to 'b' that is a composition
--- of several effectful functions. The paremeter r describes the overall
--- effect.
+-- | An effectful function from 'a' to 'b' that is a composition of one or more
+-- effectful functions. The paremeter r describes the overall effect.
+--
 -- The composition members are accumulated in a type-aligned queue.
 -- Using a newtype here enables us to define `Category' and `Arrow' instances.
 newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
 
+-- | 'Arrs' can be composed and have a natural identity.
 instance C.Category (Arrs r) where
   id = ident
   f . g = comp g f
 
+-- | As the name suggests, 'Arrs' also has an 'Arrow' instance.
 instance A.Arrow (Arrs r) where
   arr = arr
-  first = singleK . first . qApp
+  first = singleK . first . (^$)
 
 first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
+-- | convert single effectful arrow into composable type. i.e., convert 'Arr' to
+-- 'Arrs'
 {-# INLINE singleK #-}
 singleK :: Arr r a b -> Arrs r a b
 singleK = Arrs . tsingleton
 
+-- | Application to the `generalized effectful function' Arrs r b w, i.e.,
+-- convert 'Arrs' to 'Arr'
+{-# INLINABLE qApp #-}
+qApp :: forall r b w. Arrs r b w -> Arr r b w
+qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
+  where
+    cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
+    cons = \k t -> case k x of
+      Val y -> qApp (Arrs t) y
+      E u (Arrs q0) -> E u (Arrs (q0 >< t))
+{-
+-- A bit more understandable version
+qApp :: Arrs r b w -> b -> Eff r w
+qApp q x = case tviewl q of
+   TOne k  -> k x
+   k :| t -> bind' (k x) t
+ where
+   bind' :: Eff r a -> Arrs r a b -> Eff r b
+   bind' (Pure y) k     = qApp k y
+   bind' (Impure u q) k = Impure u (q >< k)
+-}
+
+-- | Syntactic sugar for 'qApp'
+{-# INLINABLE (^$) #-}
+(^$) :: forall r b w. Arrs r b w -> Arr r b w
+q ^$ x = q `qApp` x
+
+-- | Lift a function to an arrow
 arr :: (a -> b) -> Arrs r a b
 arr f = singleK (Val . f)
 
+-- | The identity arrow
 ident :: Arrs r a a
 ident = arr id
 
+-- | Arrow composition
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
+-- | Common pattern: append 'Arr' to 'Arrs'
 (^|>) :: Arrs r a b -> Arr r b c -> Arrs r a c
 (Arrs f) ^|> g = Arrs (f |> g)
 
@@ -88,33 +123,11 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 data Eff r a = Val a
              | forall b. E  (Union r b) (Arrs r b a)
 
--- | Application to the `generalized effectful function' Arrs r b w
-{-# INLINABLE qApp #-}
-qApp :: forall r b w. Arrs r b w -> Arr r b w
-qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
-  where
-    cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
-    cons = \k t -> case k x of
-      Val y -> qApp (Arrs t) y
-      E u (Arrs q0) -> E u (Arrs (q0 >< t))
-
-{-
--- A bit more understandable version
-qApp :: Arrs r b w -> b -> Eff r w
-qApp q x = case tviewl q of
-   TOne k  -> k x
-   k :| t -> bind' (k x) t
- where
-   bind' :: Eff r a -> Arrs r a b -> Eff r b
-   bind' (Pure y) k     = qApp k y
-   bind' (Impure u q) k = Impure u (q >< k)
--}
-
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
 -- qComp g h = (h . (g `qApp`))
-qComp g h = \a -> h $ qApp g a
+qComp g h = \a -> h $ (g ^$ a)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}

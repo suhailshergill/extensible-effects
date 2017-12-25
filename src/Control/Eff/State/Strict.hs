@@ -75,9 +75,9 @@ runState :: Eff (State s ': r) w  -- ^ Effect incorporating State
          -> Eff r (w,s)           -- ^ Effect containing final state and a return value
 runState (Val x) !s = return (x,s)
 runState (E u q) !s = case decomp u of
-  Right Get     -> runState (qApp q s) s
-  Right (Put s1) -> runState (qApp q ()) s1
-  Left  u1 -> E u1 (singleK (\x -> runState (qApp q x) s))
+  Right Get     -> runState (q ^$ s) s
+  Right (Put s1) -> runState (q ^$ ()) s1
+  Left  u1 -> E u1 (singleK (\x -> runState (q ^$ x) s))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -102,8 +102,8 @@ transactionState _ m = do s <- get; loop s m
    loop :: s -> Eff r w -> Eff r w
    loop s (Val x) = put s >> return x
    loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
-     Just Get      -> loop s (qApp q s)
-     Just (Put s') -> loop s'(qApp q ())
+     Just Get      -> loop s (q ^$ s)
+     Just (Put s') -> loop s'(q ^$ ())
      _             -> E u (qComps q (loop s))
 
 -- | A different representation of State: decomposing State into mutation
