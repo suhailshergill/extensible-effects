@@ -70,8 +70,8 @@ call m = loop [] m where
     Left u0 -> check jq u0 q
 
   check jq u _ | Just (Choose []) <- prj u  = next jq  -- (C1)
-  check jq u q | Just (Choose [x]) <- prj u = loop jq (qApp q x)  -- (C3), optim
-  check jq u q | Just (Choose lst) <- prj u = next $ map (qApp q) lst ++ jq -- (C3)
+  check jq u q | Just (Choose [x]) <- prj u = loop jq (q ^$ x)  -- (C3), optim
+  check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
   check jq u q = loop jq (E (weaken u) q)     -- (C4)
 
   next :: Member Choose r

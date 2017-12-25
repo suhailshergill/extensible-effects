@@ -64,10 +64,10 @@ runStateBack0 m =
    go :: s -> Eff '[LazyState s] a -> (a,s)
    go s (Val x) = (x,s)
    go s (E u q) = case decomp u of
-         Right LGet      -> go s $ qApp q s
-         Right (LPut s1)  -> let ~(x,sp) = go sp $ qApp q () in (x,s1)
-         Right (Delay m1) -> let ~(x,s1) = go s m1 in go s1 $ qApp q x
-         Left _ -> error "LazyState: the impossible happened"
+         Right LGet      -> go s $ (q ^$ s)
+         Right (LPut s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
+         Right (Delay m1) -> let ~(x,s1) = go s m1 in go s1 $ (q ^$ x)
+         Left _ -> error "LazyState: the impossible happened: Union []"
 
 -- | Another implementation, exploring Haskell's laziness to make putAttr
 -- also technically inherited, to accumulate the sequence of

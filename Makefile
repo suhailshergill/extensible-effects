@@ -18,10 +18,13 @@ build: init
 	cabal build
 
 .PHONY: test
-test:
+test: build
 	cabal test --show-details=always --test-options="-a 1000 \
 	--maximum-unsuitable-generated-tests=100000 --color"
-	cabal bench || true
+
+.PHONY: bench
+bench:
+	cabal bench --benchmark-options="-o benchmarks.html"
 
 .PHONY: doc
 doc:
@@ -32,13 +35,13 @@ tags:
 	haskdogs --hasktags-args=-ex
 
 .PHONY: devel
-devel: build
+devel: test bench
 	{ \
-	DIRS="*.hs *.cabal ./src ./test"; \
+	DIRS="*.hs *.cabal ./src ./test ./benchmark"; \
 	EVENTS="-e modify -e move -e delete"; \
 	EXCLUDE="\.#"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
-		make test && make doc; \
+		make test && make bench && make doc; \
 	done; \
 	}
 

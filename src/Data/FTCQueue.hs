@@ -1,4 +1,5 @@
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
 
 -- | Fast type-aligned queue optimized to effectful functions
@@ -11,7 +12,8 @@ module Data.FTCQueue (
   tsingleton,
   (|>), -- snoc
   (><), -- append
-  ViewL(..),
+  ViewL,
+  viewlMap,
   tviewl
   )
   where
@@ -46,6 +48,16 @@ t1 >< t2 = Node t1 t2
 data ViewL m a b where
   TOne  :: (a -> m b) -> ViewL m a b
   (:|)  :: (a -> m x) -> (FTCQueue m x b) -> ViewL m a b
+
+-- | Process the Left-edge deconstruction
+{-# INLINE viewlMap #-}
+viewlMap :: ViewL m a b
+         -> ((a -> m b) -> c)
+         -> (forall x. (a -> m x) -> (FTCQueue m x b) -> c)
+         -> c
+viewlMap view tone cons = case view of
+  TOne k -> tone k
+  k :| t -> cons k t
 
 {-# INLINABLE tviewl #-}
 tviewl :: FTCQueue m a b -> ViewL m a b

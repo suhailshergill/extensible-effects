@@ -75,9 +75,9 @@ runState :: Eff (State s ': r) w  -- ^ Effect incorporating State
          -> Eff r (w,s)           -- ^ Effect containing final state and a return value
 runState (Val x) !s = return (x,s)
 runState (E u q) !s = case decomp u of
-  Right Get     -> runState (qApp q s) s
-  Right (Put s1) -> runState (qApp q ()) s1
-  Left  u1 -> E u1 (single (\x -> runState (qApp q x) s))
+  Right Get     -> runState (q ^$ s) s
+  Right (Put s1) -> runState (q ^$ ()) s1
+  Left  u1 -> E u1 (singleK (\x -> runState (q ^$ x) s))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -102,9 +102,9 @@ transactionState _ m = do s <- get; loop s m
    loop :: s -> Eff r w -> Eff r w
    loop s (Val x) = put s >> return x
    loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
-     Just Get      -> loop s (qApp q s)
-     Just (Put s') -> loop s'(qApp q ())
-     _      -> E u (single k) where k = qComp q (loop s)
+     Just Get      -> loop s (q ^$ s)
+     Just (Put s') -> loop s'(q ^$ ())
+     _             -> E u (qComps q (loop s))
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
@@ -118,5 +118,5 @@ runStateR m !s = loop s m
      Right (Writer w v) -> k w v
      Left  u1  -> case decomp u1 of
        Right (Reader f) -> k s0 (f s0)
-       Left u2 -> E u2 (single (k s0))
+       Left u2 -> E u2 (singleK (k s0))
     where k x = qComp q (loop x)

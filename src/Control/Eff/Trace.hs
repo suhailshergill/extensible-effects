@@ -25,6 +25,6 @@ trace = send . Trace
 runTrace :: Eff '[Trace] w -> IO w
 runTrace (Val x) = return x
 runTrace (E u q) = case decomp u of
-     Right (Trace s) -> putStrLn s >> runTrace (qApp q ())
+     Right (Trace s) -> putStrLn s >> runTrace (q ^$ ())
      -- Nothing more can occur
-     Left _ -> error "runTrace: the impossible happened!"
+     Left _ -> error "runTrace: the impossible happened!: Union []"

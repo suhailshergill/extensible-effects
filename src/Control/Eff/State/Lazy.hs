@@ -71,11 +71,11 @@ runState :: Eff (State s ': r) w -- ^ Effect incorporating State
          -> Eff r (w,s)          -- ^ Effect containing final state and a return value
 runState (Val x) s = return (x,s)
 runState (E u0 q) s0 = case decomp u0 of
-  Right Get     -> runState (qApp q s0) s0
-  Right (Put s1) -> runState (qApp q ()) s1
+  Right Get     -> runState (q ^$ s0) s0
+  Right (Put s1) -> runState (q ^$ ()) s1
   Right (Delay m1) -> let ~(x,s1) = run $ runState m1 s0
-                      in runState (qApp q x) s1
-  Left  u -> E u (single (\x -> runState (qApp q x) s0))
+                      in runState (q ^$ x) s1
+  Left  u -> E u (singleK (\x -> runState (q ^$ x) s0))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -101,7 +101,7 @@ runStateR m0 s0 = loop s0 m0
      Right (Writer w v) -> k w v
      Left  u  -> case decomp u of
        Right (Reader f) -> k s (f s)
-       Left u1 -> E u1 (single (k s))
+       Left u1 -> E u1 (singleK (k s))
     where k x = qComp q (loop x)
 
 -- | Backwards state
@@ -118,9 +118,9 @@ runStateBack0 m =
    go :: s -> Eff '[State s] a -> (a,s)
    go s (Val x) = (x,s)
    go s0 (E u q) = case decomp u of
-         Right Get      -> go s0 $ qApp q s0
-         Right (Put s1)  -> let ~(x,sp) = go sp $ qApp q () in (x,s1)
-         Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ qApp q x
+         Right Get      -> go s0 $ (q ^$ s0)
+         Right (Put s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
+         Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ (q ^$ x)
          Left _ -> error "Impossible happened: Union []"
 
 -- | Another implementation, exploring Haskell's laziness to make putAttr

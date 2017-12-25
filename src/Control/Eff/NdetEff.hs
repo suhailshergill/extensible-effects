@@ -54,8 +54,8 @@ makeChoiceA m = loop [] m
      Right MZero     -> case jq of
        []    -> return empty
        (h:t) -> loop t h
-     Right MPlus -> loop (qApp q False : jq) (qApp q True)
-     Left  u0 -> E u0 (single (\x -> loop jq (qApp q x)))
+     Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
+     Left  u0 -> E u0 (singleK (\x -> loop jq (q ^$ x)))
 
 -- ------------------------------------------------------------------------
 -- Soft-cut: non-deterministic if-then-else, aka Prolog's *->
@@ -71,7 +71,7 @@ makeChoiceA m = loop [] m
 msplit :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit = loop []
  where
- -- single result
+ -- singleK result
  loop [] (Val x)  = return (Just (x,mzero))
  -- definite result and perhaps some others
  loop jq (Val x)  = return (Just (x, msum jq))
@@ -82,8 +82,8 @@ msplit = loop []
                    []     -> return Nothing
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
-  Just MPlus -> loop ((qApp q False):jq) (qApp q True)
-  _      -> E u (single k) where k = qComp q (loop jq)
+  Just MPlus -> loop ((q ^$ False):jq) (q ^$ True)
+  _          -> E u (qComps q (loop jq))
 
 -- Other committed choice primitives can be implemented in terms of msplit
 -- The following implementations are directly from the LogicT paper
