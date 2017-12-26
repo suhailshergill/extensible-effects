@@ -94,9 +94,9 @@ execState m !s = fmap snd . flip runState s $ m
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished
 -- successfully
-data ProxyState s = ProxyState
+data TxState s = TxState
 transactionState :: forall s r w. Member (State s) r =>
-                    ProxyState s -> Eff r w -> Eff r w
+                    TxState s -> Eff r w -> Eff r w
 transactionState _ m = do s <- get; loop s m
  where
    loop :: s -> Eff r w -> Eff r w

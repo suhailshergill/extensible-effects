@@ -201,7 +201,7 @@ case_catchDynE_tran = do
     tf x = runReader (runState m1 ([]::[String])) (x::Bool)
     m1 = do
       modify ("init":)
-      testc (transactionState (ProxyState :: ProxyState [String]) m)
+      testc (transactionState (TxState :: TxState [String]) m)
     m = do
       modify ("begin":)
       x <- ask
