@@ -7,13 +7,13 @@
 -- | Exception-producing and exception-handling effects
 module Control.Eff.Exception ( Exc (..)
                             , Fail
-                            , throwExc
+                            , throwError
                             , die
-                            , runExc
+                            , runError
                             , runFail
-                            , catchExc
+                            , catchError
                             , onFail
-                            , rethrowExc
+                            , rethrowError
                             , liftEither
                             , liftEitherM
                             , liftMaybe
@@ -35,33 +35,33 @@ newtype Exc e v = Exc e
 type Fail = Exc ()
 
 -- | Throw an exception in an effectful computation. The type is inferred.
-throwExc :: (Member (Exc e) r) => e -> Eff r a
-throwExc e = send (Exc e)
-{-# INLINE throwExc #-}
+throwError :: (Member (Exc e) r) => e -> Eff r a
+throwError e = send (Exc e)
+{-# INLINE throwError #-}
 
 -- | Makes an effect fail, preventing future effects from happening.
 die :: Member Fail r => Eff r a
-die = throwExc ()
+die = throwError ()
 {-# INLINE die #-}
 
 -- | Run a computation that might produce an exception.
-runExc :: Eff (Exc e ': r) a -> Eff r (Either e a)
-runExc = handle_relay
+runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
+runError = handle_relay
   (return . Right)
   (\(Exc e) _k -> return (Left e))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
 runFail :: Eff (Fail ': r) a -> Eff r (Maybe a)
-runFail = fmap (either (const Nothing) Just) . runExc
+runFail = fmap (either (const Nothing) Just) . runError
 {-# INLINE runFail #-}
 
 -- | Run a computation that might produce exceptions, and give it a way to deal
 -- with the exceptions that come up. The handler is allowed to rethrow the
 -- exception
-catchExc :: Member (Exc e) r =>
+catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
-catchExc m handle = interpose return (\(Exc e) _k -> handle e) m
+catchError m handle = interpose return (\(Exc e) _k -> handle e) m
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.
@@ -73,15 +73,15 @@ onFail e handle = runFail e >>= maybe handle return
 
 -- | Run a computation until it produces an exception,
 -- and convert and throw that exception in a new context.
-rethrowExc :: (Member (Exc e') r)
+rethrowError :: (Member (Exc e') r)
            => (e -> e')
            -> Eff (Exc e ': r) a
            -> Eff r a
-rethrowExc t eff = runExc eff >>= either (throwExc . t) return
+rethrowError t eff = runError eff >>= either (throwError . t) return
 
 -- | Treat Lefts as exceptions and Rights as return values.
 liftEither :: (Member (Exc e) r) => Either e a -> Eff r a
-liftEither = either throwExc return
+liftEither = either throwError return
 {-# INLINE liftEither #-}
 
 -- | `liftEither` in a lifted Monad

@@ -23,7 +23,7 @@ testGroups = [ $(testGroupGenerator) ]
 -- ex2 :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
 ex2 m = do
   v <- m
-  if v > 5 then throwExc (TooBig v)
+  if v > 5 then throwError (TooBig v)
      else return v
 
 case_Exception1_ex2r :: Assertion

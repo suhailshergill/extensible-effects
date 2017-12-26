@@ -47,7 +47,7 @@ import Control.Eff.Choose
 data CutFalse = CutFalse
 
 cutfalse :: Member (Exc CutFalse) r => Eff r a
-cutfalse = throwExc CutFalse
+cutfalse = throwError CutFalse
 
 -- | The interpreter -- it is like reify . reflect with a twist.  Compare this
 -- implementation with the huge implementation of call in Hinze 2000 (Figure 9).
