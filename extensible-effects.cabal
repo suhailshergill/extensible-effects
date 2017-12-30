@@ -60,7 +60,7 @@ flag lib-Werror
 
 flag force-openunion-51
   description:         Force usage of OpenUnion51.hs implementation
-  default:             True
+  default:             False
   manual:              True
 
 library
