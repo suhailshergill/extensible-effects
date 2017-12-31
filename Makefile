@@ -1,4 +1,4 @@
-GHCS = 7.8.4 7.10.3 8.0.2 8.2.1
+GHCS = 7.8.4 7.10.3 8.0.2 8.2.2
 
 .PHONY: all
 all: build test package doc tags
