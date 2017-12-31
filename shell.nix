@@ -1,2 +1,1 @@
-with (import <nixpkgs> {}).pkgs;
-(haskellPackages.callPackage ./. {}).env
+./shell-8.2.2.nix

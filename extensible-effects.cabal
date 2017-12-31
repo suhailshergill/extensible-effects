@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.3.0.0
+version:             2.3.0.1
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -43,7 +43,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.2.1, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
+tested-with:         GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
 
 build-type:          Simple
 
@@ -167,7 +167,7 @@ test-suite extensible-effects-tests
   build-depends:
                 base >= 4.6 && < 5
               , QuickCheck == 2.*
-              , HUnit >= 1.2 && < 1.4
+              , HUnit >= 1.2 && < 1.7
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
               , test-framework-quickcheck2 == 0.3.*

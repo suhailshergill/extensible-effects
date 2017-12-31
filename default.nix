@@ -4,7 +4,7 @@
 }:
 mkDerivation {
   pname = "extensible-effects";
-  version = "2.3.0.0";
+  version = "2.3.0.1";
   src = ./.;
   libraryHaskellDepends = [ base transformers transformers-base ];
   testHaskellDepends = [
