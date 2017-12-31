@@ -60,8 +60,8 @@ case_LazierState_ex5 :: Assertion
 case_LazierState_ex5 =
   let
     -- the annotations below are needed for assertEqual
-    ex5Run :: Either [Int] () = fst . run . runStateLazy (undefined::[Int]) . runExc $ lex5
-    ex51Run :: Either [Int] ((), [Int]) = run . runExc . runStateLazy (undefined::[Int]) $ lex5
+    ex5Run :: Either [Int] () = fst . run . runStateLazy (undefined::[Int]) . runError $ lex5
+    ex51Run :: Either [Int] ((), [Int]) = run . runError . runStateLazy (undefined::[Int]) $ lex5
   in
     assertEqual "LazyState ex5" (Left ones) ex5Run
     >> assertEqual "LazyState ex51" (Left ones) ex51Run
@@ -75,7 +75,7 @@ case_LazierState_ex5 =
     lex5 = do
       lex31
       x <- lget
-      throwExc ((take 5 x)::[Int])
+      throwError ((take 5 x)::[Int])
 
 case_LazierState_st :: Assertion
 case_LazierState_st = let

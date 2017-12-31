@@ -113,10 +113,10 @@ case_catchDynE_test1' = do
       modify ("end":)
       return r
 
-    runErrorStr = asEStr . runExc
+    runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
-    exfn True = throwExc $ ("thrown")
+    exfn True = throwError $ ("thrown")
     exfn False = return True
 
 -- Now, the behavior of the dynamic Exception and Error effect is consistent.
@@ -131,13 +131,13 @@ case_catchDynE_test2 = do
   where
     test2 = do runLift (tf True) >>= print; runLift (tf False) >>= print
     tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
-    runErrorStr = asEStr . runExc
+    runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
     m = do
       modify ("begin":)
       x <- ask
-      r <- exfn x `catchDynE` (\ (MyException s) -> throwExc s)
+      r <- exfn x `catchDynE` (\ (MyException s) -> throwError s)
       modify ("end":)
       return r
 
@@ -152,7 +152,7 @@ case_catchDynE_test2' = do
   where
     test2' = do runLift (tf True) >>= print; runLift (tf False) >>= print
     tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
-    runErrorStr = asEStr . runExc
+    runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
     m = do
@@ -173,7 +173,7 @@ case_catchDynE_test3 = do
   where
     test3 = do runLift (tf True) >>= print; runLift (tf False) >>= print
     tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
-    runErrorStr = asEStr . runExc
+    runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
     m = do
@@ -201,7 +201,7 @@ case_catchDynE_tran = do
     tf x = runReader (runState m1 ([]::[String])) (x::Bool)
     m1 = do
       modify ("init":)
-      testc (transactionState (ProxyState :: ProxyState [String]) m)
+      testc (transactionState (TxState :: TxState [String]) m)
     m = do
       modify ("begin":)
       x <- ask

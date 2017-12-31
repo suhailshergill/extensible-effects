@@ -24,9 +24,16 @@ versions. If this is needed, patches are welcome :)
 ## Disadvantages
 
 ### Ambiguity-Flexibility tradeoff
-  * The extensibility comes at the cost of some ambiguity. Note, however, that
-    the extensibility can be traded back, but that detracts from some of the
-    advantages. For details see section 4.1 in the
+
+A useful pattern to manage the ambiguity-flexibility tradeoff is to specialize
+the call to the handler of effects using
+[type application](https://ghc.haskell.org/trac/ghc/wiki/TypeApplication) or
+type annotation. Examples of this pattern can be seen in
+[Example/Test.hs](./test/Control/Eff/Example/Test.hs).
+
+  * The extensibility of `Eff` comes at the cost of some ambiguity. Note,
+    however, that the extensibility can be traded back, but that detracts from
+    some of the advantages. For details see section 4.1 in the
     [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf). This issue
     manifests itself in a few ways:
     * Common functions can't be grouped using typeclasses, e.g.

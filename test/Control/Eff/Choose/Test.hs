@@ -52,6 +52,6 @@ case_Choose_exRec =
     -- The code is the same as in transf1.hs. The inferred signatures differ
     -- Was: exRec :: MonadError TooBig m => m Int -> m Int
     -- exRec :: Member (Exc TooBig) r => Eff r Int -> Eff r Int
-    exRec m = catchExc m handler
+    exRec m = catchError m handler
       where handler (TooBig n) | n <= 7 = return n
-            handler e = throwExc e
+            handler e = throwError e

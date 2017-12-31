@@ -77,25 +77,25 @@ tes1 :: (Member (State Int) r
         , Member (Exc [Char]) r) => Eff r b
 tes1 = do
   incr
-  throwExc "exc"
+  throwError "exc"
   where
     incr = get >>= put . (+ (1::Int))
 
 case_Strict1_State_ter1 :: Assertion
 case_Strict1_State_ter1 = (Left "exc" :: Either String Int,2) @=?
-  (run $ runState (runExc tes1) (1::Int))
+  (run $ runState (runError tes1) (1::Int))
 
 case_Strict1_State_ter2 :: Assertion
 case_Strict1_State_ter2 = (Left "exc" :: Either String (Int,Int)) @=?
-  (run $ runExc (runState tes1 (1::Int)))
+  (run $ runError (runState tes1 (1::Int)))
 
 teCatch :: Member (Exc String) r => Eff r a -> Eff r [Char]
-teCatch m = catchExc (m >> return "done") (\e -> return (e::String))
+teCatch m = catchError (m >> return "done") (\e -> return (e::String))
 
 case_Strict1_State_ter3 :: Assertion
 case_Strict1_State_ter3 = (Right "exc" :: Either String String,2) @=?
-  (run $ runState (runExc (teCatch tes1)) (1::Int))
+  (run $ runState (runError (teCatch tes1)) (1::Int))
 
 case_Strict1_State_ter4 :: Assertion
 case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
-  (run $ runExc (runState (teCatch tes1) (1::Int)))
+  (run $ runError (runState (teCatch tes1) (1::Int)))

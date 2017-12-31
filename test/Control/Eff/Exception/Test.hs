@@ -26,7 +26,7 @@ case_Exception1_et1 = 3 @=? (run et1)
 
 -- The type is inferred
 -- et2 :: Member (Exc Int) r => Eff r Int
-et2 = return 1 `add` throwExc (2::Int)
+et2 = return 1 `add` throwError (2::Int)
 
 -- The following won't type: unhandled exception!
 -- ex2rw = run et2
@@ -42,7 +42,7 @@ case_Exception1_et21 = (Left (2::Int)) @=?
     -- The inferred type shows that ex21 is now pure
     -- et21 :: Eff r (Either Int Int)
 
-    et21 = runExc et2
+    et21 = runError et2
 
 -- Implementing the operator <|> from Alternative:
 --  a <|> b does
@@ -56,24 +56,24 @@ case_Exception1_et21 = (Left (2::Int)) @=?
 alttry :: forall e r a. (Monoid e, SetMember Exc (Exc e) r) =>
           Eff r a -> Eff r a -> Eff r a
 alttry ma mb =
-  catchExc ma $ \ea ->
-  catchExc mb $ \eb -> throwExc (mappend (ea::e) eb)
+  catchError ma $ \ea ->
+  catchError mb $ \eb -> throwError (mappend (ea::e) eb)
 
 case_Exception1_alttry :: Assertion
 case_Exception1_alttry =
   [Right 10,Right 10,Right 10,Left "bummer1bummer2"] @=?
   [
-  run . runExc $
-     (return 1 `add` throwExc "bummer1") `alttry`
+  run . runError $
+     (return 1 `add` throwError "bummer1") `alttry`
      (return 10),
-  run . runExc $
+  run . runError $
      (return 10) `alttry`
-     (return 1 `add` throwExc "bummer2"),
-  run . runExc $
+     (return 1 `add` throwError "bummer2"),
+  run . runError $
      (return 10) `alttry` return 20,
-  run . runExc $
-     (return 1 `add` throwExc "bummer1") `alttry`
-     (return 1 `add` throwExc "bummer2")
+  run . runError $
+     (return 1 `add` throwError "bummer1") `alttry`
+     (return 1 `add` throwError "bummer2")
      ]
 
 case_Failure1_Effect :: Assertion

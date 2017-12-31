@@ -151,17 +151,15 @@ weaken (Union n v) = Union (n+1) v
 class FindElem (t :: * -> *) r where
   elemNo :: P t r
 
-#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
-instance FindElem t (t ': r) where
-#else
+#if !(__GLASGOW_HASKELL__ < 710 || FORCE_OU51)
 -- Stopped Using Obsolete -XOverlappingInstances
 -- and explicitly specify to choose the topmost
 -- one for multiple occurence, which is the same
 -- behaviour as OpenUnion51 with GHC 7.10.
-instance {-# INCOHERENT  #-} t ~ s => FindElem t '[s] where
+instance {-# INCOHERENT #-} t ~ s => FindElem t '[s] where
   elemNo = P 0
-instance {-# INCOHERENT #-} FindElem t (t ': r) where
 #endif
+instance FindElem t (t ': r) where
   elemNo = P 0
 
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
@@ -176,7 +174,11 @@ instance {-# OVERLAPPABLE #-} FindElem t r => FindElem t (t' ': r) where
 -- module
 class EQU (a :: k) (b :: k) p | a b -> p
 instance EQU a a 'True
+#if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 instance (p ~ 'False) => EQU a b p
+#else
+instance {-# OVERLAPPABLE #-} (p ~ 'False) => EQU a b p
+#endif
 
 -- | This class is used for emulating monad transformers
 class Member t r => SetMember (tag :: k -> * -> *) (t :: * -> *) r | tag r -> t

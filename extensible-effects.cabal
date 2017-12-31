@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.2.1.0
+version:             2.3.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -60,7 +60,7 @@ flag lib-Werror
 
 flag force-openunion-51
   description:         Force usage of OpenUnion51.hs implementation
-  default:             True
+  default:             False
   manual:              True
 
 library
@@ -122,7 +122,6 @@ library
 
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.6 && < 5
-                       , type-aligned >= 0.9.3
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance

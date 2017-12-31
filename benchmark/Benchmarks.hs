@@ -86,10 +86,10 @@ benchMul_Error n = either id id m
  f acc x = return $! acc * x
 
 benchMul_Eff :: Int -> Int
-benchMul_Eff n = either id id . run . runExc $ m
+benchMul_Eff n = either id id . run . runError $ m
  where
  m = foldM f 1 (be_make_list n)
- f acc 0 = E.Er.throwExc (0::Int)
+ f acc 0 = E.Er.throwError (0::Int)
  f acc x = return $! acc * x
 
 -- ------------------------------------------------------------------------
@@ -114,7 +114,7 @@ benchMax_Eff :: (Member (Exc Int) r, Member (E.S.State Int) r) =>
                 Int -> Eff r Int
 benchMax_Eff n = foldM f 1 [n, n-1 .. 0]
  where
- f acc 0 = E.Er.throwExc (0::Int)
+ f acc 0 = E.Er.throwError (0::Int)
  f acc x | x `mod` 5 == 0 = do
                             s <- E.S.get
                             E.S.put $! (s+1::Int)
@@ -122,10 +122,10 @@ benchMax_Eff n = foldM f 1 [n, n-1 .. 0]
  f acc x = return $! max acc x
 
 
-mainMax_Eff n = ((run $ E.S.runState (E.Er.runExc (benchMax_Eff n)) 0) ::
+mainMax_Eff n = ((run $ E.S.runState (E.Er.runError (benchMax_Eff n)) 0) ::
                   (Either Int Int,Int))
 
-mainMax1_Eff n = ((run $ E.Er.runExc (E.S.runState (benchMax_Eff n) 0)) ::
+mainMax1_Eff n = ((run $ E.Er.runError (E.S.runState (benchMax_Eff n) 0)) ::
                      Either Int (Int,Int))
 
 -- ------------------------------------------------------------------------
