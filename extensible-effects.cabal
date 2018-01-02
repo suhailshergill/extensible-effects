@@ -204,13 +204,30 @@ benchmark extensible-effects-benchmarks
   main-is: Benchmarks.hs
   hs-source-dirs: benchmark/
   ghc-options: -Wall -O2 -threaded -fdicts-cheap -funbox-strict-fields
+               -Wno-type-defaults -Wno-missing-signatures -Wno-name-shadowing -Wno-unused-matches
   build-depends:
-                base
+                base >= 4.6 && < 5
               , criterion
               , extensible-effects
               , mtl
+              , HUnit >= 1.2 && < 1.7
+              , test-framework == 0.8.*
+              , test-framework-hunit == 0.3.*
+              , test-framework-quickcheck2 == 0.3.*
+              , test-framework-th >= 0.2
 
   default-language:    Haskell2010
+  extensions:          NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
 
 source-repository head
   type: git

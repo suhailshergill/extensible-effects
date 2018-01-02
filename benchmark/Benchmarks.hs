@@ -1,4 +1,6 @@
 {-# LANGUAGE FlexibleContexts, FlexibleInstances #-}
+{-# LANGUAGE TemplateHaskell #-}
+{-# OPTIONS_GHC -Wno-orphans #-}
 
 -- The simplest/silliest of all benchmarks!
 
@@ -13,10 +15,16 @@ import Control.Monad
 -- We use a strict State monad, because of large space leaks with the
 -- lazy monad (one test even overflows the stack)
 import Control.Monad.State.Strict as S
-import Control.Monad.Error  as Er
+import Control.Monad.Except  as Er
 -- import Control.Monad.Reader as Rd
 import Control.Monad.Cont as Ct
 import Control.Applicative
+
+-- For sanity-checking
+import qualified Test.Framework as TF
+import qualified Test.Framework.TH as TF.TH
+import Test.Framework.Providers.HUnit (testCase)
+import qualified Test.HUnit as HU
 
 main :: IO ()
 main = defaultMain [
@@ -43,6 +51,9 @@ main = defaultMain [
                                        ]
                   ]
   ]
+  >> TF.defaultMainWithArgs [ $(TF.TH.testGroupGenerator) ] testOpts
+  where
+    testOpts = [ "--color" ]
 
 -- ------------------------------------------------------------------------
 -- Single State, with very little non-effectful computation
@@ -76,8 +87,6 @@ benchCnt_Eff n = run $ E.S.runState m n
 be_make_list :: Int -> [Int]
 be_make_list n = replicate n 1 ++ [0]
 
-instance Error Int where
-
 benchMul_Error :: Int -> Int
 benchMul_Error n = either id id m
  where
@@ -105,7 +114,7 @@ benchMax_MTL n = foldM f 1 [n, n-1 .. 0]
                             return $! max acc x
  f acc x = return $! max acc x
 
-mainMax_MTL n = S.runState (Er.runErrorT (benchMax_MTL n)) 0
+mainMax_MTL n = S.runState (Er.runExceptT (benchMax_MTL n)) 0
 
 -- Different order of layers
 mainMax1_MTL n = (S.runStateT (benchMax_MTL n) 0 :: Either Int (Int,Int))
@@ -147,9 +156,11 @@ pyth20 =
   [(3,4,5),(4,3,5),(5,12,13),(6,8,10),(8,6,10),(8,15,17),(9,12,15),(12,5,13),
    (12,9,15),(12,16,20),(15,8,17),(16,12,20)]
 
-pythr_MTL = pyth20 == ((runCont (pyth1 20) (\x -> [x])) :: [(Int,Int,Int)])
 
-pythr_EFF = pyth20 == ((run . E.ND.makeChoiceA $ pyth1 20) :: [(Int,Int,Int)])
+case_pythr_ndet :: HU.Assertion
+case_pythr_ndet =
+  HU.assertEqual "pythr_MTL" pyth20 ((runCont (pyth1 20) (\x -> [x])) :: [(Int,Int,Int)])
+  >> HU.assertEqual "pythr_EFF" pyth20 ((run . E.ND.makeChoiceA $ pyth1 20) :: [(Int,Int,Int)])
 
 
 -- There is no instance of MonadPlus for ContT
@@ -179,9 +190,6 @@ pyth2 upbound = do
   S.put $! (cnt + 1)
   if x*x + y*y == z*z then return (x,y,z) else mzero
 
-pythrNS_MTL :: ([(Int,Int,Int)],Int)
-pythrNS_MTL = S.runState (runContT (pyth2 20) (\x -> return [x])) 0
-
 pyth2E :: (Member (E.S.State Int) r, Member NdetEff r) =>
           Int -> Eff r (Int, Int, Int)
 pyth2E upbound = do
@@ -193,13 +201,16 @@ pyth2E upbound = do
   if x*x + y*y == z*z then return (x,y,z) else mzero
 
 
-pyth2Er :: ([(Int,Int,Int)],Int)
-pyth2Er = run . (`E.S.runState` 0) . E.ND.makeChoiceA $ pyth2E 20
-
 mainNS_MTL n =
-  let (l,cnt) = S.runState (runContT (pyth2 n) (\x -> return [x])) 0
+  let (l,cnt) = pythrNS_MTL n
   in ((l::[(Int,Int,Int)]), (cnt::Int))
+  where
+    pythrNS_MTL :: Int -> ([(Int,Int,Int)],Int)
+    pythrNS_MTL n = S.runState (runContT (pyth2 n) (\x -> return [x])) 0
 
 mainNS_Eff n =
-  let (l,cnt) = run . (`E.S.runState` 0) . E.ND.makeChoiceA $ pyth2E n
+  let (l,cnt) = pyth2Er n
   in ((l::[(Int,Int,Int)]), (cnt::Int))
+  where
+    pyth2Er :: Int -> ([(Int,Int,Int)],Int)
+    pyth2Er n = run . (`E.S.runState` 0) . E.ND.makeChoiceA $ pyth2E n
