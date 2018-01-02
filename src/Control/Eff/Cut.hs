@@ -58,7 +58,7 @@ cutfalse = throwError CutFalse
 -- of its argument computation. When it encounteres a cutfalse request, it
 -- discards the remaining choicepoints.  It completely handles CutFalse effects
 -- but not non-determinism
-call :: Member Choose r => Eff (Exc CutFalse ': r) a -> Eff r a
+call :: forall a r. Member Choose r => Eff (Exc CutFalse ': r) a -> Eff r a
 call m = loop [] m where
   loop :: Member Choose r
        => [Eff (Exc CutFalse ': r) a]
@@ -69,6 +69,8 @@ call m = loop [] m where
     Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
     Left u0 -> check jq u0 q
 
+  check :: forall b. [Eff (Exc CutFalse ': r) a]
+        -> Union r b -> Arrs (Exc CutFalse ': r) b a -> Eff r a
   check jq u _ | Just (Choose []) <- prj u  = next jq  -- (C1)
   check jq u q | Just (Choose [x]) <- prj u = loop jq (q ^$ x)  -- (C3), optim
   check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
