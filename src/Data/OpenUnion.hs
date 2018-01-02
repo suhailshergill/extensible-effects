@@ -10,12 +10,7 @@
 {-# LANGUAGE Trustworthy #-}
 {-# OPTIONS_GHC -Wwarn #-}
 
-#if __GLASGOW_HASKELL__ >= 800
-{-# OPTIONS_GHC -Wwarn -Wno-redundant-constraints #-}
-#endif
-
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
-{-# OPTIONS_GHC -fno-warn-warnings-deprecations #-}
 {-# LANGUAGE OverlappingInstances #-}
 #else
 #endif
@@ -120,7 +115,9 @@ instance {-# OVERLAPPING #-} t ~ s => Member t '[s] where
    {-# INLINE prj #-}
    inj x           = Union 0 x
    prj (Union _ x) = Just (unsafeCoerce x)
-
+-- Note that if it weren't for us wanting to use the specialized instance above
+-- we wouldn't need the INCOHERENT pragma below
+-- TODO: consider impact of disabling specialization
 instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   {-# INLINE inj #-}
   {-# INLINE prj #-}
@@ -128,13 +125,10 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   prj = prj' (unP $ (elemNo :: P t r))
 #endif
 
-
-
 {-# INLINE [2] decomp #-}
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)
 decomp (Union 0 v) = Right $ unsafeCoerce v
 decomp (Union n v) = Left  $ Union (n-1) v
-
 
 -- Specialized version
 {-# RULES "decomp/singleton"  decomp = decomp0 #-}
@@ -154,25 +148,14 @@ weaken (Union n v) = Union (n+1) v
 class FindElem (t :: * -> *) r where
   elemNo :: P t r
 
-#if !(__GLASGOW_HASKELL__ < 710 || FORCE_OU51)
--- Stopped Using Obsolete -XOverlappingInstances
--- and explicitly specify to choose the topmost
--- one for multiple occurence, which is the same
--- behaviour as OpenUnion51 with GHC 7.10.
-instance {-# INCOHERENT #-} t ~ s => FindElem t '[s] where
-  elemNo = P 0
-#endif
 instance FindElem t (t ': r) where
   elemNo = P 0
-
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 instance FindElem t r => FindElem t (t' ': r) where
 #else
 instance {-# OVERLAPPABLE #-} FindElem t r => FindElem t (t' ': r) where
 #endif
   elemNo = P $ 1 + (unP $ (elemNo :: P t r))
-
-
 #if __GLASGOW_HASKELL__ > 800
 instance TypeError ('Text "Cannot unify effect types." ':$$:
                     'Text "Unhandled effect: " ':<>: 'ShowType t ':$$:
