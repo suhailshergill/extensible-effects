@@ -2,7 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
@@ -29,9 +29,10 @@ singleton :: (Member (Program instr) r) => instr a -> Eff r a
 singleton instr = send $ (Program instr) id
 
 -- | Convert values using given interpreter to effects.
-runProgram :: (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
+runProgram :: forall f r a. (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
 runProgram advent = handle_relay return h
   where
+    h :: forall v. Program f v -> (v -> Eff r a) -> Eff r a
     h (Program instr v) k = advent instr >>= k . v
 
 -- $usage

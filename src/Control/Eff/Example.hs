@@ -9,6 +9,7 @@ module Control.Eff.Example where
 import Control.Eff
 import Control.Eff.Exception
 
+import Control.Eff.Reader.Lazy
 import Control.Eff.State.Lazy
 import Control.Eff.Writer.Lazy
 
@@ -22,6 +23,15 @@ runErrBig :: Eff (Exc TooBig ': r) a -> Eff r (Either TooBig a)
 runErrBig = runError
 
 -- }}}
+
+-- | Multiple Reader effects
+sum2 :: Member (Reader Int) r
+     => Member (Reader Float) r
+     => Eff r Float
+sum2 = do
+  v1 <- ask
+  v2 <- ask
+  return $ fromIntegral (v1 + (1 :: Int)) + (v2 + (2 :: Float))
 
 -- | Write the elements of a list of numbers, in order.
 writeAll :: (Member (Writer a) e)

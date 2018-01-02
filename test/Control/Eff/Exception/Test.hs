@@ -9,7 +9,6 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Writer.Strict
-import Data.Monoid
 import Utils
 
 import Test.Framework.TH

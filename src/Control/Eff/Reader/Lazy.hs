@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Safe #-}
 -- | Lazy read-only state
@@ -53,7 +54,9 @@ local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local _f m = do
   e <- reader _f
-  let h (Reader _f) g = g (_f e)
+  let
+    h :: Reader e t -> (t -> Eff r b) -> Eff r b
+    h (Reader _f) g = g (_f e)
   interpose return h m
 
 -- | Request the environment value using a transformation function.

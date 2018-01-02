@@ -92,6 +92,17 @@ library
   if flag(force-openunion-51)
     cpp-options:       -DFORCE_OU51
 
+  extensions:          NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
                        , CPP
@@ -162,7 +173,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Writer.Lazy.Test
                 , Control.Eff.Writer.Strict.Test
 
-  ghc-options: -Wall
+  ghc-options: -Wall -Wno-type-defaults -Wno-missing-signatures -Wno-name-shadowing
 
   build-depends:
                 base >= 4.6 && < 5
@@ -176,6 +187,17 @@ test-suite extensible-effects-tests
               , directory >= 1.2 && < 1.4
 
   default-language:    Haskell2010
+  extensions:          NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
 
 benchmark extensible-effects-benchmarks
   type: exitcode-stdio-1.0

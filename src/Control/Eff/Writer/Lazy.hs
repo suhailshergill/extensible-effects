@@ -2,6 +2,7 @@
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Safe #-}
 -- | Lazy write-only state
@@ -37,6 +38,7 @@ tell w = send $ Writer w ()
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
 censor f = interpose return h
   where
+    h :: Writer w t -> (t -> Eff r b) -> Eff r b
     h (Writer w v) k = tell (f w) >> k v
 
 

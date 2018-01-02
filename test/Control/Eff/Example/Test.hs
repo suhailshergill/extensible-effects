@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
+{-# LANGUAGE ScopedTypeVariables #-}
 
 module Control.Eff.Example.Test (testGroups, ex2) where
 
@@ -41,6 +42,14 @@ case_Exception1_ex2r2 :: Assertion
 case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (run ex2r2)
   where
     ex2r2 = runErrBig (runReader (ex2 ask) (7::Int))
+
+case_multiple_eff_sum2 :: Assertion
+case_multiple_eff_sum2 =
+  assertEqual "Int : Float" 33 intThenFloat
+  >> assertEqual "Float : Int" intThenFloat floatThenInt
+  where
+    intThenFloat = run $ runReader (runReader sum2 (10::Int)) (20::Float)
+    floatThenInt = run $ runReader (runReader sum2 (20::Float)) (10::Int)
 
 prop_Documentation_example :: [Integer] -> Property
 prop_Documentation_example l = let
