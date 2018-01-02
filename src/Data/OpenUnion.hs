@@ -61,6 +61,9 @@ module Data.OpenUnion (Union, inj, prj, decomp,
                   ) where
 
 import Unsafe.Coerce(unsafeCoerce)
+#if __GLASGOW_HASKELL__ > 800
+import GHC.TypeLits
+#endif
 
 -- | The data constructors of Union are not exported
 --
@@ -169,6 +172,14 @@ instance {-# OVERLAPPABLE #-} FindElem t r => FindElem t (t' ': r) where
 #endif
   elemNo = P $ 1 + (unP $ (elemNo :: P t r))
 
+
+#if __GLASGOW_HASKELL__ > 800
+instance TypeError ('Text "Cannot unify effect types." ':$$:
+                    'Text "Unhandled effect: " ':<>: 'ShowType t ':$$:
+                    'Text "Perhaps check the type of effectful computation and the sequence of handlers for concordance?")
+  => FindElem t '[] where
+  elemNo = error "unreachable"
+#endif
 
 -- | Using overlapping instances here is OK since this class is private to this
 -- module
