@@ -5,26 +5,15 @@ module Utils where
 import Control.Exception (ErrorCall, catch)
 import Control.Monad
 
-import GHC.IO.Handle
-import System.IO
-import System.Directory
+import System.IO.Silently
+import Data.Tuple (swap)
 
 import Test.HUnit hiding (State)
 
 -- | capture stdout
--- [[https://stackoverflow.com/a/9664017][source]]
+-- [[https://stackoverflow.com/a/11128420][source]]
 catchOutput :: IO a -> IO (a, String)
-catchOutput f = do
-  tmpd <- getTemporaryDirectory
-  (tmpf, tmph) <- openTempFile tmpd "haskell_stdout"
-  stdout_dup <- hDuplicate stdout
-  hDuplicateTo tmph stdout
-  hClose tmph
-  fVal <- f
-  hDuplicateTo stdout_dup stdout
-  str <- readFile tmpf
-  removeFile tmpf
-  return (fVal, str)
+catchOutput f = swap `fmap` capture f
 
 showLn :: Show a => a -> String
 showLn x = unlines $ [show x]

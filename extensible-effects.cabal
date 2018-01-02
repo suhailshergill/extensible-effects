@@ -179,12 +179,12 @@ test-suite extensible-effects-tests
                 base >= 4.6 && < 5
               , QuickCheck == 2.*
               , HUnit >= 1.2 && < 1.7
+              , silently >= 1.2
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
               , test-framework-quickcheck2 == 0.3.*
               , test-framework-th >= 0.2
               , extensible-effects
-              , directory >= 1.2 && < 1.4
 
   default-language:    Haskell2010
   extensions:          NoMonomorphismRestriction
