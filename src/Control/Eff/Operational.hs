@@ -2,7 +2,7 @@
 {-# LANGUAGE ExistentialQuantification #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
-{-# LANGUAGE Rank2Types #-}
+{-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE CPP #-}
@@ -22,17 +22,19 @@ import Control.Eff
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.
-data Program instr v = forall a. Program (instr a) (a -> v)
+data Program instr v where
+  Singleton :: instr a -> Program instr a
 
 -- | Lift a value to a monad.
 singleton :: (Member (Program instr) r) => instr a -> Eff r a
-singleton instr = send $ (Program instr) id
+singleton = send . Singleton
 
 -- | Convert values using given interpreter to effects.
-runProgram :: (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
+runProgram :: forall f r a. (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
 runProgram advent = handle_relay return h
   where
-    h (Program instr v) k = advent instr >>= k . v
+    h :: forall v. Program f v -> (v -> Eff r a) -> Eff r a
+    h (Singleton instr) k = advent instr >>= k
 
 -- $usage
 --

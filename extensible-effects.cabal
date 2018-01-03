@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.3.0.1
+version:             2.4.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -92,6 +92,18 @@ library
   if flag(force-openunion-51)
     cpp-options:       -DFORCE_OU51
 
+  default-extensions:  NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , GADTs
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
                        , CPP
@@ -121,7 +133,7 @@ library
      ghc-options:      -Wno-simplifiable-class-constraints
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >= 4.6 && < 5
+  build-depends:       base >= 4.7 && < 4.11
                        -- For MonadIO instance
                        , transformers >= 0.3 && < 0.6
                        -- For MonadBase instance
@@ -163,32 +175,72 @@ test-suite extensible-effects-tests
                 , Control.Eff.Writer.Strict.Test
 
   ghc-options: -Wall
+  if impl(ghc >= 8.0)
+     ghc-options:      -Wno-type-defaults -Wno-missing-signatures -Wno-name-shadowing
+  if impl(ghc < 8.0)
+     ghc-options:      -fno-warn-type-defaults -fno-warn-missing-signatures -fno-warn-name-shadowing
 
   build-depends:
-                base >= 4.6 && < 5
-              , QuickCheck == 2.*
-              , HUnit >= 1.2 && < 1.7
+                base >= 4.7 && < 4.11
+              , QuickCheck
+              , HUnit
+              , silently >= 1.2
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
               , test-framework-quickcheck2 == 0.3.*
               , test-framework-th >= 0.2
               , extensible-effects
-              , directory >= 1.2 && < 1.4
 
   default-language:    Haskell2010
+  default-extensions:  NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , GADTs
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
 
 benchmark extensible-effects-benchmarks
   type: exitcode-stdio-1.0
   main-is: Benchmarks.hs
   hs-source-dirs: benchmark/
   ghc-options: -Wall -O2 -threaded -fdicts-cheap -funbox-strict-fields
+  if impl(ghc >= 8.0)
+     ghc-options:      -Wno-type-defaults -Wno-missing-signatures
+                       -Wno-name-shadowing -Wno-unused-matches
+  if impl(ghc < 8.0)
+     ghc-options:      -fno-warn-type-defaults -fno-warn-missing-signatures
+                       -fno-warn-name-shadowing -fno-warn-unused-matches
+
   build-depends:
-                base
+                base >= 4.7 && < 4.11
               , criterion
               , extensible-effects
               , mtl
+              , HUnit
+              , test-framework == 0.8.*
+              , test-framework-hunit == 0.3.*
+              , test-framework-quickcheck2 == 0.3.*
+              , test-framework-th >= 0.2
 
   default-language:    Haskell2010
+  default-extensions:  NoMonomorphismRestriction
+                     , MonoLocalBinds
+                     , FlexibleContexts
+                     , FlexibleInstances
+                     , GADTs
+                     , MultiParamTypeClasses
+                     , RankNTypes
+                     , ScopedTypeVariables
+                     , DataKinds
+                     , TypeOperators
+                     , PolyKinds
+                     , KindSignatures
 
 source-repository head
   type: git

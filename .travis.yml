@@ -10,9 +10,9 @@ addons:
 
 matrix:
   include:
-    - env: CABALVER=2.0 GHCVER=8.2.1
-      compiler: "ghc-8.2.1"
-      addons: {apt: {packages: [*apt_packages,cabal-install-2.0,ghc-8.2.1], sources: [hvr-ghc]}}
+    - env: CABALVER=2.0 GHCVER=8.2.2
+      compiler: "ghc-8.2.2"
+      addons: {apt: {packages: [*apt_packages,cabal-install-2.0,ghc-8.2.2], sources: [hvr-ghc]}}
     - env: CABALVER=2.0 GHCVER=8.0.2
       compiler: "ghc-8.0.2"
       addons: {apt: {packages: [*apt_packages,cabal-install-2.0,ghc-8.0.2], sources: [hvr-ghc]}}
