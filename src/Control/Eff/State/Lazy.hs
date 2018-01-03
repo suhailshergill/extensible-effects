@@ -98,9 +98,9 @@ runStateR m0 s0 = loop s0 m0
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
    loop s (Val x) = return (x,s)
    loop s (E u0 q) = case decomp u0 of
-     Right (Writer w v) -> k w v
+     Right (Tell w) -> k w ()
      Left  u  -> case decomp u of
-       Right (Reader f) -> k s (f s)
+       Right Reader -> k s s
        Left u1 -> E u1 (singleK (k s))
     where k x = qComp q (loop x)
 

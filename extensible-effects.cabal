@@ -96,6 +96,7 @@ library
                      , MonoLocalBinds
                      , FlexibleContexts
                      , FlexibleInstances
+                     , GADTs
                      , MultiParamTypeClasses
                      , RankNTypes
                      , ScopedTypeVariables
@@ -195,6 +196,7 @@ test-suite extensible-effects-tests
                      , MonoLocalBinds
                      , FlexibleContexts
                      , FlexibleInstances
+                     , GADTs
                      , MultiParamTypeClasses
                      , RankNTypes
                      , ScopedTypeVariables
@@ -231,6 +233,7 @@ benchmark extensible-effects-benchmarks
                      , MonoLocalBinds
                      , FlexibleContexts
                      , FlexibleInstances
+                     , GADTs
                      , MultiParamTypeClasses
                      , RankNTypes
                      , ScopedTypeVariables

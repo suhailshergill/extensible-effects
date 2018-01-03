@@ -29,18 +29,19 @@ import Control.Applicative ((<|>))
 -- writer has no such constraints. If we write a |Writer|-like
 -- interpreter to accumulate the told values in a monoid, it will have
 -- the |Monoid w| constraint then
-data Writer w v = Writer !w v
+data Writer w v where
+  Tell :: !w -> Writer w ()
 
 -- | Write a new value.
 tell :: Member (Writer w) r => w -> Eff r ()
-tell !w = send $ Writer w ()
+tell !w = send $ Tell w
 
 -- | Transform the state being produced.
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
 censor f = interpose return h
   where
     h :: Writer w t -> (t -> Eff r b) -> Eff r b
-    h (Writer w v) k = tell (f w) >> k v
+    h (Tell w) k = tell (f w) >>= k
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate
@@ -48,9 +49,9 @@ censor f = interpose return h
 runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
 runWriter accum !b = handle_relay
   (\x -> return (x, b))
-  (\(Writer w v) k -> k v >>= \(x, l) -> return (x, w `accum` l))
+  (\(Tell w) k -> k () >>= \(x, l) -> return (x, w `accum` l))
   -- the second arg to 'handle_relay' above is same as:
-  -- (\(Writer o) k -> second (accum o) `fmap` k ())
+  -- (\(Tell w) k -> second (accum w) `fmap` k ())
   -- where
   --   second f (x, y) = (x, f y)
 

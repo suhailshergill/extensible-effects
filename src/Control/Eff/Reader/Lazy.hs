@@ -23,13 +23,19 @@ import Control.Eff
 -- returned in response to a (Reader e a) request is not any a;
 -- we expect in reply the value of type 'e', the value from the
 -- environment. So, the return type is restricted: 'a ~ e'
--- data Reader e v where
---   Reader :: Reader e e
---
+data Reader e v where
+  Reader :: Reader e e
+-- ^
 -- One can also define this as
---    data Reader e v = (e ~ v) => Reader
--- and even without GADTs, using explicit coercion as is done here.
-newtype Reader e v = Reader (e->v)
+--
+-- @
+-- data Reader e v = (e ~ v) => Reader
+-- @
+-- ^ without GADTs, using explicit coercion as is done here.
+--
+-- @
+-- newtype Reader e v = Reader (e->v)
+-- @
 -- ^ In the latter case, when we make the request, we make it as Reader id.
 -- So, strictly speaking, GADTs are not really necessary.
 
@@ -37,26 +43,25 @@ newtype Reader e v = Reader (e->v)
 -- | Get the current value from a Reader.
 -- The signature is inferred (when using NoMonomorphismRestriction).
 ask :: (Member (Reader e) r) => Eff r e
-ask = send $ Reader id
+ask = send Reader
 
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
 runReader :: Eff (Reader e ': r) w -> e -> Eff r w
 runReader m e = handle_relay
   return
-  (\(Reader f) k -> k (f e))
+  (\Reader k -> k e)
   m
 
 -- | Locally rebind the value in the dynamic environment This function is like a
 -- relay; it is both an admin for Reader requests, and a requestor of them.
--- The underscore is used to disable name-shadowing warning.
 local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
-local _f m = do
-  e <- reader _f
+local f m = do
+  e <- reader f
   let
     h :: Reader e t -> (t -> Eff r b) -> Eff r b
-    h (Reader _f) g = g (_f e)
+    h Reader g = g e
   interpose return h m
 
 -- | Request the environment value using a transformation function.
