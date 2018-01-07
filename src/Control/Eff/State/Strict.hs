@@ -117,6 +117,6 @@ runStateR m !s = loop s m
    loop s0 (E u q) = case decomp u of
      Right (Tell w) -> k w ()
      Left  u1  -> case decomp u1 of
-       Right Reader -> k s0 s0
+       Right Ask -> k s0 s0
        Left u2 -> E u2 (singleK (k s0))
     where k x = qComp q (loop x)
