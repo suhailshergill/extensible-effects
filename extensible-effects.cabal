@@ -78,8 +78,8 @@ library
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
                        Control.Eff.Reader.Lazy
+                       Control.Eff.State.OnDemand
                        Control.Eff.Reader.Strict
-                       Control.Eff.State.LazyState
                        Control.Eff.State.Lazy
                        Control.Eff.State.Strict
                        Control.Eff.Trace
@@ -168,7 +168,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Reader.Lazy.Test
                 , Control.Eff.Reader.Strict.Test
                 , Control.Eff.State.Lazy.Test
-                , Control.Eff.State.LazyState.Test
+                , Control.Eff.State.OnDemand.Test
                 , Control.Eff.State.Strict.Test
                 , Control.Eff.Trace.Test
                 , Control.Eff.Writer.Lazy.Test

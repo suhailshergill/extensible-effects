@@ -13,7 +13,7 @@ import qualified Control.Eff.Operational.Test
 import qualified Control.Eff.Reader.Lazy.Test
 import qualified Control.Eff.Reader.Strict.Test
 import qualified Control.Eff.State.Lazy.Test
-import qualified Control.Eff.State.LazyState.Test
+import qualified Control.Eff.State.OnDemand.Test
 import qualified Control.Eff.State.Strict.Test
 import qualified Control.Eff.Trace.Test
 import qualified Control.Eff.Writer.Lazy.Test
@@ -37,7 +37,7 @@ testGroups = []
              ++ Control.Eff.Reader.Lazy.Test.testGroups
              ++ Control.Eff.Reader.Strict.Test.testGroups
              ++ Control.Eff.State.Lazy.Test.testGroups
-             ++ Control.Eff.State.LazyState.Test.testGroups
+             ++ Control.Eff.State.OnDemand.Test.testGroups
              ++ Control.Eff.State.Strict.Test.testGroups
              ++ Control.Eff.Trace.Test.testGroups
              ++ Control.Eff.Writer.Lazy.Test.testGroups
