@@ -25,7 +25,7 @@ import Control.Eff
 -- we expect in reply the value of type 'e', the value from the
 -- environment. So, the return type is restricted: 'a ~ e'
 data Reader e v where
-  Reader :: Reader e e
+  Ask :: Reader e e
 -- ^
 -- One can also define this as
 --
@@ -44,14 +44,14 @@ data Reader e v where
 -- | Get the current value from a Reader.
 -- The signature is inferred (when using NoMonomorphismRestriction).
 ask :: (Member (Reader e) r) => Eff r e
-ask = send Reader
+ask = send Ask
 
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
 runReader :: Eff (Reader e ': r) w -> e -> Eff r w
 runReader m !e = handle_relay
   return
-  (\Reader k -> k e)
+  (\Ask -> ($ e))
   m
 
 -- | Locally rebind the value in the dynamic environment This function is like a
@@ -62,7 +62,7 @@ local f m = do
   e <- reader f
   let
     h :: Reader e t -> (t -> Eff r b) -> Eff r b
-    h Reader g = g e
+    h Ask = ($ e)
   interpose return h m
 
 -- | Request the environment value using a transformation function.

@@ -15,16 +15,25 @@ import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
 
 -- ------------------------------------------------------------------------
--- | State, lazy (i.e., on-demand)
+-- | State, lazy
 --
--- Extensible effects make it clear that where the computation is delayed
--- (which I take as an advantage) and they do maintain the degree of
--- extensibility (the delayed computation must be effect-closed, but the
--- whole computation does not have to be).
+-- Initial design:
+-- The state request carries with it the state mutator function
+-- We can use this request both for mutating and getting the state.
+-- But see below for a better design!
+--
+-- > data State s v where
+-- >   State :: (s->s) -> State s s
+--
+-- In this old design, we have assumed that the dominant operation is
+-- modify. Perhaps this is not wise. Often, the reader is most nominant.
+--
+-- See also below, for decomposing the State into Reader and Writer!
+--
+-- The conventional design of State
 data State s v where
-  Get  :: State s s
-  Put  :: s -> State s ()
-  Delay :: Eff '[State s] a  -> State s a --  Eff as a transformer
+  Get :: State s s
+  Put :: s -> State s ()
 
 -- | Return the current value of the state. The signatures are inferred
 {-# NOINLINE get #-}
@@ -50,32 +59,24 @@ put s = send (Put s)
 -- inline get/put, even if I put the INLINE directives and play with phases.
 -- (Inlining works if I use 'inline' explicitly).
 
-onDemand :: Member (State s) r => Eff '[State s] v -> Eff r v
-onDemand = send . Delay
-
 runState' :: Eff (State s ': r) w -> s -> Eff r (w,s)
 runState' m s =
-  handle_relay_s s
-  (\s0 x -> return (x,s0))
-  (\s0 sreq k -> case sreq of
-      Get    -> k s0 s0
-      Put s1 -> k s1 ()
-      Delay m1 -> let ~(x,s1) = run $ runState' m1 s0
-                  in k s1 x)
-  m
+  handle_relay_s s (\s0 x -> return (x,s0))
+                   (\s0 sreq k -> case sreq of
+                       Get    -> k s0 s0
+                       Put s1 -> k s1 ())
+                   m
 
 -- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
-runState :: Eff (State s ': r) w -- ^ Effect incorporating State
-         -> s                    -- ^ Initial state
-         -> Eff r (w,s)          -- ^ Effect containing final state and a return value
+runState :: Eff (State s ': r) w  -- ^ Effect incorporating State
+         -> s                     -- ^ Initial state
+         -> Eff r (w,s)           -- ^ Effect containing final state and a return value
 runState (Val x) s = return (x,s)
-runState (E u0 q) s0 = case decomp u0 of
-  Right Get     -> runState (q ^$ s0) s0
+runState (E u q) s = case decomp u of
+  Right Get     -> runState (q ^$ s) s
   Right (Put s1) -> runState (q ^$ ()) s1
-  Right (Delay m1) -> let ~(x,s1) = run $ runState m1 s0
-                      in runState (q ^$ x) s1
-  Left  u -> E u (singleK (\x -> runState (q ^$ x) s0))
+  Left  u1 -> E u1 (singleK (\x -> runState (q ^$ x) s))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -89,56 +90,32 @@ evalState m s = fmap fst . flip runState s $ m
 execState :: Eff (State s ': r) w -> s -> Eff r s
 execState m s = fmap snd . flip runState s $ m
 
+-- | An encapsulated State handler, for transactional semantics
+-- The global state is updated only if the transactionState finished
+-- successfully
+data TxState s = TxState
+transactionState :: forall s r w. Member (State s) r =>
+                    TxState s -> Eff r w -> Eff r w
+transactionState _ m = do s <- get; loop s m
+ where
+   loop :: s -> Eff r w -> Eff r w
+   loop s (Val x) = put s >> return x
+   loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
+     Just Get      -> loop s (q ^$ s)
+     Just (Put s') -> loop s'(q ^$ ())
+     _             -> E u (qComps q (loop s))
+
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: Eff (Writer s ': Reader s ': r) w -> s -> Eff r (w,s)
-runStateR m0 s0 = loop s0 m0
+runStateR m s = loop s m
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-   loop s (Val x) = return (x,s)
-   loop s (E u0 q) = case decomp u0 of
+   loop s0 (Val x) = return (x,s0)
+   loop s0 (E u q) = case decomp u of
      Right (Tell w) -> k w ()
-     Left  u  -> case decomp u of
-       Right Reader -> k s s
-       Left u1 -> E u1 (singleK (k s))
+     Left  u1  -> case decomp u1 of
+       Right Ask -> k s0 s0
+       Left u2 -> E u2 (singleK (k s0))
     where k x = qComp q (loop x)
-
--- | Backwards state
--- The overall state is represented with two attributes: the inherited
--- getAttr and the synthesized putAttr.
--- At the root node, putAttr becomes getAttr, tying the knot.
--- As usual, the inherited attribute is the argument (i.e., the `environment')
--- and the synthesized is the result of the handler |go| below.
-runStateBack0 :: Eff '[State s] a -> (a,s)
-runStateBack0 m =
-  let (x,s) = go s m in
-  (x,s)
- where
-   go :: s -> Eff '[State s] a -> (a,s)
-   go s (Val x) = (x,s)
-   go s0 (E u q) = case decomp u of
-         Right Get      -> go s0 $ (q ^$ s0)
-         Right (Put s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
-         Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ (q ^$ x)
-         Left _ -> error "Impossible happened: Union []"
-
--- | Another implementation, exploring Haskell's laziness to make putAttr
--- also technically inherited, to accumulate the sequence of
--- updates. This implementation is compatible with deep handlers, and
--- lets us play with different notions of `backwardness'
-runStateBack :: Eff '[State s] a -> (a,s)
-runStateBack m =
-  let (x,(_sg,sp)) = run $ go (sp,[]) m in
-  (x,head sp)
- where
-   go :: ([s],[s]) -> Eff '[State s] a -> Eff '[] (a,([s],[s]))
-   go ss = handle_relay_s ss (\ss0 x -> return (x,ss0))
-                   (\ss0@(sg,sp) req k -> case req of
-                       Get    -> k ss0 (head sg)
-                       Put s1  -> k (tail sg,sp++[s1]) ()
-                       Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
-                                   in k ss1 x)
-
--- ^ A different notion of `backwards' is realized if we change the Put
--- handler slightly. How?
