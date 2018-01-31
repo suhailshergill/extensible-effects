@@ -1,34 +1,16 @@
-{-# LANGUAGE DataKinds #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# LANGUAGE RankNTypes, ScopedTypeVariables #-}
 {-# LANGUAGE Safe #-}
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
 module Control.Eff.Lift ( Lift (..)
-                       , lift
-                       , runLift
-                       , catchDynE
-                       ) where
+                        , lift
+                        , runLift
+                        , catchDynE
+                        ) where
 
-import Control.Eff
+import Control.Eff.Internal
 import qualified Control.Exception as Exc
-
--- ------------------------------------------------------------------------
--- | Lifting: emulating monad transformers
-newtype Lift m a = Lift (m a)
-
--- | We make the Lift layer to be unique, using SetMember
-lift :: (SetMember Lift (Lift m) r) => m a -> Eff r a
-lift = send . Lift
-
--- | The handler of Lift requests. It is meant to be terminal:
--- we only allow a single Lifted Monad.
-runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift (Val x) = return x
-runLift (E u q) = case prj u of
-                  Just (Lift m) -> m >>= runLift . qApp q
-                  Nothing -> error "Impossible: Nothing cannot occur"
+import Data.OpenUnion
 
 -- | Catching of dynamic exceptions
 -- See the problem in
