@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -13,7 +15,12 @@ module Control.Eff.Reader.Lazy ( Reader (..)
                               , runReader
                               ) where
 
-import Control.Eff
+import Control.Eff.Internal
+import Data.OpenUnion
+
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad
@@ -67,3 +74,14 @@ local f m = do
 -- | Request the environment value using a transformation function.
 reader :: (Member (Reader e) r) => (e -> a) -> Eff r a
 reader f = f `fmap` ask
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) s
+         , MonadBaseControl m (Eff s)
+         ) => MonadBaseControl m (Eff (Reader e ': s)) where
+    type StM (Eff (Reader e ': s)) a = StM (Eff s) a
+    liftBaseWith f = do e <- ask
+                        raise $ liftBaseWith $ \runInBase ->
+                          f (\k -> runInBase $ runReader k e)
+    restoreM = raise . restoreM
