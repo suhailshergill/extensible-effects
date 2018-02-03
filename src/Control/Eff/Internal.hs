@@ -166,12 +166,10 @@ instance (MonadBase b m, Typeable m, SetMember Lift (Lift m) r) => MonadBase b (
     liftBase = lift . liftBase
     {-# INLINE liftBase #-}
 
-instance (MonadBase m (Eff r), Typeable m, SetMember Lift (Lift m) r) => MonadBaseControl m (Eff r) where
-    type StM (Eff r) a = Eff r a
-    liftBaseWith f = lift (f return)
-    {-# INLINE liftBaseWith #-}
-    restoreM = id
-    {-# INLINE restoreM#-}
+instance (MonadBase m m, Typeable m) => MonadBaseControl m (Eff '[Lift m]) where
+    type StM (Eff '[Lift m]) a = a
+    liftBaseWith f = lift (f runLift)
+    restoreM = return
 
 -- | Send a request and wait for a reply (resulting in an effectful
 -- computation).
