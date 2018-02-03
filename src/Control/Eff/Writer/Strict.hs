@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -17,10 +19,15 @@ module Control.Eff.Writer.Strict ( Writer(..)
                                , runMonoidWriter
                                ) where
 
-import Control.Eff
+import Control.Eff.Internal
+import Data.OpenUnion
 
-import Data.Monoid
 import Control.Applicative ((<|>))
+
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Monoid
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | The Writer monad
@@ -31,6 +38,18 @@ import Control.Applicative ((<|>))
 -- the |Monoid w| constraint then
 data Writer w v where
   Tell :: !w -> Writer w ()
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) r
+         , MonadBaseControl m (Eff r)
+         ) => MonadBaseControl m (Eff (Writer w ': r)) where
+    type StM (Eff (Writer w ': r)) a = StM (Eff r) (a, [w])
+    liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
+                       f (runInBase . runListWriter)
+    restoreM x = do !(a, ws :: [w]) <- raise (restoreM x)
+                    mapM_ tell ws
+                    return a
 
 -- | Write a new value.
 tell :: Member (Writer w) r => w -> Eff r ()
