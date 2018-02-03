@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -Werror #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE BangPatterns #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -11,9 +13,14 @@
 -- | Strict state effect
 module Control.Eff.State.Strict where
 
-import Control.Eff
+import Control.Eff.Internal
 import Control.Eff.Writer.Strict
 import Control.Eff.Reader.Strict
+import Data.OpenUnion
+
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | State, strict
@@ -35,6 +42,20 @@ import Control.Eff.Reader.Strict
 data State s v where
   Get :: State s s
   Put :: !s -> State s ()
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) r
+         , MonadBaseControl m (Eff r)
+         ) => MonadBaseControl m (Eff (State s ': r)) where
+    type StM (Eff (State s ': r)) a = StM (Eff r) (a,s)
+    liftBaseWith f = do s <- get
+                        raise $ liftBaseWith $ \runInBase ->
+                          f (\k -> runInBase $ runState k s)
+    restoreM x = do !(a, s :: s) <- raise (restoreM x)
+                    put s
+                    return a
+
 
 -- | Return the current value of the state. The signatures are inferred
 {-# NOINLINE get #-}

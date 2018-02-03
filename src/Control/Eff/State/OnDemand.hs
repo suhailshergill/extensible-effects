@@ -1,4 +1,6 @@
 {-# OPTIONS_GHC -Werror #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
@@ -10,9 +12,14 @@
 -- | Lazy state effect
 module Control.Eff.State.OnDemand where
 
-import Control.Eff
+import Control.Eff.Internal
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
+import Data.OpenUnion
+
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | State, lazy (i.e., on-demand)
@@ -25,6 +32,20 @@ data OnDemandState s v where
   Get  :: OnDemandState s s
   Put  :: s -> OnDemandState s ()
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) r
+         , MonadBaseControl m (Eff r)
+         ) => MonadBaseControl m (Eff (OnDemandState s ': r)) where
+    type StM (Eff (OnDemandState s ': r)) a = StM (Eff r) (a,s)
+    liftBaseWith f = do s <- get
+                        raise $ liftBaseWith $ \runInBase ->
+                          f (\k -> runInBase $ runState k s)
+    restoreM x = do (a, s :: s) <- raise (restoreM x)
+                    put s
+                    return a
+
 
 -- | Return the current value of the state. The signatures are inferred
 {-# NOINLINE get #-}
