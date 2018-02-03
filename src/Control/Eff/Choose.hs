@@ -21,8 +21,8 @@ module Control.Eff.Choose ( Choose (..)
 import Control.Eff
 #if __GLASGOW_HASKELL__ > 708
 import Control.Applicative
-import Control.Monad
 #endif
+import Control.Monad
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)
@@ -45,7 +45,7 @@ mzero' = choose []
 
 -- | MonadPlus-like operators are expressible via choose
 mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
-mplus' m1 m2 = choose [m1,m2] >>= id
+mplus' m1 m2 = join $ choose [m1,m2]
 
 #if __GLASGOW_HASKELL__ > 708
 -- | MonadPlus-like operators are expressible via choose
