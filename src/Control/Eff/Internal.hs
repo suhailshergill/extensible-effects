@@ -240,6 +240,15 @@ interpose ret h m = loop m
      _      -> E u (singleK k)
     where k = qComp q loop
 
+-- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
+-- MTL's 'lift'.
+raise :: Eff r a -> Eff (e ': r) a
+raise = loop
+  where
+    loop (Val x) = pure x
+    loop (E u q) = E (weaken u) $ qComps q loop
+{-# INLINE raise #-}
+
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift (m a)
