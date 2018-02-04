@@ -1,3 +1,5 @@
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
@@ -21,16 +23,30 @@ module Control.Eff.Exception ( Exc (..)
                             , ignoreFail
                             ) where
 
-import Control.Eff
-import Control.Eff.Lift
+import Control.Eff.Internal
+import Data.OpenUnion
 
 import Control.Monad (void)
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | Exceptions
 --
 -- exceptions of the type e; no resumption
 newtype Exc e v = Exc e
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) r
+         , MonadBaseControl m (Eff r)
+         ) => MonadBaseControl m (Eff (Exc e ': r)) where
+    type StM (Eff (Exc e ': r)) a = StM (Eff r) (Either e a)
+    liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
+                       f (runInBase . runError)
+    restoreM x = do r :: Either e a <- raise (restoreM x)
+                    liftEither r
 
 type Fail = Exc ()
 
