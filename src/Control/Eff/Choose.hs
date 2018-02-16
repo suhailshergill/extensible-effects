@@ -1,3 +1,4 @@
+{-# LANGUAGE TypeFamilies #-}
 {-# OPTIONS_GHC -fno-warn-orphans #-}
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
@@ -18,11 +19,15 @@ module Control.Eff.Choose ( Choose (..)
                           , mplus'
                           ) where
 
-import Control.Eff
+import Control.Eff.Internal
+import Data.OpenUnion
 #if __GLASGOW_HASKELL__ > 708
 import Control.Applicative
 #endif
 import Control.Monad
+import Control.Monad.Base
+import Control.Monad.Trans.Control
+import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)
@@ -33,6 +38,17 @@ import Control.Monad
 -- returned in response to a (Choose a) request is just a, without
 -- any constraints.
 newtype Choose a = Choose [a]
+
+instance ( MonadBase m m
+         , Typeable m
+         , SetMember Lift (Lift m) r
+         , MonadBaseControl m (Eff r)
+         ) => MonadBaseControl m (Eff (Choose ': r)) where
+    type StM (Eff (Choose ': r)) a = StM (Eff r) [a]
+    liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
+                       f (runInBase . makeChoice)
+    restoreM x = do lst <- raise (restoreM x)
+                    choose lst
 
 -- | choose lst non-deterministically chooses one value from the lst
 -- choose [] thus corresponds to failure
