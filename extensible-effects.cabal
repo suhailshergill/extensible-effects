@@ -185,6 +185,7 @@ test-suite extensible-effects-tests
                 base >= 4.7 && < 4.11
               , QuickCheck
               , HUnit
+              , monad-control >= 1.0
               , silently >= 1.2
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
