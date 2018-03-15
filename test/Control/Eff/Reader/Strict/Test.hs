@@ -7,6 +7,7 @@ module Control.Eff.Reader.Strict.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.Reader.Strict
 import Utils
 
@@ -24,3 +25,10 @@ case_Strict1_Reader_runReader = let
     voidReader = do
         _ <- (ask :: Eff '[Reader ()] ())
         return ()
+
+case_Strict1_Reader_monadBaseControl :: Assertion
+case_Strict1_Reader_monadBaseControl =
+      runLift (runReader act i) @=? (Just i)
+    where
+        act = doTwice ask
+        i = 10 :: Int
