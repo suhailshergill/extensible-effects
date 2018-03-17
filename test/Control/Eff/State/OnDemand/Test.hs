@@ -9,7 +9,9 @@ module Control.Eff.State.OnDemand.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
+import Control.Eff.Lift
 import Control.Eff.State.OnDemand
+import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit
@@ -106,3 +108,9 @@ case_LazierState_ones =
         put ((1::Int):s)
   in
     assertEqual "OnDemandState ones" [1,1,1,1,1] (take 5 ones)
+
+case_LazierState_monadBaseControl :: Assertion
+case_LazierState_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+  where
+    i = 0 :: Int
+    f = succ :: Int -> Int
