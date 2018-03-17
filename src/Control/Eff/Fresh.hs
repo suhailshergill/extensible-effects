@@ -46,7 +46,7 @@ instance ( MonadBase m m
                           f (\k -> runInBase $ runFreshReturn k i)
     restoreM x = do (r,i) <- raise (restoreM x)
                     replace i
-                    pure r
+                    return r
 
 
 -- | Produce a value that has not been previously produced.
@@ -58,7 +58,7 @@ replace = send . Replace
 
 -- | Run an effect requiring unique values.
 runFresh' :: Eff (Fresh ': r) w -> Int -> Eff r w
-runFresh' m s = fst <$> runFreshReturn m s
+runFresh' m s = fst `fmap` runFreshReturn m s
 
 runFreshReturn :: Eff (Fresh ': r) w -> Int -> Eff r (w,Int)
 runFreshReturn m s =
