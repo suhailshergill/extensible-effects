@@ -5,10 +5,13 @@
 module Control.Eff.NdetEff.Test (testGroups) where
 
 import Test.HUnit hiding (State)
+import Control.Applicative
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.NdetEff
 import Control.Eff.Writer.Strict
 import Control.Monad (msum, guard, mzero, mplus)
+import Utils
 
 import Test.Framework.TH
 import Test.Framework.Providers.HUnit
@@ -70,3 +73,6 @@ case_NdetEff_reflect =
     tsplit =
       (tell "begin" >> return 1) `mplus`
       (tell "end"   >> return 2)
+
+case_NdetEff_monadBaseControl :: Assertion
+case_NdetEff_monadBaseControl = runLift (makeChoiceA $ doThing (return 1 <|> return 2)) @=? Just [1,2]
