@@ -77,17 +77,7 @@ makeChoiceA m = loop [] m
 -- | Same as makeChoiceA, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
 makeChoiceLst :: Eff (NdetEff ': r) a -> Eff r [a]
-makeChoiceLst m = loop [] m
- where
-   loop [] (Val x)    = return (pure x)
-   loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
-   loop jq (E u q) = case  decomp u of
-     Right MZero     -> case jq of
-       []    -> return empty
-       (h:t) -> loop t h
-     Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
-     Left  u0 -> E u0 (singleK (\x -> loop jq (q ^$ x)))
-
+makeChoiceLst = makeChoiceA
 -- ------------------------------------------------------------------------
 -- Soft-cut: non-deterministic if-then-else, aka Prolog's *->
 -- Declaratively,
