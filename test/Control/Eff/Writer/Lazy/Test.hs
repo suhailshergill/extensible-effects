@@ -9,6 +9,7 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.Reader.Lazy
 import Control.Eff.Writer.Lazy
 import Utils
@@ -57,3 +58,9 @@ case_Lazy1_Writer_runLastWriter = let
   ((), Just m) = run $ runLastWriter $ mapM_ tell [undefined, ()]
   in
    assertNoUndefined (m :: ())
+
+case_Lazy1_Writer_monadBaseControl :: Assertion
+case_Lazy1_Writer_monadBaseControl = runLift (runListWriter act) @=? Just ((), [i])
+  where
+    i = 10 :: Int
+    act = doThing (tell i)

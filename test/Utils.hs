@@ -43,5 +43,8 @@ safeLast l = Just $ last l
 add :: Monad m => m Int -> m Int -> m Int
 add = liftM2 (+)
 
-doTwice :: MonadBaseControl b m => m a -> m a
-doTwice = liftBaseOp_ (\a -> a >> a)
+doThing :: MonadBaseControl b m => m a -> m a
+doThing = liftBaseOp_ go
+  where
+    go :: Monad m => m a -> m a
+    go a = return () >> a

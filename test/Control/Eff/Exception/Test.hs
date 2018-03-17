@@ -98,5 +98,5 @@ case_Exception1_monadBaseControl :: Assertion
 case_Exception1_monadBaseControl =
     runLift (runError act) @=? Just (Left "Fail")
   where
-    act = doTwice $ do _ <- throwError "Fail"
+    act = doThing $ do _ <- throwError "Fail"
                        return "Success"

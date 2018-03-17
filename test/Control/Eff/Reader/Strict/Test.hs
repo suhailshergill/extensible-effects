@@ -30,5 +30,5 @@ case_Strict1_Reader_monadBaseControl :: Assertion
 case_Strict1_Reader_monadBaseControl =
       runLift (runReader act i) @=? (Just i)
     where
-        act = doTwice ask
+        act = doThing ask
         i = 10 :: Int
