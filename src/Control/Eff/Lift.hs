@@ -1,8 +1,10 @@
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE Safe #-}
 -- | Lifting primitive Monad types to effectful computations.
 -- We only allow a single Lifted Monad because Monads aren't commutative
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
 module Control.Eff.Lift ( Lift (..)
+                        , Lifted
                         , lift
                         , runLift
                         , catchDynE
@@ -12,11 +14,14 @@ import Control.Eff.Internal
 import qualified Control.Exception as Exc
 import Data.OpenUnion
 
+-- |A convenient alias to 'SetMember Lift (Lift m) r'
+type Lifted m r = SetMember Lift (Lift m) r
+
 -- | Catching of dynamic exceptions
 -- See the problem in
 -- http://okmij.org/ftp/Haskell/misc.html#catch-MonadIO
 catchDynE :: forall e a r.
-             (SetMember Lift (Lift IO) r, Exc.Exception e) =>
+             (Lifted IO r, Exc.Exception e) =>
              Eff r a -> (e -> Eff r a) -> Eff r a
 catchDynE m eh = interpose return h m
  where
