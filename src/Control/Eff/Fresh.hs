@@ -18,7 +18,6 @@ import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 
 -- There are three possible implementations
@@ -36,7 +35,6 @@ data Fresh v where
   Replace :: !Int -> Fresh ()
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (Fresh ': r)) where

@@ -19,7 +19,6 @@ import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | State, lazy
@@ -43,7 +42,6 @@ data State s v where
   Put :: s -> State s ()
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (State s ': r)) where

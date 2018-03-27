@@ -26,7 +26,6 @@ import Control.Applicative ((<|>))
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Data.Monoid
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | The Writer monad
@@ -39,7 +38,6 @@ data Writer w v where
   Tell :: w -> Writer w ()
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (Writer w ': r)) where

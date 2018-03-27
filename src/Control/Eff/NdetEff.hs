@@ -22,7 +22,6 @@ import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Data.Foldable (foldl')
-import Data.Typeable
 
 -- | A different implementation, more directly mapping to MonadPlus
 -- interface
@@ -38,8 +37,7 @@ instance Member NdetEff r => MonadPlus (Eff r) where
   mzero = send MZero
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
 
-instance ( Typeable m
-         , MonadBase m m
+instance ( MonadBase m m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (NdetEff ': r)) where

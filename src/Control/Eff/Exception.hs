@@ -29,7 +29,6 @@ import Data.OpenUnion
 import Control.Monad (void)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | Exceptions
@@ -38,7 +37,6 @@ import Data.Typeable
 newtype Exc e v = Exc e
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (Exc e ': r)) where

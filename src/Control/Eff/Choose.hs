@@ -27,7 +27,6 @@ import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | Non-determinism (choice)
@@ -40,7 +39,6 @@ import Data.Typeable
 newtype Choose a = Choose [a]
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (Choose ': r)) where

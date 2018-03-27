@@ -21,7 +21,6 @@ import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | The Reader monad
@@ -77,7 +76,6 @@ reader :: (Member (Reader e) r) => (e -> a) -> Eff r a
 reader f = f `fmap` ask
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) s
          , MonadBaseControl m (Eff s)
          ) => MonadBaseControl m (Eff (Reader e ': s)) where

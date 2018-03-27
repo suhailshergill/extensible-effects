@@ -19,7 +19,6 @@ import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
-import Data.Typeable
 
 -- ------------------------------------------------------------------------
 -- | State, lazy (i.e., on-demand)
@@ -34,7 +33,6 @@ data OnDemandState s v where
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
 
 instance ( MonadBase m m
-         , Typeable m
          , SetMember Lift (Lift m) r
          , MonadBaseControl m (Eff r)
          ) => MonadBaseControl m (Eff (OnDemandState s ': r)) where

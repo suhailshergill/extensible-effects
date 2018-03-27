@@ -35,7 +35,6 @@ import Control.Monad.Base (MonadBase(..))
 import Control.Monad.Trans.Control (MonadBaseControl(..))
 import safe Data.OpenUnion
 import safe Data.FTCQueue
-import Data.Typeable
 import GHC.Exts (inline)
 
 -- | Effectful arrow type: a function from a to b that also does effects
@@ -162,11 +161,11 @@ instance Monad (Eff r) where
   E u q >> m = E u (q ^|> const m)
 -}
 
-instance (MonadBase b m, Typeable m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
+instance (MonadBase b m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
     liftBase = lift . liftBase
     {-# INLINE liftBase #-}
 
-instance (MonadBase m m, Typeable m) => MonadBaseControl m (Eff '[Lift m]) where
+instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
     type StM (Eff '[Lift m]) a = a
     liftBaseWith f = lift (f runLift)
     restoreM = return
