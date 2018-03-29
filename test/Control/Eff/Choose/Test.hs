@@ -8,6 +8,7 @@ import Control.Eff
 import Control.Eff.Example
 import Control.Eff.Example.Test (ex2)
 import Control.Eff.Exception
+import Control.Eff.Lift
 import Control.Eff.Choose
 import Utils
 
@@ -55,3 +56,6 @@ case_Choose_exRec =
     exRec m = catchError m handler
       where handler (TooBig n) | n <= 7 = return n
             handler e = throwError e
+
+case_Choose_monadBaseControl :: Assertion
+case_Choose_monadBaseControl = runLift (makeChoice $ doThing $ choose [1,2,3]) @=? Just [1,2,3]

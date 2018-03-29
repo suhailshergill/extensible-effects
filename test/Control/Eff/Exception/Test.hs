@@ -9,6 +9,7 @@ module Control.Eff.Exception.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
+import Control.Eff.Lift
 import Control.Eff.Writer.Strict
 #if __GLASGOW_HASKELL__ < 710
 import Data.Monoid
@@ -92,3 +93,10 @@ case_Failure1_Effect =
         tell (4 :: Int)
         return 5
    in assertEqual "Fail should stop writing" 6 ret
+
+case_Exception1_monadBaseControl :: Assertion
+case_Exception1_monadBaseControl =
+    runLift (runError act) @=? Just (Left "Fail")
+  where
+    act = doThing $ do _ <- throwError "Fail"
+                       return "Success"

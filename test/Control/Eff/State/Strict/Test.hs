@@ -8,6 +8,7 @@ module Control.Eff.State.Strict.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
+import Control.Eff.Lift
 import Control.Eff.State.Strict
 import Control.Eff.Reader.Strict
 import Control.Eff.Writer.Strict
@@ -99,3 +100,9 @@ case_Strict1_State_ter3 = (Right "exc" :: Either String String,2) @=?
 case_Strict1_State_ter4 :: Assertion
 case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
   (run $ runError (runState (teCatch tes1) (1::Int)))
+
+case_Strict1_State_monadBaseControl :: Assertion
+case_Strict1_State_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+  where
+    i = 0 :: Int
+    f = succ :: Int -> Int

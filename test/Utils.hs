@@ -4,6 +4,7 @@ module Utils where
 
 import Control.Exception (ErrorCall, catch)
 import Control.Monad
+import Control.Monad.Trans.Control
 
 import System.IO.Silently
 import Data.Tuple (swap)
@@ -41,3 +42,9 @@ safeLast l = Just $ last l
 
 add :: Monad m => m Int -> m Int -> m Int
 add = liftM2 (+)
+
+doThing :: MonadBaseControl b m => m a -> m a
+doThing = liftBaseOp_ go
+  where
+    go :: Monad m => m a -> m a
+    go a = return () >> a

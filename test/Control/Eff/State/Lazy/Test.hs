@@ -7,6 +7,7 @@ module Control.Eff.State.Lazy.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.State.Lazy
 import Utils
 
@@ -30,3 +31,9 @@ case_Lazy1_State_runState = let
 
     putVoid :: () -> Eff '[State ()] ()
     putVoid = put
+
+case_Lazy1_State_monadBaseControl :: Assertion
+case_Lazy1_State_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+  where
+    i = 0 :: Int
+    f = succ :: Int -> Int

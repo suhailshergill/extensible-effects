@@ -8,6 +8,7 @@ module Control.Eff.Reader.Lazy.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
+import Control.Eff.Lift
 import Control.Eff.Reader.Lazy
 import Control.Monad
 import Utils
@@ -95,3 +96,10 @@ case_Lazy1_Reader_runReader = let
     voidReader = do
         _ <- (ask :: Eff '[Reader ()] ())
         return ()
+
+case_Lazy1_Reader_monadBaseControl :: Assertion
+case_Lazy1_Reader_monadBaseControl =
+      runLift (runReader act i) @=? (Just i)
+    where
+        act = doThing ask
+        i = 10 :: Int
