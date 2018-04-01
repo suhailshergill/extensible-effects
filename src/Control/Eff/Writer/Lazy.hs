@@ -7,6 +7,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE CPP #-}
 -- | Lazy write-only state
 module Control.Eff.Writer.Lazy ( Writer(..)
                                , tell
@@ -25,7 +26,9 @@ import Control.Applicative ((<|>))
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
+#if __GLASGOW_HASKELL__ < 804
 import Data.Monoid
+#endif
 
 -- ------------------------------------------------------------------------
 -- | The Writer monad

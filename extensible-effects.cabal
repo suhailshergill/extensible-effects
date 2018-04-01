@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.5.1.0
+version:             2.5.1.1
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -43,7 +43,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
+tested-with:         GHC==8.4.1, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
 
 build-type:          Simple
 
@@ -134,7 +134,7 @@ library
      ghc-options:      -Wno-simplifiable-class-constraints
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >= 4.7 && < 4.11
+  build-depends:       base >= 4.7 && < 4.12
                        -- For MonadBase
                ,       transformers-base == 0.4.*
                        -- For MonadBaseControl
@@ -182,7 +182,7 @@ test-suite extensible-effects-tests
      ghc-options:      -fno-warn-type-defaults -fno-warn-missing-signatures -fno-warn-name-shadowing
 
   build-depends:
-                base >= 4.7 && < 4.11
+                base >= 4.7 && < 4.12
               , QuickCheck
               , HUnit
               , monad-control >= 1.0
@@ -220,7 +220,7 @@ benchmark extensible-effects-benchmarks
                        -fno-warn-name-shadowing -fno-warn-unused-matches
 
   build-depends:
-                base >= 4.7 && < 4.11
+                base >= 4.7 && < 4.12
               , criterion
               , extensible-effects
               , mtl
