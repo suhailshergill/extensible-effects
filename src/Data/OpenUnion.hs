@@ -1,18 +1,22 @@
 {-# OPTIONS_HADDOCK show-extensions #-}
+{-# OPTIONS_GHC -Wwarn #-}
 
 {-# LANGUAGE CPP #-}
 
-{-# LANGUAGE TypeFamilies, TypeOperators #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds, PolyKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE Trustworthy #-}
-{-# OPTIONS_GHC -Wwarn #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 {-# LANGUAGE OverlappingInstances #-}
-#else
 #endif
 
 -- Only for SetMember below, when emulating Monad Transformers
