@@ -137,8 +137,18 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   prj = prj' (unP $ (elemNo :: P t r))
 #endif
 
--- | The operator for reducing boilerplate.
--- @[c1, c2] ::> r@ is equivalent to @(Member c1 r, Member c2 r)@.
+-- | A useful operator for reducing boilerplate.
+--
+-- @
+-- f :: [Reader Int, Writer String] ::> r
+--   => a -> Eff r b
+-- @
+-- is equal to
+--
+-- @
+-- f :: (Member (Reader Int) r, Member (Writer String) r)
+--   => a -> Eff r b
+-- @
 type family (::>) (ms :: [* -> *]) r where
   (::>) '[] r = (() :: Constraint)
   (::>) (m : ms) r = (Member m r, (::>) ms r)
