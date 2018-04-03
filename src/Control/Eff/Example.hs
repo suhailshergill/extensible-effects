@@ -1,4 +1,5 @@
 {-# OPTIONS_GHC -Werror #-}
+{-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE TypeOperators, GADTs, DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Safe #-}
@@ -25,10 +26,9 @@ runErrBig = runError
 -- }}}
 
 -- | Multiple Reader effects
-sum2 :: [ Reader Int
-        , Reader Float
-        ] ::> r
-     => Eff r Float
+sum2 :: ([ Reader Int
+         , Reader Float
+         ] ::> r) => Eff r Float
 sum2 = do
   v1 <- ask
   v2 <- ask

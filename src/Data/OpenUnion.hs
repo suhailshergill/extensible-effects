@@ -65,11 +65,13 @@ module Data.OpenUnion ( Union
                       , weaken
                       ) where
 
-import Data.Kind (Constraint)
 import Unsafe.Coerce(unsafeCoerce)
 
 #if __GLASGOW_HASKELL__ > 800
+import Data.Kind (Constraint)
 import GHC.TypeLits
+#else
+import GHC.Exts (Constraint)
 #endif
 
 -- | The data constructors of Union are not exported
@@ -151,7 +153,7 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
 -- @
 type family (::>) (ms :: [* -> *]) r where
   (::>) '[] r = (() :: Constraint)
-  (::>) (m : ms) r = (Member m r, (::>) ms r)
+  (::>) (m ': ms) r = (Member m r, (::>) ms r)
 
 {-# INLINE [2] decomp #-}
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)
