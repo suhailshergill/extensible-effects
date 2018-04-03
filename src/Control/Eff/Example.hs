@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeOperators, GADTs, DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE Safe #-}
