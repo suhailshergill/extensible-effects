@@ -55,11 +55,19 @@
 -- type t in the list r as the TRep. (We will need UnsafeCoerce then).
 --
 -- The interface is the same as of other OpenUnion*.hs
-module Data.OpenUnion (Union, inj, prj, decomp,
-                   Member, SetMember, weaken
-                  ) where
+module Data.OpenUnion ( Union
+                      , inj
+                      , prj
+                      , decomp
+                      , Member
+                      , SetMember
+                      , (::>)
+                      , weaken
+                      ) where
 
+import Data.Kind (Constraint)
 import Unsafe.Coerce(unsafeCoerce)
+
 #if __GLASGOW_HASKELL__ > 800
 import GHC.TypeLits
 #endif
@@ -128,6 +136,10 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   inj = inj' (unP $ (elemNo :: P t r))
   prj = prj' (unP $ (elemNo :: P t r))
 #endif
+
+type family (::>) (ms :: [* -> *]) r where
+  (::>) '[] r = (() :: Constraint)
+  (::>) (m : ms) r = (Member m r, (::>) ms r)
 
 {-# INLINE [2] decomp #-}
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)

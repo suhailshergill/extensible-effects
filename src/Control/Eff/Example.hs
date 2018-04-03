@@ -25,8 +25,9 @@ runErrBig = runError
 -- }}}
 
 -- | Multiple Reader effects
-sum2 :: Member (Reader Int) r
-     => Member (Reader Float) r
+sum2 :: [ Reader Int
+        , Reader Float
+        ] ::> r
      => Eff r Float
 sum2 = do
   v1 <- ask
@@ -46,7 +47,10 @@ sumAll :: (Num a, Member (State a) e)
 sumAll = mapM_ (modify . (+))
 
 -- | Write a list of numbers and add them to the current state.
-writeAndAdd :: (Member (Writer a) e, Member (State a) e, Num a)
+writeAndAdd :: ( [ Writer a
+                 , State a
+                 ] ::> e
+               , Num a)
             => [a]
             -> Eff e ()
 writeAndAdd l = do
