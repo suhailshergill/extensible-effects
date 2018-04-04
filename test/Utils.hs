@@ -1,5 +1,3 @@
-{-# OPTIONS_GHC -Werror #-}
-
 module Utils where
 
 import Control.Exception (ErrorCall, catch)
