@@ -61,7 +61,7 @@ module Data.OpenUnion ( Union
                       , decomp
                       , Member
                       , SetMember
-                      , (::>)
+                      , type(<::)
                       , weaken
                       ) where
 
@@ -151,9 +151,9 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
 -- f :: (Member (Reader Int) r, Member (Writer String) r)
 --   => a -> Eff r b
 -- @
-type family (::>) (ms :: [* -> *]) r where
-  (::>) '[] r = (() :: Constraint)
-  (::>) (m ': ms) r = (Member m r, (::>) ms r)
+type family (<::) (ms :: [* -> *]) r where
+  (<::) '[] r = (() :: Constraint)
+  (<::) (m ': ms) r = (Member m r, (<::) ms r)
 
 {-# INLINE [2] decomp #-}
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)
