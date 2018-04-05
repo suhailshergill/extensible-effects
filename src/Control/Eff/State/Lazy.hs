@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE DataKinds #-}
