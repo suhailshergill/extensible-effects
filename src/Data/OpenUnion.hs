@@ -1,18 +1,22 @@
 {-# OPTIONS_HADDOCK show-extensions #-}
+{-# OPTIONS_GHC -Wwarn #-}
 
 {-# LANGUAGE CPP #-}
 
-{-# LANGUAGE TypeFamilies, TypeOperators #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE DataKinds #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE FlexibleInstances #-}
 {-# LANGUAGE GADTs #-}
-{-# LANGUAGE DataKinds, PolyKinds #-}
+{-# LANGUAGE MultiParamTypeClasses #-}
+{-# LANGUAGE PolyKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE MultiParamTypeClasses, FlexibleInstances, FlexibleContexts #-}
 {-# LANGUAGE Trustworthy #-}
-{-# OPTIONS_GHC -Wwarn #-}
+{-# LANGUAGE TypeFamilies #-}
+{-# LANGUAGE TypeOperators #-}
 
 #if __GLASGOW_HASKELL__ < 710 || FORCE_OU51
 {-# LANGUAGE OverlappingInstances #-}
-#else
 #endif
 
 -- Only for SetMember below, when emulating Monad Transformers
@@ -51,13 +55,23 @@
 -- type t in the list r as the TRep. (We will need UnsafeCoerce then).
 --
 -- The interface is the same as of other OpenUnion*.hs
-module Data.OpenUnion (Union, inj, prj, decomp,
-                   Member, SetMember, weaken
-                  ) where
+module Data.OpenUnion ( Union
+                      , inj
+                      , prj
+                      , decomp
+                      , Member
+                      , SetMember
+                      , type(<::)
+                      , weaken
+                      ) where
 
 import Unsafe.Coerce(unsafeCoerce)
+
 #if __GLASGOW_HASKELL__ > 800
+import Data.Kind (Constraint)
 import GHC.TypeLits
+#else
+import GHC.Exts (Constraint)
 #endif
 
 -- | The data constructors of Union are not exported
@@ -124,6 +138,22 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   inj = inj' (unP $ (elemNo :: P t r))
   prj = prj' (unP $ (elemNo :: P t r))
 #endif
+
+-- | A useful operator for reducing boilerplate.
+--
+-- @
+-- f :: [Reader Int, Writer String] ::> r
+--   => a -> Eff r b
+-- @
+-- is equal to
+--
+-- @
+-- f :: (Member (Reader Int) r, Member (Writer String) r)
+--   => a -> Eff r b
+-- @
+type family (<::) (ms :: [* -> *]) r where
+  (<::) '[] r = (() :: Constraint)
+  (<::) (m ': ms) r = (Member m r, (<::) ms r)
 
 {-# INLINE [2] decomp #-}
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)

@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Werror #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
