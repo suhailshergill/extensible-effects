@@ -5,6 +5,7 @@
 -- (e.g. Maybe (IO a) is functionally distinct from IO (Maybe a)).
 module Control.Eff.Lift ( Lift (..)
                         , Lifted
+                        , LiftedBase
                         , lift
                         , runLift
                         , catchDynE
@@ -14,8 +15,15 @@ import Control.Eff.Internal
 import qualified Control.Exception as Exc
 import Data.OpenUnion
 
+import Control.Monad.Trans.Control (MonadBaseControl)
+
 -- |A convenient alias to 'SetMember Lift (Lift m) r'
 type Lifted m r = SetMember Lift (Lift m) r
+
+-- |Same as 'Lifted' but with additional 'MonadBaseControl' constraint
+type LiftedBase m r = ( SetMember Lift (Lift m) r
+                      , MonadBaseControl m (Eff r)
+                      )
 
 -- | Catching of dynamic exceptions
 -- See the problem in
