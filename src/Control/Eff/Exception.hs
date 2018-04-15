@@ -10,6 +10,7 @@
 module Control.Eff.Exception ( Exc (..)
                             , Fail
                             , throwError
+                            , throwError_
                             , die
                             , runError
                             , runFail
@@ -52,6 +53,13 @@ type Fail = Exc ()
 throwError :: (Member (Exc e) r) => e -> Eff r a
 throwError e = send (Exc e)
 {-# INLINE throwError #-}
+
+-- | Throw an exception in an effectful computation. The type is unit, 
+--   which suppresses the ghc-mod warning "A do-notation statement 
+--   discarded a result of type"
+throwError_ :: (Member (Exc e) r) => e -> Eff r ()
+throwError_ = throwError
+{-# INLINE throwError_ #-}
 
 -- | Makes an effect fail, preventing future effects from happening.
 die :: Member Fail r => Eff r a
