@@ -18,7 +18,7 @@ testGroups = [ $(testGroupGenerator) ]
 
 case_Strict1_Reader_runReader :: Assertion
 case_Strict1_Reader_runReader = let
-  e = run $ runReader voidReader (undefined :: ())
+  e = run $ runReader (undefined :: ()) voidReader
   in
    assertUndefined (e :: ())
   where
@@ -28,7 +28,7 @@ case_Strict1_Reader_runReader = let
 
 case_Strict1_Reader_monadBaseControl :: Assertion
 case_Strict1_Reader_monadBaseControl =
-      runLift (runReader act i) @=? (Just i)
+      runLift (runReader i act) @=? (Just i)
     where
         act = doThing ask
         i = 10 :: Int

@@ -23,7 +23,7 @@ case_Operational_Monad =
                , Member (Writer String) r)
               => Eff r ()
       comp = runProgram Eg.adventPure Eg.prog
-      go = snd . run . runMonoidWriter $ evalState comp ["foo", "bar"]
+      go = snd . run . runMonoidWriter $ evalState ["foo", "bar"] comp
   in
    assertEqual
    "Evaluating Operational Monad example"

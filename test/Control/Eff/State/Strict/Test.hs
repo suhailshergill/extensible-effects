@@ -22,7 +22,7 @@ testGroups = [ $(testGroupGenerator) ]
 case_Strict1_State_runState :: Assertion
 case_Strict1_State_runState = let
   (r, ()) = run
-            $ (flip runState) undefined
+            $ runState undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
@@ -36,7 +36,7 @@ case_Strict1_State_runState = let
     putVoid = put
 
 case_Strict1_State_ts1 :: Assertion
-case_Strict1_State_ts1 = (10,10) @=? (run (runState ts1 (0::Int)))
+case_Strict1_State_ts1 = (10,10) @=? (run (runState (0::Int) ts1))
   where
     ts1 = do
       put (10 ::Int)
@@ -45,7 +45,7 @@ case_Strict1_State_ts1 = (10,10) @=? (run (runState ts1 (0::Int)))
 
 case_Strict1_State_ts11 :: Assertion
 case_Strict1_State_ts11 =
-  (10,10) @=? (run (runStateR ts11 (0::Int)))
+  (10,10) @=? (run (runStateR (0::Int) ts11))
   where
     ts11 = do
       tell (10 ::Int)
@@ -54,7 +54,7 @@ case_Strict1_State_ts11 =
 
 case_Strict1_State_ts2 :: Assertion
 case_Strict1_State_ts2 = (30::Int,20::Int) @=?
-  (run (runState ts2 (0::Int)))
+  (run (runState (0::Int) ts2))
   where
     ts2 = do
       put (10::Int)
@@ -65,7 +65,7 @@ case_Strict1_State_ts2 = (30::Int,20::Int) @=?
 
 case_Strict1_State_ts21 :: Assertion
 case_Strict1_State_ts21 = (30::Int,20::Int) @=?
-  (run (runStateR ts21 (0::Int)))
+  (run (runStateR (0::Int) ts21))
   where
     ts21 = do
       tell (10::Int)
@@ -84,25 +84,26 @@ tes1 = do
 
 case_Strict1_State_ter1 :: Assertion
 case_Strict1_State_ter1 = (Left "exc" :: Either String Int,2) @=?
-  (run $ runState (runError tes1) (1::Int))
+  (run $ runState (1::Int) (runError tes1))
 
 case_Strict1_State_ter2 :: Assertion
 case_Strict1_State_ter2 = (Left "exc" :: Either String (Int,Int)) @=?
-  (run $ runError (runState tes1 (1::Int)))
+  (run $ runError (runState (1::Int) tes1))
 
 teCatch :: Member (Exc String) r => Eff r a -> Eff r [Char]
 teCatch m = catchError (m >> return "done") (\e -> return (e::String))
 
 case_Strict1_State_ter3 :: Assertion
 case_Strict1_State_ter3 = (Right "exc" :: Either String String,2) @=?
-  (run $ runState (runError (teCatch tes1)) (1::Int))
+  (run $ runState (1::Int) (runError (teCatch tes1)))
 
 case_Strict1_State_ter4 :: Assertion
 case_Strict1_State_ter4 = (Right ("exc",2) :: Either String (String,Int)) @=?
-  (run $ runError (runState (teCatch tes1) (1::Int)))
+  (run $ runError (runState (1::Int) (teCatch tes1)))
 
 case_Strict1_State_monadBaseControl :: Assertion
-case_Strict1_State_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+case_Strict1_State_monadBaseControl = runLift (runState i (doThing $ modify f)) @=?
+  Just ((), i + 1)
   where
     i = 0 :: Int
     f = succ :: Int -> Int

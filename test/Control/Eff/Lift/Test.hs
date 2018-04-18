@@ -33,7 +33,7 @@ case_Lift_tl1r = do
   where
     input = (5::Int)
     -- tl1r :: IO ()
-    tl1r = runLift (runReader tl1 input)
+    tl1r = runLift (runReader input tl1)
       where
         tl1 = ask >>= \(x::Int) -> lift . print $ x
 
@@ -47,7 +47,7 @@ case_Lift_tMd' = do
     val = (10::Int)
     output = map (+ val) input
 
-    tMd' = runLift $ runReader (mapMdebug' f input) val
+    tMd' = runLift $ runReader val $ mapMdebug' f input
       where f x = ask `add` return x
 
     -- Re-implemenation of mapMdebug using Lifting
@@ -83,7 +83,7 @@ case_catchDynE_test1 = do
     -- exception is caught. Here, the state is preserved!
     -- So, this is an advantage over MTL!
     test1 = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState (testc m) ([]::[String])) (x::Bool)
+    tf x = runReader (x::Bool) . runState ([]::[String]) $ testc m
     m = do
       modify ("begin":)
       x <- ask
@@ -105,7 +105,7 @@ case_catchDynE_test1' = do
     -- exception is caught. Here, the state is preserved!
     -- So, this is an advantage over MTL!
     test1' = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
+    tf x = runReader (x::Bool) . runState ([]::[String]) $ runErrorStr (testc m)
     m = do
       modify ("begin":)
       x <- ask
@@ -130,7 +130,7 @@ case_catchDynE_test2 = do
     expected actual
   where
     test2 = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
+    tf x = runReader (x::Bool) . runState ([]::[String]) $ runErrorStr (testc m)
     runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
@@ -151,7 +151,7 @@ case_catchDynE_test2' = do
     expected actual
   where
     test2' = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
+    tf x = runReader (x::Bool) . runState ([]::[String]) $ runErrorStr (testc m)
     runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
@@ -172,7 +172,7 @@ case_catchDynE_test3 = do
     expected actual
   where
     test3 = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState (runErrorStr (testc m)) ([]::[String])) (x::Bool)
+    tf x = runReader (x::Bool) . runState ([]::[String]) $ runErrorStr (testc m)
     runErrorStr = asEStr . runError
     asEStr :: m (Either String a) -> m (Either String a)
     asEStr = id
@@ -198,7 +198,7 @@ case_catchDynE_tran = do
     expected actual
   where
     tran = do runLift (tf True) >>= print; runLift (tf False) >>= print
-    tf x = runReader (runState m1 ([]::[String])) (x::Bool)
+    tf x = runReader (x :: Bool) . runState ([]::[String]) $ m1
     m1 = do
       modify ("init":)
       testc (transactionState (TxState :: TxState [String]) m)

@@ -58,7 +58,7 @@ writeAndAdd l = do
 
 -- | Sum a list of numbers.
 sumEff :: (Num a) => [a] -> a
-sumEff l = let ((), s) = run $ runState (sumAll l) 0
+sumEff l = let ((), s) = run $ runState 0 (sumAll l)
            in s
 
 -- | Safely get the last element of a list.
@@ -70,7 +70,8 @@ lastEff l = let ((), a) = run $ runLastWriter $ writeAll l
 
 -- | Get the last element and sum of a list
 lastAndSum :: (Num a) => [a] -> (Maybe a, a)
-lastAndSum l = let (((), total), lst) = run $ runLastWriter $ runState (writeAndAdd l) 0
+lastAndSum l = let (((), total), lst) =
+                        run $ runLastWriter $ runState 0 (writeAndAdd l)
                in (lst, total)
 
 

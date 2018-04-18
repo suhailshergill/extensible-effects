@@ -20,7 +20,7 @@ testGroups = [ $(testGroupGenerator) ]
 
 case_LazierState_ex1 :: Assertion
 case_LazierState_ex1 =
-  let actual = run $ runState lex1 0
+  let actual = run $ runState 0 lex1
   in
     assertEqual "OnDemandState: ex1"
     ((), 1::Int) actual
@@ -31,7 +31,7 @@ case_LazierState_ex1 =
 
 case_LazierState_ex3 :: Assertion
 case_LazierState_ex3 =
-  let (x,s) = run $ runState lex3 (undefined::[Int])
+  let (x,s) = run $ runState (undefined::[Int]) lex3
   in assertEqual "OnDemandState: ex3"
      ((),[1,1,1,1,1]) (x,take 5 s)
   where
@@ -41,7 +41,7 @@ case_LazierState_ex3 =
 
 -- a bit more interesting
 case_LazierState_ex4 =
-  let (x,s) = run $ runState lex4 []
+  let (x,s) = run $ runState [] lex4
   in assertEqual "OnDemandState: ex4"
      expect (take 7 $ x,take 5 $ s)
   where
@@ -62,8 +62,8 @@ case_LazierState_ex5 :: Assertion
 case_LazierState_ex5 =
   let
     -- the annotations below are needed for assertEqual
-    ex5Run :: Either [Int] () = fst . run $ runState (runError lex5) (undefined::[Int])
-    ex51Run :: Either [Int] ((), [Int]) = run $ runError $ runState lex5 (undefined::[Int])
+    ex5Run :: Either [Int] () = fst . run $ runState (undefined::[Int]) (runError lex5)
+    ex51Run :: Either [Int] ((), [Int]) = run $ runError $ runState (undefined::[Int]) lex5
   in
     assertEqual "OnDemandState ex5" (Left ones) ex5Run
     >> assertEqual "OnDemandState ex51" (Left ones) ex51Run
@@ -81,7 +81,7 @@ case_LazierState_ex5 =
 
 case_LazierState_st :: Assertion
 case_LazierState_st = let
-  stF :: ((Int,Int,Int),Int) = run $ runState st (0::Int)
+  stF :: ((Int,Int,Int),Int) = run $ runState (0::Int) st
   stB0 :: ((Int,Int,Int),Int) = runStateBack0 st
   stB :: ((Int,Int,Int),Int) = runStateBack st
   in
@@ -110,7 +110,7 @@ case_LazierState_ones =
     assertEqual "OnDemandState ones" [1,1,1,1,1] (take 5 ones)
 
 case_LazierState_monadBaseControl :: Assertion
-case_LazierState_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+case_LazierState_monadBaseControl = runLift (runState i (doThing $ modify f)) @=? Just ((), i + 1)
   where
     i = 0 :: Int
     f = succ :: Int -> Int

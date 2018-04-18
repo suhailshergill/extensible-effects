@@ -28,7 +28,7 @@ addN n = foldl (>>>) return (replicate n addGet) 0
 
 case_Lazy1_Writer_rdwr :: Assertion
 case_Lazy1_Writer_rdwr = (10, ["begin", "end"]) @=?
-  (run . (`runReader` (1::Int)) . runListWriter $ rdwr)
+  (run . runReader (1::Int) . runListWriter $ rdwr)
   where
     rdwr = do
       tell "begin"

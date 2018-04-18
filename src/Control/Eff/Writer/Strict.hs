@@ -18,6 +18,11 @@ module Control.Eff.Writer.Strict ( Writer(..)
                                , runLastWriter
                                , runListWriter
                                , runMonoidWriter
+                               , execWriter
+                               , execFirstWriter
+                               , execLastWriter
+                               , execListWriter
+                               , execMonoidWriter
                                ) where
 
 import Control.Eff.Internal
@@ -90,3 +95,33 @@ runFirstWriter = runWriter (\w b -> Just w <|> b) Nothing
 -- | Handle Writer requests by overwriting previous values.
 runLastWriter :: Eff (Writer w ': r) a -> Eff r (a, Maybe w)
 runLastWriter = runWriter (\w b -> b <|> Just w) Nothing
+
+-- | Handle Writer requests, using a user-provided function to accumulate
+--   values and effect result.
+execWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r b
+execWriter accum !b = fmap snd . runWriter accum b
+{-# INLINE execWriter #-}
+
+-- | Handle Writer requests, using a List to accumulate values and discard the
+--   effect result.
+execListWriter :: Eff (Writer w ': r) a -> Eff r [w]
+execListWriter = fmap snd . runListWriter
+{-# INLINE execListWriter #-}
+
+-- | Handle Writer requests, using a Monoid instance to accumulate values and
+--   and discard the effect result.
+execMonoidWriter :: (Monoid w) => Eff (Writer w ': r) a -> Eff r w
+execMonoidWriter = fmap snd . runMonoidWriter
+{-# INLINE execMonoidWriter #-}
+
+-- | Handle Writer requests by taking the first value provided and discard the
+--   effect result.
+execFirstWriter :: Eff (Writer w ': r) a -> Eff r (Maybe w)
+execFirstWriter = fmap snd . runFirstWriter
+{-# INLINE execFirstWriter #-}
+
+-- | Handle Writer requests by overwriting previous values and discard the
+--   effect result.
+execLastWriter :: Eff (Writer w ': r) a -> Eff r (Maybe w)
+execLastWriter = fmap snd . runLastWriter
+{-# INLINE execLastWriter #-}
