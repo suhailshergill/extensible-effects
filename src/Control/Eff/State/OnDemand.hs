@@ -110,7 +110,7 @@ execState s = fmap snd . runState s
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-runStateR s m = loop s m
+runStateR s0 m0 = loop s0 m0
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
    loop s (Val x) = return (x,s)
