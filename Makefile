@@ -24,7 +24,7 @@ test: build
 
 .PHONY: bench
 bench:
-	cabal bench --benchmark-options="-o benchmarks.html"
+	cabal bench --benchmark-options="-o benchmark/benchmarks.html"
 
 .PHONY: doc
 doc:
