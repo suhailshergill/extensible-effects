@@ -71,7 +71,7 @@ benchCnt_State n = S.runState m n
      if x > 0 then S.put (x-1) >> m else return ()
 
 benchCnt_Eff :: Int -> ((),Int)
-benchCnt_Eff n = run $ E.S.runState m n
+benchCnt_Eff n = run $ E.S.runState n m
  where
  m = do
      x <- E.S.get
@@ -131,10 +131,10 @@ benchMax_Eff n = foldM f 1 [n, n-1 .. 0]
  f acc x = return $! max acc x
 
 
-mainMax_Eff n = ((run $ E.S.runState (E.Er.runError (benchMax_Eff n)) 0) ::
+mainMax_Eff n = ((run $ E.S.runState 0 (E.Er.runError (benchMax_Eff n))) ::
                   (Either Int Int,Int))
 
-mainMax1_Eff n = ((run $ E.Er.runError (E.S.runState (benchMax_Eff n) 0)) ::
+mainMax1_Eff n = ((run $ E.Er.runError (E.S.runState 0 (benchMax_Eff n))) ::
                      Either Int (Int,Int))
 
 -- ------------------------------------------------------------------------
@@ -213,4 +213,4 @@ mainNS_Eff n =
   in ((l::[(Int,Int,Int)]), (cnt::Int))
   where
     pyth2Er :: Int -> ([(Int,Int,Int)],Int)
-    pyth2Er n = run . (`E.S.runState` 0) . E.ND.makeChoiceA $ pyth2E n
+    pyth2Er n = run . E.S.runState 0 . E.ND.makeChoiceA $ pyth2E n

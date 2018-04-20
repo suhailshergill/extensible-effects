@@ -22,10 +22,10 @@ case_Trace_tdup = do
   assertEqual "Trace: duplicate layers"
     (unlines ["Asked: 20", "Asked: 10"]) actual
   where
-    tdup = runTrace $ runReader m (10::Int)
+    tdup = runTrace $ runReader (10::Int) m
      where
      m = do
-         runReader tr (20::Int)
+         runReader (20::Int) tr
          tr
      tr = do
           v <- ask
@@ -39,7 +39,7 @@ case_Trace_tMd = do
   where
     val = (10::Int)
     input = [1..5]
-    tMd = runTrace $ runReader (mapMdebug f input) val
+    tMd = runTrace $ runReader val (mapMdebug f input)
       where
         f x = ask `add` return x
 
