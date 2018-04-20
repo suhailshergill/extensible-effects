@@ -38,8 +38,10 @@ Some examples where the cost of extensibility is apparent:
   * Common functions can't be grouped using typeclasses, e.g.
     the `ask` and `getState` functions can't be grouped with some
 
-        class Get t a where
-          ask :: Member (t a) r => Eff r a
+    ```haskell
+    class Get t a where
+      ask :: Member (t a) r => Eff r a
+    ```
 
     `ask` is inherently ambiguous, since the type signature only provides
     a constraint on `t`, and nothing more. To specify fully, a parameter
