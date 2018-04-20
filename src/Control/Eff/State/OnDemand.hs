@@ -38,7 +38,7 @@ instance ( MonadBase m m
     type StM (Eff (OnDemandState s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get
                         raise $ liftBaseWith $ \runInBase ->
-                          f (\k -> runInBase $ runState k s)
+                          f (runInBase . runState s)
     restoreM x = do (a, s :: s) <- raise (restoreM x)
                     put s
                     return a
@@ -71,47 +71,46 @@ put s = send (Put s)
 onDemand :: Member (OnDemandState s) r => Eff '[OnDemandState s] v -> Eff r v
 onDemand = send . Delay
 
-runState' :: Eff (OnDemandState s ': r) w -> s -> Eff r (w,s)
-runState' m s =
+runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
+runState' s =
   handle_relay_s s
   (\s0 x -> return (x,s0))
   (\s0 sreq k -> case sreq of
       Get    -> k s0 s0
       Put s1 -> k s1 ()
-      Delay m1 -> let ~(x,s1) = run $ runState' m1 s0
+      Delay m1 -> let ~(x,s1) = run $ runState' s0 m1
                   in k s1 x)
-  m
 
 -- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
-runState :: Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
-         -> s                    -- ^ Initial state
-         -> Eff r (w,s)          -- ^ Effect containing final state and a return value
-runState (Val x) s = return (x,s)
-runState (E u0 q) s0 = case decomp u0 of
-  Right Get     -> runState (q ^$ s0) s0
-  Right (Put s1) -> runState (q ^$ ()) s1
-  Right (Delay m1) -> let ~(x,s1) = run $ runState m1 s0
-                      in runState (q ^$ x) s1
-  Left  u -> E u (singleK (\x -> runState (q ^$ x) s0))
+runState :: s                            -- ^ Initial state
+         -> Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
+         -> Eff r (w,s)                  -- ^ Effect containing final state and a return value
+runState s (Val x) = return (x,s)
+runState s0 (E u0 q) = case decomp u0 of
+  Right Get     -> runState s0 (q ^$ s0)
+  Right (Put s1) -> runState s1 (q ^$ ())
+  Right (Delay m1) -> let ~(x,s1) = run $ runState s0 m1
+                      in runState s1 (q ^$ x)
+  Left  u -> E u (singleK (\x -> runState s0 (q ^$ x)))
 
 -- | Transform the state with a function.
 modify :: (Member (OnDemandState s) r) => (s -> s) -> Eff r ()
 modify f = get >>= put . f
 
 -- | Run a State effect, discarding the final state.
-evalState :: Eff (OnDemandState s ': r) w -> s -> Eff r w
-evalState m s = fmap fst . flip runState s $ m
+evalState :: s -> Eff (OnDemandState s ': r) w -> Eff r w
+evalState s = fmap fst . runState s
 
 -- | Run a State effect and return the final state.
-execState :: Eff (OnDemandState s ': r) w -> s -> Eff r s
-execState m s = fmap snd . flip runState s $ m
+execState :: s -> Eff (OnDemandState s ': r) w -> Eff r s
+execState s = fmap snd . runState s
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
-runStateR :: Eff (Writer s ': Reader s ': r) w -> s -> Eff r (w,s)
-runStateR m0 s0 = loop s0 m0
+runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
+runStateR s0 m0 = loop s0 m0
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
    loop s (Val x) = return (x,s)

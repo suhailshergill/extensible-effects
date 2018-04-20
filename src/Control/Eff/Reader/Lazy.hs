@@ -53,11 +53,10 @@ ask = send Ask
 
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
-runReader :: Eff (Reader e ': r) w -> e -> Eff r w
-runReader m e = handle_relay
+runReader :: e -> Eff (Reader e ': r) w -> Eff r w
+runReader e = handle_relay
   return
   (\Ask -> ($ e))
-  m
 
 -- | Locally rebind the value in the dynamic environment This function is like a
 -- relay; it is both an admin for Reader requests, and a requestor of them.
@@ -81,5 +80,5 @@ instance ( MonadBase m m
     type StM (Eff (Reader e ': s)) a = StM (Eff s) a
     liftBaseWith f = do e <- ask
                         raise $ liftBaseWith $ \runInBase ->
-                          f (\k -> runInBase $ runReader k e)
+                          f (runInBase . runReader e)
     restoreM = raise . restoreM

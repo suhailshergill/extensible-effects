@@ -19,7 +19,7 @@ testGroups = [ $(testGroupGenerator) ]
 case_Lazy1_State_runState :: Assertion
 case_Lazy1_State_runState = let
   (r, ()) = run
-            $ flip runState undefined
+            $ runState undefined
             $ getVoid
             >> putVoid undefined
             >> putVoid ()
@@ -33,7 +33,7 @@ case_Lazy1_State_runState = let
     putVoid = put
 
 case_Lazy1_State_monadBaseControl :: Assertion
-case_Lazy1_State_monadBaseControl = runLift (runState (doThing $ modify f) i) @=? Just ((), i + 1)
+case_Lazy1_State_monadBaseControl = runLift (runState i (doThing $ modify f)) @=? Just ((), i + 1)
   where
     i = 0 :: Int
     f = succ :: Int -> Int

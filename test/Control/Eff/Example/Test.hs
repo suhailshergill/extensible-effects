@@ -30,33 +30,33 @@ ex2 m = do
 case_Exception1_ex2r :: Assertion
 case_Exception1_ex2r = (Right 5) @=? (run ex2r)
   where
-    ex2r = runReader (runErrBig (ex2 ask)) (5::Int)
+    ex2r = runReader (5::Int) (runErrBig (ex2 ask))
 
 case_Exception1_ex2r1 :: Assertion
 case_Exception1_ex2r1 = (Left (TooBig 7)) @=? (run ex2r1)
   where
-    ex2r1 = runReader (runErrBig (ex2 ask)) (7::Int)
+    ex2r1 = runReader (7::Int) (runErrBig (ex2 ask))
 
 -- Different order of handlers (layers)
 case_Exception1_ex2r2 :: Assertion
 case_Exception1_ex2r2 = (Left (TooBig 7)) @=? (run ex2r2)
   where
-    ex2r2 = runErrBig (runReader (ex2 ask) (7::Int))
+    ex2r2 = runErrBig (runReader (7::Int) (ex2 ask))
 
 case_multiple_eff_sum2 :: Assertion
 case_multiple_eff_sum2 =
   assertEqual "Int : Float" 33 intThenFloat
   >> assertEqual "Float : Int" intThenFloat floatThenInt
   where
-    intThenFloat = run $ runReader (runReader sum2 (10::Int)) (20::Float)
-    floatThenInt = run $ runReader (runReader sum2 (20::Float)) (10::Int)
+    intThenFloat = run $ runReader (20::Float) (runReader (10::Int) sum2)
+    floatThenInt = run $ runReader (10::Int) (runReader (20::Float) sum2)
 
 prop_Documentation_example :: [Integer] -> Property
 prop_Documentation_example l = let
-  ((), total1) = run $ runState (sumAll l) 0
+  ((), total1) = run $ runState 0 (sumAll l)
   ((), last1) = run $ runLastWriter $ writeAll l
-  (((), last2), total2) = run $ runState (runLastWriter (writeAndAdd l)) 0
-  (((), total3), last3) = run $ runLastWriter $ runState (writeAndAdd l) 0
+  (((), last2), total2) = run $ runState 0 (runLastWriter (writeAndAdd l))
+  (((), total3), last3) = run $ runLastWriter $ runState 0 (writeAndAdd l)
   in
    allEqual [safeLast l, last1, last2, last3]
    .&&. allEqual [sum l, total1, total2, total3]

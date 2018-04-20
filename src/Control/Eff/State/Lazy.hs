@@ -47,7 +47,7 @@ instance ( MonadBase m m
     type StM (Eff (State s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get
                         raise $ liftBaseWith $ \runInBase ->
-                          f (\k -> runInBase $ runState k s)
+                          f (runInBase . runState s)
     restoreM x = do (a, s :: s) <- raise (restoreM x)
                     put s
                     return a
@@ -76,36 +76,35 @@ put s = send (Put s)
 -- inline get/put, even if I put the INLINE directives and play with phases.
 -- (Inlining works if I use 'inline' explicitly).
 
-runState' :: Eff (State s ': r) w -> s -> Eff r (w,s)
-runState' m s =
+runState' :: s -> Eff (State s ': r) w -> Eff r (w,s)
+runState' s =
   handle_relay_s s (\s0 x -> return (x,s0))
                    (\s0 sreq k -> case sreq of
                        Get    -> k s0 s0
                        Put s1 -> k s1 ())
-                   m
 
 -- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
-runState :: Eff (State s ': r) w  -- ^ Effect incorporating State
-         -> s                     -- ^ Initial state
+runState :: s                     -- ^ Initial state
+         -> Eff (State s ': r) w  -- ^ Effect incorporating State
          -> Eff r (w,s)           -- ^ Effect containing final state and a return value
-runState (Val x) s = return (x,s)
-runState (E u q) s = case decomp u of
-  Right Get     -> runState (q ^$ s) s
-  Right (Put s1) -> runState (q ^$ ()) s1
-  Left  u1 -> E u1 (singleK (\x -> runState (q ^$ x) s))
+runState s (Val x) = return (x,s)
+runState s (E u q) = case decomp u of
+  Right Get     -> runState s (q ^$ s)
+  Right (Put s1) -> runState s1 (q ^$ ())
+  Left  u1 -> E u1 (singleK (\x -> runState s (q ^$ x)))
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
 modify f = get >>= put . f
 
 -- | Run a State effect, discarding the final state.
-evalState :: Eff (State s ': r) w -> s -> Eff r w
-evalState m s = fmap fst . flip runState s $ m
+evalState :: s -> Eff (State s ': r) w -> Eff r w
+evalState s = fmap fst . runState s
 
 -- | Run a State effect and return the final state.
-execState :: Eff (State s ': r) w -> s -> Eff r s
-execState m s = fmap snd . flip runState s $ m
+execState :: s -> Eff (State s ': r) w -> Eff r s
+execState s = fmap snd . runState s
 
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished
@@ -125,8 +124,8 @@ transactionState _ m = do s <- get; loop s m
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
-runStateR :: Eff (Writer s ': Reader s ': r) w -> s -> Eff r (w,s)
-runStateR m s = loop s m
+runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
+runStateR s m = loop s m
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
    loop s0 (Val x) = return (x,s0)
