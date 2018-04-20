@@ -5,7 +5,7 @@
 }:
 mkDerivation {
   pname = "extensible-effects";
-  version = "2.6.0.0";
+  version = "2.6.0.1";
   src = ./.;
   libraryHaskellDepends = [ base monad-control transformers-base ];
   testHaskellDepends = [
