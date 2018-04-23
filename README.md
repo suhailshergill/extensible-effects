@@ -1,18 +1,113 @@
-extensible-effects is based on the work
-[Extensible Effects: An Alternative to Monad Transformers](http://okmij.org/ftp/Haskell/extensible/).
-Please read the [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) and
-the followup [freer paper](http://okmij.org/ftp/Haskell/extensible/more.pdf) for
-details. Additional explanation behind the approach can be found on [Oleg's website](http://okmij.org/ftp/Haskell/extensible/).
+
+# Extensible effects
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
 [![Stories in Ready](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=ready&title=Ready)](http://waffle.io/suhailshergill/extensible-effects)
 [![Stories in progress](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=in%20progress&title=In%20progress)](http://waffle.io/suhailshergill/extensible-effects)
 
-## Advantages
+*Implement effectful computation in a modular way!*
 
-  * Effects can be added, removed, and interwoven without changes to code not
-    dealing with those effects.
+The main and only monad is built upon `Eff` from `Control.Eff`. `Eff r a` is parameterized by
+the effect-list `r` and the monadic-result type `a` similar to other monads.
+
+In case you know monad transformers or mtl: This library provides only one monad that includes all your effects instead of layering different transformers. It is not necessary to lift the computations through a monad stack. Also, it is not required to lift every `Monad*` (like `MonadError`) typeclass though all transformers.
+
+## Quickstart
+
+### The effect list
+
+The effect list `r` in the type `Eff r a` is a central concept in this library.
+It is a type-level list containing effect types. If `r` is ... then,
+
+If `r` is the empty list, then the computation `Eff r` (or `Eff '[]`) does not contain any effects to be handled and therefore is a pure computation. In this case, the result value can be retrieved by `run :: Eff '[] a -> a`
+
+For programming within the `Eff r` monad, it is never necessary to list all effects that can appear.
+It suffices to state what types of effects are at least required.
+This is done via the `Member t r` typeclass. It describes that the type `t` occurs inside the list `r`.
+
+Effect-handler functions, mostly called `run*`, `exec*` or `eval*`, typically have a signature like `Eff (x ': r) a -> Eff r a`. Where `x` is the type of effect to be handled, like `Writer w` or `State s`. The transformation from the longer list of effects `(x ': r)` to just `r` is a type-level indicator that the effect `x` has been handled. Depending on the effect, some additional input might be required or some output is produced.
+
+## Most common effects
+
+The most common effects used are `Writer`, `Reader`, `Exception` and `State`.
+
+Every effect has 2 important functions
+
+* how to generate the effect.
+* how the effect is done
+
+For the basic effects, the types of those functions clearly state the intent of the effect.
+
+In this section, the utility functions of the effects are not listed. Once you understand the basic usage of an effect, the type of any utility function typically explains what is does.
+
+Of course, the best learning progress is done by experimenting inside `ghci`.
+
+### The Exception Effect
+
+The exception effect adds the possibility to exit a computation preemptively with an exception.
+
+```haskell
+throwError :: Member (Exc e) r => e -> Eff r a
+runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
+```
+
+An exception can be thrown using the `throwError` function. Its return type is `Eff r a` with an arbitrary type `a`.
+
+When handling the effect, the result-type changes to `Either e a` instead of
+just `a`. This indicates how the effect is handled: The return is either
+
+### The State Effect
+
+The state effect provides readable and writable state during a computation.
+
+```haskell
+get :: Member (State s) r => Eff r s
+put :: Member (State s) r => s -> Eff r ()
+modify :: Member (State s) r => (s -> s) -> Eff r ()
+runState :: s -> Eff (State s ': r) a -> Eff r (a, s)
+```
+
+There are different functions for programming with the state-effect. The `get` functions accesses the current state and makes it usable within the further computation. The `put` function sets the state to the given value. `modify` updates the state using a mapping function.
+
+The state-effect is handled using `runState` function. It takes the initial state as argument and returns the final state and effect-result.
+
+### The Reader Effect
+
+The reader effect provides an environment that can be read. Sometimes it is considered as read-only state that stays same during the computation.
+
+```haskell
+ask :: Member (Reader e) r => e -> Eff r e
+runReader :: e -> Eff (Reader e ': r) a -> Eff r a
+```
+
+The environment given to the handle the reader effect is the one given during the computation if asked for.
+
+There are two variants of readers: strict and lazy. Each has its own module and provide the same interface. By importing one or the other, it can be controlled if the reader is strict or lazy in its environment argument.
+
+### The Writer Effect
+
+work in progress
+
+### Using multiple effects
+
+work in progress
+
+### Tips and tricks
+
+work in progress
+
+## Other Effects
+
+work in progress
+
+## Background
+
+extensible-effects is based on the work
+[Extensible Effects: An Alternative to Monad Transformers](http://okmij.org/ftp/Haskell/extensible/).
+The [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) and
+the followup [freer paper](http://okmij.org/ftp/Haskell/extensible/more.pdf)
+contain details. Additional explanation behind the approach can be found on [Oleg's website](http://okmij.org/ftp/Haskell/extensible/).
 
 ## Limitations
 

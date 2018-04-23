@@ -115,7 +115,7 @@ instance (FindElem t r) => Member t r where
 #else
 -- | Explicit type-level equality condition is a dirty
 -- hack to eliminate the type annotation in the trivial case,
--- such as @run (runReader get ())@.
+-- such as @run (runReader () get)@.
 --
 -- There is no ambiguity when finding instances for
 -- @Member t (a ': b ': r)@, which the second instance is selected.
