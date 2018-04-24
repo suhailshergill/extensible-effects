@@ -35,7 +35,6 @@ import Control.Monad.Trans.Control (MonadBaseControl(..))
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
-import Control.Monad.IO.Class
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
