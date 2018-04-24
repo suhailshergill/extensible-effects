@@ -14,7 +14,7 @@ addons:
 # change flags or use --stack-yaml to point to a different file.
 env:
 - ARGS=""
-- ARGS="--resolver=nightly"
+#- ARGS="--resolver=nightly"
 - ARGS="--stack-yaml=stack-8.2.2.yaml"
 - ARGS="--stack-yaml=stack-8.0.2.yaml"
 - ARGS="--stack-yaml=stack-8.0.1.yaml"
