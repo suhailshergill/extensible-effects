@@ -60,8 +60,7 @@ cutfalse = throwError CutFalse
 -- but not non-determinism
 call :: forall a r. Member Choose r => Eff (Exc CutFalse ': r) a -> Eff r a
 call m = loop [] m where
-  loop :: Member Choose r
-       => [Eff (Exc CutFalse ': r) a]
+  loop :: [Eff (Exc CutFalse ': r) a]
        -> Eff (Exc CutFalse ': r) a
        -> Eff r a
   loop jq (Val x) = return x `mplus'` next jq          -- (C2)
@@ -76,8 +75,7 @@ call m = loop [] m where
   check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
   check jq u q = loop jq (E (weaken u) q)     -- (C4)
 
-  next :: Member Choose r
-       => [Eff (Exc CutFalse ': r) a]
+  next :: [Eff (Exc CutFalse ': r) a]
        -> Eff r a
   next []    = mzero'
   next (h:t) = loop t h
