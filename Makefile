@@ -84,3 +84,143 @@ ci-test:
 		done; \
 	fi; \
 	}
+
+.PHONY: stack-build
+stack-build:
+	stack build
+
+.PHONY: stack-test
+stack-test: stack-build
+	stack test
+
+.PHONY: stack-bench
+stack-bench: stack-build stack-test # only benchmark tested program
+	stack bench
+
+
+.PHONY: stack-8.4.1
+stack-8.4.1: stack-8.4.1-build stack-8.4.1-test stack-8.4.1-bench
+
+.PHONY: stack-8.4.1-build
+stack-8.4.1-build:
+	stack --stack-yaml=stack-8.4.1.yaml build
+
+.PHONY: stack-8.4.1-test
+stack-8.4.1-test: stack-8.4.1-build
+	stack --stack-yaml=stack-8.4.1.yaml test
+
+.PHONY: stack-8.4.1-bench
+stack-8.4.1-bench: stack-8.4.1-build stack-8.4.1-test
+	stack --stack-yaml=stack-8.4.1.yaml bench
+
+
+.PHONY: stack-8.2.2
+stack-8.2.2: stack-8.2.2-build stack-8.2.2-test stack-8.2.2-bench
+
+.PHONY: stack-8.2.2-build
+stack-8.2.2-build:
+	stack --stack-yaml=stack-8.2.2.yaml build
+
+.PHONY: stack-8.2.2-test
+stack-8.2.2-test: stack-8.2.2-build
+	stack --stack-yaml=stack-8.2.2.yaml test
+
+.PHONY: stack-8.2.2-bench
+stack-8.2.2-bench: stack-8.2.2-build stack-8.2.2-test
+	stack --stack-yaml=stack-8.2.2.yaml bench
+
+
+.PHONY: stack-8.0.2
+stack-8.0.2: stack-8.0.2-build stack-8.0.2-test stack-8.0.2-bench
+
+.PHONY: stack-8.0.2-build
+stack-8.0.2-build:
+	stack --stack-yaml=stack-8.0.2.yaml build
+
+.PHONY: stack-8.0.2-test
+stack-8.0.2-test: stack-8.0.2-build
+	stack --stack-yaml=stack-8.0.2.yaml test
+
+.PHONY: stack-8.0.2-bench
+stack-8.0.2-bench: stack-8.0.2-build stack-8.0.2-test
+	stack --stack-yaml=stack-8.0.2.yaml bench
+
+
+.PHONY: stack-8.0.1
+stack-8.0.1: stack-8.0.1-build stack-8.0.1-test stack-8.0.1-bench
+
+.PHONY: stack-8.0.1-build
+stack-8.0.1-build:
+	stack --stack-yaml=stack-8.0.1.yaml build
+
+.PHONY: stack-8.0.1-test
+stack-8.0.1-test: stack-8.0.1-build
+	stack --stack-yaml=stack-8.0.1.yaml test
+
+.PHONY: stack-8.0.1-bench
+stack-8.0.1-bench: stack-8.0.1-build stack-8.0.1-test
+	stack --stack-yaml=stack-8.0.1.yaml bench
+
+
+.PHONY: stack-7.10.3
+stack-7.10.3: stack-7.10.3-build stack-7.10.3-test stack-7.10.3-bench
+
+.PHONY: stack-7.10.3-build
+stack-7.10.3-build:
+	stack --stack-yaml=stack-7.10.3.yaml build
+
+.PHONY: stack-7.10.3-test
+stack-7.10.3-test: stack-7.10.3-build
+	stack --stack-yaml=stack-7.10.3.yaml test
+
+.PHONY: stack-7.10.3-bench
+stack-7.10.3-bench: stack-7.10.3-build stack-7.10.3-test
+	stack --stack-yaml=stack-7.10.3.yaml bench
+
+
+.PHONY: stack-7.8.4
+stack-7.8.4: stack-7.8.4-build stack-7.8.4-test stack-7.8.4-bench
+
+.PHONY: stack-7.8.4-build
+stack-7.8.4-build:
+	stack --stack-yaml=stack-7.8.4.yaml build
+
+.PHONY: stack-7.8.4-test
+stack-7.8.4-test: stack-7.8.4-build
+	stack --stack-yaml=stack-7.8.4.yaml test
+
+.PHONY: stack-7.8.4-bench
+stack-7.8.4-bench: stack-7.8.4-build stack-7.8.4-test
+	stack --stack-yaml=stack-7.8.4.yaml bench
+
+
+.PHONY: stack-all-lts-vers-test
+stack-all-lts-vers-test: stack-8.2.2-test stack-8.0.2-test stack-7.10.3-test stack-7.8.4-test
+#stack-all-lts-vers-test: stack-8.2.2-test stack-8.0.2-test stack-8.0.1-test stack-7.10.3-test # stack-7.8.4-test
+
+.PHONY: stack-all-lts-vers
+stack-all-lts-vers: stack-8.2.2 stack-8.0.2 stack-8.0.1 stack-7.10.3 stack-7.8.4
+
+
+.PHONY: stack-nightly
+stack-nightly: stack-nighly-build stack-nightly-test stack-nightly-bench
+
+.PHONY: stack-nightly-build
+stack-nightly-build:
+	stack --resolver=nightly build
+
+.PHONY: stack-nightly-test
+stack-nightly-test: stack-nightly-build
+	stack --resolver=nightly test
+
+.PHONY: stack-nightly-bench
+stack-nightly-bench: stack-nightly-build stack-nightly-test
+	stack --resolver=nightly bench
+
+.PHONY: stack-all-vers
+stack-all-vers: stack-all-lts-vers stack-nightly
+
+.PHONY: stack-clean
+stack-clean:
+	stack clean
+
