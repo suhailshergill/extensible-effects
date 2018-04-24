@@ -45,17 +45,15 @@ Of course, the best learning progress is done by experimenting inside `ghci`.
 
 ### The Exception Effect
 
-The exception effect adds the possibility to exit a computation preemptively with an exception.
+The exception effect adds the possibility to exit a computation preemptively with an exception. Note that the exceptions from this library are handled by the programmer and have nothing to do with exceptions thrown inside the Haskell run-time.
 
 ```haskell
 throwError :: Member (Exc e) r => e -> Eff r a
 runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
 ```
 
-An exception can be thrown using the `throwError` function. Its return type is `Eff r a` with an arbitrary type `a`.
-
-When handling the effect, the result-type changes to `Either e a` instead of
-just `a`. This indicates how the effect is handled: The return is either
+An exception can be thrown using the `throwError` function. Its return type is `Eff r a` with an arbitrary type `a`. When handling the effect, the result-type changes to `Either e a` instead of
+just `a`. This indicates how the effect is handled: The returned value is either the thrown exception or the value returned.
 
 ### The State Effect
 
@@ -87,15 +85,33 @@ There are two variants of readers: strict and lazy. Each has its own module and 
 
 ### The Writer Effect
 
-work in progress
+The writer effect allows to output messages during a computation. It is sometimes referred to as write-only state, which gets retrieved.
+
+```haskell
+tell :: Member (Writer w) r => w -> Eff r ()
+runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
+runListWriter :: Eff (Writer w ': r) a -> Eff r (a, [w])
+```
+
+running a writer can be done in several ways. The most general function is `runWriter` that folds over all written values. However, if you only want to collect the the values written, the `runListWriter` function does that.
+
+Note that compared to mtl, the value written has no Monoid constraint on it and can be collected in any way.
 
 ### Using multiple effects
 
-work in progress
+The main benefit of this library is that multiple effects can be included without much changes necessary.
+
+If you need state and want to be able exit the computation with an exception, the type of your effectful computation would be: `myComp :: (Member (Exc e) r, Member (State s) r) => Eff r a`. Then, both the state and exception effect-functions can be used. To handle the effects, both `run*` functions have to be provided. `run . runState initalState . runError $ myComp` would run the computation and return something of type `(Either e a, s)`. Where `s` is the last state seen before an eventual exception gets thrown.
+
+As shown in the previous example, it is important in which order the effect handlers are listed. Consider the difference between `run . runState initalState . runError $ myComp :: (Either e a, s)` and `run . runError . runState initalState $ myComp :: Either e (a, s)`. The former one returns the last-seen state before an eventual exception (similar to the semantics in typical imperative languages), while the latter one only gives the resulting state if the computation succeeded as a whole - transaction style.
 
 ### Tips and tricks
 
-work in progress
+There are several constructs that make it easier to work with the effects.
+
+If only a part of the result is necessary for the further computation, have a look at the `eval*` and `exec*` functions, which exist for some effects. The `exec*` functions discard the result of the computation (the `a` type). The `eval*` functions discard the final result of the effect
+
+Instead of writing `(Member (Writer w) r, Member (Reader e) r, Member (Exc ex) r) => ...` it is possible to use the type operator `<::` and write `[ Writer w, Reader e, Exc ex ] <:: r => ...`.
 
 ## Other Effects
 

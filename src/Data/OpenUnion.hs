@@ -142,7 +142,7 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
 -- | A useful operator for reducing boilerplate.
 --
 -- @
--- f :: [Reader Int, Writer String] ::> r
+-- f :: [Reader Int, Writer String] <:: r
 --   => a -> Eff r b
 -- @
 -- is equal to

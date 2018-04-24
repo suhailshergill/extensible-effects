@@ -35,6 +35,7 @@ import Control.Monad.Trans.Control (MonadBaseControl(..))
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
+import Control.Monad.IO.Class
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
@@ -262,4 +263,3 @@ runLift (Val x) = return x
 runLift (E u q) = case prj u of
                   Just (Lift m) -> m >>= runLift . qApp q
                   Nothing -> error "Impossible: Nothing cannot occur"
-
