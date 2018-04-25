@@ -15,12 +15,12 @@ addons:
 env:
 - ARGS=""
 #- ARGS="--resolver=nightly"
-- ARGS="--stack-yaml=stack-8.4.1.yaml"
-- ARGS="--stack-yaml=stack-8.2.2.yaml"
-- ARGS="--stack-yaml=stack-8.0.2.yaml"
-- ARGS="--stack-yaml=stack-8.0.1.yaml"
-- ARGS="--stack-yaml=stack-7.10.3.yaml"
-- ARGS="--stack-yaml=stack-7.8.4.yaml"
+- ARGS="--stack-yaml=stack/stack-8.4.1.yaml"
+- ARGS="--stack-yaml=stack/stack-8.2.2.yaml"
+- ARGS="--stack-yaml=stack/stack-8.0.2.yaml"
+- ARGS="--stack-yaml=stack/stack-8.0.1.yaml"
+- ARGS="--stack-yaml=stack/stack-7.10.3.yaml"
+- ARGS="--stack-yaml=stack/stack-7.8.4.yaml"
 
 
 before_install:
