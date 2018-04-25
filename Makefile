@@ -3,32 +3,28 @@ GHCS = 7.8.4 7.10.3 8.0.2 8.2.2
 .PHONY: all
 all: build test package doc tags
 
-default.nix: extensible-effects.cabal
-	cabal2nix ./. > ./default.nix
-
 .PHONY: init
 init:
-	cabal sandbox init
-	cabal clean
+	stack init
+	stack clean
 
 .PHONY: build
 build: init
-	cabal install --only-dependencies --enable-tests --enable-benchmarks
-	cabal configure -flib-Werror --enable-tests --enable-benchmarks -v2 -O2
-	cabal build
+	stack build --only-dependencies --enable-tests --enable-benchmarks
+	stack build
 
 .PHONY: test
 test: build
-	cabal test --show-details=always --test-options="-a 1000 \
+	stack test --test-arguments="-a 1000 \
 	--maximum-unsuitable-generated-tests=100000 --color"
 
 .PHONY: bench
 bench:
-	cabal bench --benchmark-options="-o benchmark/benchmarks.html"
+	stack bench --benchmark-arguments="-o benchmark/benchmarks.html"
 
 .PHONY: doc
 doc:
-	cabal haddock --internal
+	stack haddock --haddock-internal
 
 .PHONY: tags
 tags:
@@ -47,11 +43,12 @@ devel: test
 
 .PHONY: package
 package: test
-	cabal check
-	# tests that a source-distribution can be generated
-	cabal sdist
-	# check that the generated source-distribution can be built & installed
-	{ \
+	# check and bundle the package
+	stack sdist # outputs to .stack-work/install/<machine-architecture>/<snapshot>/doc
+	# TODO: output bundled target to somewhere else than stack decides
+
+	# TODO: check that the generated source-distribution can be built & installed
+	#{ \
 	set -e; \
 	export SRC_TGZ=$$(cabal info . | awk '{print $$2 ".tar.gz";exit}') ; \
 	cd dist/; \
@@ -64,25 +61,20 @@ package: test
 	fi; \
 	}
 
+
 .PHONY: test-all
 test-all: build package
 
 .PHONY: ci-test
 ci-test:
-	# run tests for all ghc versions
-	# TODO: figure out a way to run even if in nix-shell
+	# run tests for all ghc versions given in different stack/*.yaml
 	{ \
 	set -e; \
-	if [ "$$IN_NIX_SHELL" ]; then \
-		echo "Invoked from within nix-shell; exiting"; \
-		exit 1; \
-	else \
-		for e in $(GHCS); do \
-			echo "Testing GHC $$e"; \
-			nix-shell shell-$$e.nix --command "make test-all"; \
-			echo "DONE GHC $$e"; \
-		done; \
-	fi; \
+	for stack_yaml in $$(ls stack); do \
+		echo "Testing $$stack_yaml"; \
+		stack --stack-yaml="stack/$$stack_yaml" build; \
+		stack --stack-yaml="stack/$$stack_yaml" test; \
+	done; \
 	}
 
 .PHONY: stack-build
@@ -103,15 +95,15 @@ stack-8.4.1: stack-8.4.1-build stack-8.4.1-test stack-8.4.1-bench
 
 .PHONY: stack-8.4.1-build
 stack-8.4.1-build:
-	stack --stack-yaml=stack-8.4.1.yaml build
+	stack --stack-yaml=stack/stack-8.4.1.yaml build
 
 .PHONY: stack-8.4.1-test
 stack-8.4.1-test: stack-8.4.1-build
-	stack --stack-yaml=stack-8.4.1.yaml test
+	stack --stack-yaml=stack/stack-8.4.1.yaml test
 
 .PHONY: stack-8.4.1-bench
 stack-8.4.1-bench: stack-8.4.1-build stack-8.4.1-test
-	stack --stack-yaml=stack-8.4.1.yaml bench
+	stack --stack-yaml=stack/stack-8.4.1.yaml bench
 
 
 .PHONY: stack-8.2.2
@@ -119,15 +111,15 @@ stack-8.2.2: stack-8.2.2-build stack-8.2.2-test stack-8.2.2-bench
 
 .PHONY: stack-8.2.2-build
 stack-8.2.2-build:
-	stack --stack-yaml=stack-8.2.2.yaml build
+	stack --stack-yaml=stack/stack-8.2.2.yaml build
 
 .PHONY: stack-8.2.2-test
 stack-8.2.2-test: stack-8.2.2-build
-	stack --stack-yaml=stack-8.2.2.yaml test
+	stack --stack-yaml=stack/stack-8.2.2.yaml test
 
 .PHONY: stack-8.2.2-bench
 stack-8.2.2-bench: stack-8.2.2-build stack-8.2.2-test
-	stack --stack-yaml=stack-8.2.2.yaml bench
+	stack --stack-yaml=stack/stack-8.2.2.yaml bench
 
 
 .PHONY: stack-8.0.2
@@ -135,31 +127,30 @@ stack-8.0.2: stack-8.0.2-build stack-8.0.2-test stack-8.0.2-bench
 
 .PHONY: stack-8.0.2-build
 stack-8.0.2-build:
-	stack --stack-yaml=stack-8.0.2.yaml build
+	stack --stack-yaml=stack/stack-8.0.2.yaml build
 
 .PHONY: stack-8.0.2-test
 stack-8.0.2-test: stack-8.0.2-build
-	stack --stack-yaml=stack-8.0.2.yaml test
+	stack --stack-yaml=stack/stack-8.0.2.yaml test
 
 .PHONY: stack-8.0.2-bench
 stack-8.0.2-bench: stack-8.0.2-build stack-8.0.2-test
-	stack --stack-yaml=stack-8.0.2.yaml bench
-
+	stack --stack-yaml=stack/stack-8.0.2.yaml bench
 
 .PHONY: stack-8.0.1
 stack-8.0.1: stack-8.0.1-build stack-8.0.1-test stack-8.0.1-bench
 
 .PHONY: stack-8.0.1-build
 stack-8.0.1-build:
-	stack --stack-yaml=stack-8.0.1.yaml build
+	stack --stack-yaml=stack/stack-8.0.1.yaml build
 
 .PHONY: stack-8.0.1-test
 stack-8.0.1-test: stack-8.0.1-build
-	stack --stack-yaml=stack-8.0.1.yaml test
+	stack --stack-yaml=stack/stack-8.0.1.yaml test
 
 .PHONY: stack-8.0.1-bench
 stack-8.0.1-bench: stack-8.0.1-build stack-8.0.1-test
-	stack --stack-yaml=stack-8.0.1.yaml bench
+	stack --stack-yaml=stack/stack-8.0.1.yaml bench
 
 
 .PHONY: stack-7.10.3
@@ -167,15 +158,15 @@ stack-7.10.3: stack-7.10.3-build stack-7.10.3-test stack-7.10.3-bench
 
 .PHONY: stack-7.10.3-build
 stack-7.10.3-build:
-	stack --stack-yaml=stack-7.10.3.yaml build
+	stack --stack-yaml=stack/stack-7.10.3.yaml build
 
 .PHONY: stack-7.10.3-test
 stack-7.10.3-test: stack-7.10.3-build
-	stack --stack-yaml=stack-7.10.3.yaml test
+	stack --stack-yaml=stack/stack-7.10.3.yaml test
 
 .PHONY: stack-7.10.3-bench
 stack-7.10.3-bench: stack-7.10.3-build stack-7.10.3-test
-	stack --stack-yaml=stack-7.10.3.yaml bench
+	stack --stack-yaml=stack/stack-7.10.3.yaml bench
 
 
 .PHONY: stack-7.8.4
@@ -183,20 +174,19 @@ stack-7.8.4: stack-7.8.4-build stack-7.8.4-test stack-7.8.4-bench
 
 .PHONY: stack-7.8.4-build
 stack-7.8.4-build:
-	stack --stack-yaml=stack-7.8.4.yaml build
+	stack --stack-yaml=stack/stack-7.8.4.yaml build
 
 .PHONY: stack-7.8.4-test
 stack-7.8.4-test: stack-7.8.4-build
-	stack --stack-yaml=stack-7.8.4.yaml test
+	stack --stack-yaml=stack/stack-7.8.4.yaml test
 
 .PHONY: stack-7.8.4-bench
 stack-7.8.4-bench: stack-7.8.4-build stack-7.8.4-test
-	stack --stack-yaml=stack-7.8.4.yaml bench
+	stack --stack-yaml=stack/stack-7.8.4.yaml bench
 
 
 .PHONY: stack-all-lts-vers-test
 stack-all-lts-vers-test: stack-8.2.2-test stack-8.0.2-test stack-7.10.3-test stack-7.8.4-test
-#stack-all-lts-vers-test: stack-8.2.2-test stack-8.0.2-test stack-8.0.1-test stack-7.10.3-test # stack-7.8.4-test
 
 .PHONY: stack-all-lts-vers
 stack-all-lts-vers: stack-8.2.2 stack-8.0.2 stack-8.0.1 stack-7.10.3 stack-7.8.4
