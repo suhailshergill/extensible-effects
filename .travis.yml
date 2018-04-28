@@ -10,17 +10,12 @@ addons:
     packages:
     - libgmp-dev
 
-# The different configurations we want to test. You could also do things like
-# change flags or use --stack-yaml to point to a different file.
 env:
-- ARGS=""
-#- ARGS="--resolver=nightly"
-- ARGS="--stack-yaml=stack/stack-8.4.1.yaml"
-- ARGS="--stack-yaml=stack/stack-8.2.2.yaml"
-- ARGS="--stack-yaml=stack/stack-8.0.2.yaml"
-- ARGS="--stack-yaml=stack/stack-7.10.3.yaml"
-- ARGS="--stack-yaml=stack/stack-7.8.4.yaml"
-
+- GHC="8.4.1"
+- GHC="8.2.2"
+- GHC="8.0.2"
+- GHC="7.10.3"
+- GHC="7.8.4"
 
 before_install:
 # Download and unpack the stack executable
@@ -31,10 +26,10 @@ before_install:
 # This does all of the work: installs GHC if necessary, builds the
 # library, executables, and test suites, and runs the test suites.
 # `--no-terminal works` around some quirks in Travis's terminal implementation.
-script: 
-- stack $ARGS --no-terminal --install-ghc build
-- stack $ARGS --no-terminal test
-#- stack $ARGS --no-terminal --install-ghc bench
+script:
+- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal --install-ghc build
+- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal test
+#- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal --install-ghc bench
 
 # Caching so the next build will be fast too.
 cache:
