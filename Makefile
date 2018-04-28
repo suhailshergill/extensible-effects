@@ -42,27 +42,23 @@ devel: test
 
 .PHONY: package
 package: test
-	# check and bundle the package
-	stack sdist
-	# outputs to .stack-work/install/<machine-architecture>/<snapshot>/doc
-
 	# check that the generated source-distribution can be built & installed
-	# TODO: where to put build?
+	# check and bundle the package
+	# outputs tar.gz file to dist/package
 	{ \
 	set -e; set -x; \
-	export SRC_TGZ=$$(stack sdist 2>&1 | tail -n 1) ; \
-	export PACKAGE=$${SRC_TGZ%.tar.gz}; \
-	export PACKAGE=$${PACKAGE##*/}; \
-	mkdir -p .build/; cd .build/; \
+	stack sdist; \
+	SRC_TGZ="$$(stack sdist 2>&1 | tail -n 1)" ; \
+	PACKAGE="$${SRC_TGZ%.tar.gz}"; \
+	PACKAGE="$${PACKAGE##*/}"; \
+	mkdir -p dist/package; cd dist/package; \
 	cp $$SRC_TGZ .; \
+	rm -rf $$PACKAGE; \
 	tar xf $$SRC_TGZ; \
 	cd $$PACKAGE; \
-	pwd; \
 	stack init; \
 	stack build; \
 	stack test; \
-	cd ../..; \
-	rm -r .build; \
 	}
 
 
