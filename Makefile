@@ -98,3 +98,4 @@ nightly-bench: nightly-build nightly-test
 .PHONY: nightly-clean
 nightly-clean:
 	stack --resolver=nightly clean
+
