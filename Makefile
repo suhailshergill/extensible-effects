@@ -46,19 +46,24 @@ package: test
 	stack sdist
 	# outputs to .stack-work/install/<machine-architecture>/<snapshot>/doc
 
-	# TODO: check that the generated source-distribution can be built & installed
-	#{ \
-	#set -e; \
-	#export SRC_TGZ=$$(cabal info . | awk '{print $$2 ".tar.gz";exit}') ; \
-	#cd dist/; \
-	#cabal sandbox init; \
-	#if [ -f "$$SRC_TGZ" ]; then \
-	#	cabal install --force-reinstalls "$$SRC_TGZ"; \
-	#else \
-	#	echo "expected '$$SRC_TGZ' not found"; \
-	#	exit 1; \
-	#fi; \
-	#}
+	# check that the generated source-distribution can be built & installed
+	# TODO: where to put build?
+	{ \
+	set -e; set -x; \
+	export SRC_TGZ=$$(stack sdist 2>&1 | tail -n 1) ; \
+	export PACKAGE=$${SRC_TGZ%.tar.gz}; \
+	export PACKAGE=$${PACKAGE##*/}; \
+	mkdir -p .build/; cd .build/; \
+	cp $$SRC_TGZ .; \
+	tar xf $$SRC_TGZ; \
+	cd $$PACKAGE; \
+	pwd; \
+	stack init; \
+	stack build; \
+	stack test; \
+	cd ../..; \
+	rm -r .build; \
+	}
 
 
 .PHONY: test-all
@@ -98,4 +103,3 @@ nightly-bench: nightly-build nightly-test
 .PHONY: nightly-clean
 nightly-clean:
 	stack --resolver=nightly clean
-
