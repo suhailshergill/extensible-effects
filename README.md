@@ -29,16 +29,23 @@ This section will include some code-examples, which you should try on your own!
 
 Recommended Procedure:
 
-1. add `extensible-effects` to a existing cabal or stack project or `git clone https://github.com/suhailshergill/extensible-effects.git`
+1. add `extensible-effects` as a dependency to a existing cabal or stack project
+or `git clone https://github.com/suhailshergill/extensible-effects.git`
 2. start `stack ghci` or `cabal repl`
 3. import some library modules as described in this section
 
 *examples are work in progress and there will be some Quickstart module to go
 along the guide here*
 
-### The effect list
+*examples...*
 
-```
+## Tour through Extensible Effects
+
+This section explains the basic concepts of this library.
+
+### The Effect List
+
+```haskell
 import Control.Eff
 ```
 
@@ -57,31 +64,22 @@ occurs inside the list `r`.
 If you really want, you can still list all Effects and their order in which
 they are used (e.g. `Eff '[Reader r, State s] a`).
 
-### Lifecycle of an effect
+### Handling Effects
 
-Programming with effects as implemented in this library is done with two
-complementary concepts:
+Functions containing something like `Eff (x ': r) a -> Eff r a` handle effects.
 
-* requesting an effect: when programming an effectful computation, the requests
-can be made to be executed when handled. This is done via the provided functions
-* handling an effect: the handler responds to the request by executing the
-effect
-
-Effect-handler functions, mostly called `run*`, `exec*` or `eval*`, typically
-have a signature with something like `Eff (x ': r) a -> Eff r a`, where `x` is
-the type of effect to be handled, like `Writer w` or `State s`.
-The transformation from the longer list of effects `(x ': r)` to just `r`
+The transition from the longer list of effects `(x ': r)` to just `r`
 is a type-level indicator that the effect `x` has been handled.
 Depending on the effect, some additional input might be required or some
 different output than just `a` is produced.
 
-### Most common effects
+The handler functions typically are called `run*`, `eval*` or `exec*`.
+
+### Most common Effects
 
 The most common effects used are `Writer`, `Reader`, `Exception` and `State`.
-For the basic effects, the types of the functions related to each effect clearly
-state the intent of the effect.
 
-For some, there is a lazy and a strict variant.
+For the `Writer`, `Reader` and `State`, there are lazy and a strict variants.
 Each has its own module that provide the same interface.
 By importing one or the other, it can be controlled if the effect is strict or
 lazy in its inputs and outputs.
@@ -93,7 +91,7 @@ Have a look at the modules for additional details.
 
 #### The Exception Effect
 
-```
+```haskell
 import Control.Eff.Exception
 ```
 
@@ -116,7 +114,7 @@ thrown exception or the value returned from a successful computation.
 
 #### The State Effect
 
-```
+```haskell
 import Control.Eff.State.{Lazy | Strict}
 ```
 
@@ -141,7 +139,7 @@ effect-result.
 
 #### The Reader Effect
 
-```
+```haskell
 import Control.Eff.Reader.{Strict | Lazy}
 ```
 
@@ -158,7 +156,7 @@ the computation if asked for.
 
 #### The Writer Effect
 
-```
+```haskell
 import Control.Eff.Writer.{Strict | Lazy}
 ```
 
@@ -180,7 +178,7 @@ function does that.
 Note that compared to mtl, the value written has no Monoid constraint on it and
 can be collected in any way.
 
-### Using multiple effects
+### Using multiple Effects
 
 The main benefit of this library is that multiple effects can be included
 without much changes necessary.
@@ -226,11 +224,11 @@ possible to use the type operator `<::` and write
 
 *work in progress*
 
-## Integration with Monad Transformers
+## Integration with IO
 
 *work in progress*
 
-## Integration with IO
+## Integration with Monad Transformers
 
 *work in progress*
 
