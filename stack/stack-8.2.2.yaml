@@ -12,3 +12,6 @@ flags:
 
 extra-package-dbs: []
 
+nix:
+  packages: []
+
