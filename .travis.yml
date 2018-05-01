@@ -27,8 +27,9 @@ before_install:
 # library, executables, and test suites, and runs the test suites.
 # `--no-terminal works` around some quirks in Travis's terminal implementation.
 script:
-- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal --install-ghc build
-- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal test
+- make test
+# - stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal --install-ghc build
+# - stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal test
 #- stack --stack-yaml="stack/stack-$GHC.yaml" --no-terminal --install-ghc bench
 
 # Caching so the next build will be fast too.
