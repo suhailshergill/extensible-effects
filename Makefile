@@ -69,9 +69,11 @@ test-all: build package
 ci-test:
 	# run tests for all ghc versions given in different ghc-versions
 	{ \
-	set -e; \
+	set -e; set -x \
 	for ghc in $(GHCS); do \
-		echo "Testing GHC verison $$ghc"; \
+		echo ""; \
+		echo "Testing GHC version $$ghc"; \
+		echo ""; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" clean; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" build; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" test; \
