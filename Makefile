@@ -69,7 +69,7 @@ test-all: build package
 ci-test:
 	# run tests for all ghc versions given in different ghc-versions
 	{ \
-	set -e; set -x \
+	set -e; set -x; \
 	for ghc in $(GHCS); do \
 		echo ""; \
 		echo "Testing GHC version $$ghc"; \
