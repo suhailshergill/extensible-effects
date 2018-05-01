@@ -1,7 +1,7 @@
 resolver: lts-11.2
 
 packages:
-- '.'
+- '..'
 
 extra-deps: []
 
