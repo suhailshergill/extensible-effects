@@ -1,34 +1,29 @@
-GHCS = 7.8.4 7.10.3 8.0.2 8.2.2
+GHCS = 7.8.4 7.10.3 8.0.2 8.2.2 8.4.1
+
+# default ghc-version for targets, can be overwritten by make-
+GHC = 8.2.2
+STACK_YAML_ARG = --stack-yaml=stack/stack-$(GHC).yaml
+STACK_CMD = stack $(STACK_YAML_ARG)
 
 .PHONY: all
 all: build test package doc tags
 
-default.nix: extensible-effects.cabal
-	cabal2nix ./. > ./default.nix
-
-.PHONY: init
-init:
-	cabal sandbox init
-	cabal clean
-
 .PHONY: build
-build: init
-	cabal install --only-dependencies --enable-tests --enable-benchmarks
-	cabal configure -flib-Werror --enable-tests --enable-benchmarks -v2 -O2
-	cabal build
+build:
+	$(STACK_CMD) build
 
 .PHONY: test
 test: build
-	cabal test --show-details=always --test-options="-a 1000 \
-	--maximum-unsuitable-generated-tests=100000 --color"
+	$(STACK_CMD) test --test-arguments="-a 1000 \
+			--maximum-unsuitable-generated-tests=100000 --color"
 
 .PHONY: bench
 bench:
-	cabal bench --benchmark-options="-o benchmark/benchmarks.html"
+	$(STACK_CMD) bench --benchmark-arguments="-o benchmark/benchmarks.html"
 
 .PHONY: doc
 doc:
-	cabal haddock --internal
+	$(STACK_CMD) haddock --haddock-internal
 
 .PHONY: tags
 tags:
@@ -47,40 +42,64 @@ devel: test
 
 .PHONY: package
 package: test
-	cabal check
-	# tests that a source-distribution can be generated
-	cabal sdist
 	# check that the generated source-distribution can be built & installed
+	# check and bundle the package
+	# outputs tar.gz file to dist/package
 	{ \
-	set -e; \
-	export SRC_TGZ=$$(cabal info . | awk '{print $$2 ".tar.gz";exit}') ; \
-	cd dist/; \
-	cabal sandbox init; \
-	if [ -f "$$SRC_TGZ" ]; then \
-		cabal install --force-reinstalls "$$SRC_TGZ"; \
-	else \
-		echo "expected '$$SRC_TGZ' not found"; \
-		exit 1; \
-	fi; \
+	set -e; set -x; \
+	stack sdist; \
+	SRC_TGZ="$$(stack sdist 2>&1 | tail -n 1)" ; \
+	PACKAGE="$${SRC_TGZ%.tar.gz}"; \
+	PACKAGE="$${PACKAGE##*/}"; \
+	mkdir -p dist/package; cd dist/package; \
+	cp $$SRC_TGZ .; \
+	rm -rf $$PACKAGE; \
+	tar xf $$SRC_TGZ; \
+	cd $$PACKAGE; \
+	stack init; \
+	stack build; \
+	stack test; \
 	}
 
+
 .PHONY: test-all
-test-all: build package
+blue=$(tput setaf 4)
+normal=$(tput sgr0)test-all: build package
 
 .PHONY: ci-test
 ci-test:
-	# run tests for all ghc versions
-	# TODO: figure out a way to run even if in nix-shell
+	# run tests for all ghc versions given in different ghc-versions
 	{ \
-	set -e; \
-	if [ "$$IN_NIX_SHELL" ]; then \
-		echo "Invoked from within nix-shell; exiting"; \
-		exit 1; \
-	else \
-		for e in $(GHCS); do \
-			echo "Testing GHC $$e"; \
-			nix-shell shell-$$e.nix --command "make test-all"; \
-			echo "DONE GHC $$e"; \
-		done; \
-	fi; \
+	blue=$$(tput setaf 4); \
+	normal=$$(tput sgr0); \
+	set -e; set -x; \
+	for ghc in $(GHCS); do \
+		printf "\n%s\n\n" "$${blue}Testing GHC version $$ghc$${normal}"; \
+		stack --stack-yaml="stack/stack-$$ghc.yaml" clean; \
+		stack --stack-yaml="stack/stack-$$ghc.yaml" build; \
+		stack --stack-yaml="stack/stack-$$ghc.yaml" test; \
+	done; \
 	}
+
+.PHONY: clean
+clean:
+	$(STACK_CMD) clean --full
+	rm -rf ./dist
+
+# nightly targets
+
+.PHONY: nightly-build
+nightly-build:
+	stack --resolver=nightly build
+
+.PHONY: nightly-test
+nightly-test: nightly-build
+	stack --resolver=nightly test
+
+.PHONY: nightly-bench
+nightly-bench: nightly-build nightly-test
+	stack --resolver=nightly bench
+
+.PHONY: nightly-clean
+nightly-clean:
+	stack --resolver=nightly clean

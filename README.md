@@ -246,13 +246,7 @@ contain details. Additional explanation behind the approach can be found on [Ole
 
 ## Limitations
 
-### Current implementation only supports GHC version 7.8 and above
-This is not a fundamental limitation of the design or the approach, but there is
-an overhead with making the code compatible across a large number of GHC
-versions. If this is needed, patches are welcome :)
-
 ### Ambiguity-Flexibility tradeoff
-
 The extensibility of `Eff` comes at the cost of some ambiguity. A useful pattern
 to mitigate the ambiguity is to specialize the call to the handler of effects
 using [type application](https://ghc.haskell.org/trac/ghc/wiki/TypeApplication)
@@ -279,3 +273,8 @@ Some examples where the cost of extensibility is apparent:
     point of having the grouping in the first place.
   * Code requires greater number of type annotations. For details see
     [#31](https://github.com/suhailshergill/extensible-effects/issues/31).
+
+### Current implementation only supports GHC version 7.8 and above
+This is not a fundamental limitation of the design or the approach, but there is
+an overhead with making the code compatible across a large number of GHC
+versions. If this is needed, patches are welcome :)
