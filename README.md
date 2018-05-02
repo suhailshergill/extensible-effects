@@ -181,7 +181,7 @@ can be collected in any way.
 ### Using multiple Effects
 
 The main benefit of this library is that multiple effects can be included
-without much changes necessary.
+with ease.
 
 If you need state and want to be able exit the computation with an exception,
 the type of your effectful computation would be the one of `myComp` below.
@@ -216,9 +216,9 @@ The `exec*` functions discard the result of the computation (the `a` type).
 The `eval*` functions discard the final result of the effect.
 
 Instead of writing
-`(Member (Writer w) r, Member (Reader e) r, Member (Exc ex) r) => ...` it is
+`(Member (Exc e) r, Member (State s) r) => ...` it is
 possible to use the type operator `<::` and write
-`[ Writer w, Reader e, Exc ex ] <:: r => ...`, which has the same meaning.
+`[ Exc e, State s ] <:: r => ...`, which has the same meaning.
 
 ## Other Effects
 
