@@ -81,9 +81,10 @@ ci-test:
 	done; \
 	}
 
-.PHONY: stack-clean
-stack-clean:
-	$(STACK_CMD) clean
+.PHONY: clean
+clean:
+	$(STACK_CMD) clean --full
+	rm -rf ./dist
 
 # nightly targets
 
