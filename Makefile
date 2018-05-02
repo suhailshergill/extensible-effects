@@ -19,7 +19,7 @@ test: build
 
 .PHONY: bench
 bench:
-	$(STACK_CMD) bench --benchmark-arguments="-o benchmark/benchmarks.html"
+	$(STACK_CMD) bench --benchmark-arguments="-o docs/benchmarks.html"
 
 .PHONY: doc
 doc:
