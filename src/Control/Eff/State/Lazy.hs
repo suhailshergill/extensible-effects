@@ -76,18 +76,20 @@ put s = send (Put s)
 -- inline get/put, even if I put the INLINE directives and play with phases.
 -- (Inlining works if I use 'inline' explicitly).
 
-runState' :: s -> Eff (State s ': r) w -> Eff r (w,s)
+-- | Run a state effect. compared to the @runState@ function, this is
+--   implemented naively and is expected to perform slower.
+runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
 runState' s =
   handle_relay_s s (\s0 x -> return (x,s0))
                    (\s0 sreq k -> case sreq of
                        Get    -> k s0 s0
                        Put s1 -> k s1 ())
 
--- Since State is so frequently used, we optimize it a bit
--- | Run a State effect
+-- | Run a State effect. This variant is a bit optimized compared to
+--   @runState'@.
 runState :: s                     -- ^ Initial state
-         -> Eff (State s ': r) w  -- ^ Effect incorporating State
-         -> Eff r (w,s)           -- ^ Effect containing final state and a return value
+         -> Eff (State s ': r) a  -- ^ Effect incorporating State
+         -> Eff r (a, s)          -- ^ Effect containing final state and a return value
 runState s (Val x) = return (x,s)
 runState s (E u q) = case decomp u of
   Right Get     -> runState s (q ^$ s)
@@ -99,22 +101,22 @@ modify :: (Member (State s) r) => (s -> s) -> Eff r ()
 modify f = get >>= put . f
 
 -- | Run a State effect, discarding the final state.
-evalState :: s -> Eff (State s ': r) w -> Eff r w
+evalState :: s -> Eff (State s ': r) a -> Eff r a
 evalState s = fmap fst . runState s
 
 -- | Run a State effect and return the final state.
-execState :: s -> Eff (State s ': r) w -> Eff r s
+execState :: s -> Eff (State s ': r) a -> Eff r s
 execState s = fmap snd . runState s
 
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished
 -- successfully
 data TxState s = TxState
-transactionState :: forall s r w. Member (State s) r =>
-                    TxState s -> Eff r w -> Eff r w
+transactionState :: forall s r a. Member (State s) r =>
+                    TxState s -> Eff r a -> Eff r a
 transactionState _ m = do s <- get; loop s m
  where
-   loop :: s -> Eff r w -> Eff r w
+   loop :: s -> Eff r a -> Eff r a
    loop s (Val x) = put s >> return x
    loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
      Just Get      -> loop s (q ^$ s)
@@ -124,10 +126,10 @@ transactionState _ m = do s <- get; loop s m
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
-runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
+runStateR :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
 runStateR s m = loop s m
  where
-   loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
+   loop :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
    loop s0 (Val x) = return (x,s0)
    loop s0 (E u q) = case decomp u of
      Right (Tell w) -> k w ()
