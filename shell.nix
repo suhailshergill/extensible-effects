@@ -1,1 +1,0 @@
-./nix/shell-8.2.2.nix
