@@ -1,6 +1,6 @@
 GHCS = 7.8.4 7.10.3 8.0.2 8.2.2 8.4.1
 
-# default ghc-verison for targets, can be overwritten by make-
+# default ghc-version for targets, can be overwritten by make-
 GHC = 8.2.2
 STACK_YAML_ARG = --stack-yaml=stack/stack-$(GHC).yaml
 STACK_CMD = stack $(STACK_YAML_ARG)
@@ -63,17 +63,18 @@ package: test
 
 
 .PHONY: test-all
-test-all: build package
+blue=$(tput setaf 4)
+normal=$(tput sgr0)test-all: build package
 
 .PHONY: ci-test
 ci-test:
 	# run tests for all ghc versions given in different ghc-versions
 	{ \
+	blue=$$(tput setaf 4); \
+	normal=$$(tput sgr0); \
 	set -e; set -x; \
 	for ghc in $(GHCS); do \
-		echo ""; \
-		echo "Testing GHC version $$ghc"; \
-		echo ""; \
+		printf "\n%s\n\n" "$${blue}Testing GHC version $$ghc$${normal}"; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" clean; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" build; \
 		stack --stack-yaml="stack/stack-$$ghc.yaml" test; \
