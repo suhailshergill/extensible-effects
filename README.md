@@ -34,10 +34,68 @@ or `git clone https://github.com/suhailshergill/extensible-effects.git`
 2. start `stack ghci` or `cabal repl`
 3. import some library modules as described in this section
 
-*examples are work in progress and there will be some Quickstart module to go
-along the guide here*
+### Examples
 
-*examples...*
+In this section, a lot of examples are given. For technical details, see the
+next section.
+
+Note that most examples given here are very small. For them,
+using `Eff` monad is more complicated.
+The power of extensible effects lie in the fact that these comutations can be
+used to construct much more complicated programs by composing the little pieces
+shown here.
+
+All examples from this module can be found and tested in the module
+`Control.Eff.Quickstart`.
+
+```haskell
+import Control.Eff
+import Control.Eff.Writer.Lazy
+
+oneMore :: Member (Reader Int) r -> Eff r Int
+oneMore = do
+  x <- ask
+  return $ x + 1
+
+runOneMore1 = run . runReader 1 $ oneMore
+-- 2
+```
+
+```haskell
+import Control.Eff
+import Control.Eff.Exception
+
+tooBig :: Member (Exc String) r => Int -> Eff r Int
+tooBix i = do
+  if i > 100 then throwError $ show i else return i
+
+runTooBig :: Int -> Either Int Int
+runTooBig i = run . runExc $ tooBig i
+
+runTooBig 1 -- Right 1
+runTooBig 200 -- Left "200"
+```
+
+```haskell
+import Control.Eff
+import Control.Eff.State.Lazy
+
+popState :: Member (State [Int]) r => Eff r (Maybe Int)
+popState = do
+  stack <- get
+  case stack of
+    [] -> return Nothing
+    (x:xs) -> do
+      put xs
+      return x
+
+runPopState :: [Int] -> (Maybe Int, [Int])
+runPopState xs = runState xs popState
+
+runPopState [1, 2, 3] -- (Just 1, [2, 3])
+runPopState [] -- (Nothing, [])
+
+```
 
 ## Tour through Extensible Effects
 
@@ -83,7 +141,7 @@ For the `Writer`, `Reader` and `State`, there are lazy and a strict variants.
 Each has its own module that provide the same interface.
 By importing one or the other, it can be controlled if the effect is strict or
 lazy in its inputs and outputs.
-Note that this changes the strictness of that effect only.
+Unless required otherwise, it is suggested to use the lazy variants.
 
 In this section, only the core functions associated with an effect are
 presented.
@@ -196,7 +254,7 @@ run1 :: (Either e a, s)
 run1 = run . runState initalState . runError $ myComp
 
 run2 :: Either e (a, s)
-runs = run . runError . runState initalState $ myComp
+run2 = run . runError . runState initalState $ myComp
 ```
 
 However, the order of the handlers does matter for the final result.
