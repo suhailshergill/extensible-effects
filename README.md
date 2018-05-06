@@ -6,7 +6,7 @@
 [![Stories in Ready](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=ready&title=Ready)](http://waffle.io/suhailshergill/extensible-effects)
 [![Stories in progress](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=in%20progress&title=In%20progress)](http://waffle.io/suhailshergill/extensible-effects)
 
-*Implement effectful computation in a modular way!*
+*Implement effectful computations in a modular way!*
 
 The main and only monad is built upon `Eff` from `Control.Eff`.
 `Eff r a` is parameterized by the effect-list `r` and the monadic-result type
@@ -34,7 +34,7 @@ or `git clone https://github.com/suhailshergill/extensible-effects.git`
 2. start `stack ghci` or `cabal repl`
 3. import some library modules as described in this section
 
-*examples are work in progress and there will be some Quickstart module to go
+*examples are a work in progress and there will be some Quickstart module to go
 along the guide here*
 
 *examples...*
