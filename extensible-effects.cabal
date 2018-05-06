@@ -84,6 +84,7 @@ library
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Data.OpenUnion
+                       Control.Eff.QuickStart
 
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal

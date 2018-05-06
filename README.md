@@ -52,7 +52,7 @@ All examples from this module can be found and tested in the module
 import Control.Eff
 import Control.Eff.Writer.Lazy
 
-oneMore :: Member (Reader Int) r -> Eff r Int
+oneMore :: Member (Reader Int) r => Eff r Int
 oneMore = do
   x <- ask
   return $ x + 1
@@ -69,8 +69,8 @@ tooBig :: Member (Exc String) r => Int -> Eff r Int
 tooBix i = do
   if i > 100 then throwError $ show i else return i
 
-runTooBig :: Int -> Either Int Int
-runTooBig i = run . runExc $ tooBig i
+runTooBig :: Int -> Either String Int
+runTooBig i = run . runError $ tooBig i
 
 runTooBig 1 -- Right 1
 runTooBig 200 -- Left "200"
@@ -90,7 +90,7 @@ popState = do
       return x
 
 runPopState :: [Int] -> (Maybe Int, [Int])
-runPopState xs = runState xs popState
+runPopState xs = run . runState xs $ popState
 
 runPopState [1, 2, 3] -- (Just 1, [2, 3])
 runPopState [] -- (Nothing, [])
