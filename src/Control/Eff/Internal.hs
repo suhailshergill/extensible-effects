@@ -31,6 +31,7 @@ import Control.Applicative
 import qualified Control.Arrow as A
 import qualified Control.Category as C
 import Control.Monad.Base (MonadBase(..))
+import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Control (MonadBaseControl(..))
 import safe Data.OpenUnion
 import safe Data.FTCQueue
@@ -171,6 +172,9 @@ instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
     restoreM = return
     {-# INLINE restoreM #-}
 
+instance (MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
+    liftIO = lift . liftIO
+    {-# INLINE liftIO #-}
 
 -- | Send a request and wait for a reply (resulting in an effectful
 -- computation).
