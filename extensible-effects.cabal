@@ -139,7 +139,7 @@ library
                ,       monad-control >= 1.0 && < 1.1
   if impl(ghc < 8.0)
                        -- For MonadIO
-     build-depends:    transformers
+     build-depends:    transformers >= 0.2.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
