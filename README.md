@@ -6,7 +6,7 @@
 [![Stories in Ready](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=ready&title=Ready)](http://waffle.io/suhailshergill/extensible-effects)
 [![Stories in progress](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=in%20progress&title=In%20progress)](http://waffle.io/suhailshergill/extensible-effects)
 
-*Implement effectful computation in a modular way!*
+*Implement effectful computations in a modular way!*
 
 The main and only monad is built upon `Eff` from `Control.Eff`.
 `Eff r a` is parameterized by the effect-list `r` and the monadic-result type
@@ -284,7 +284,34 @@ possible to use the type operator `<::` and write
 
 ## Integration with IO
 
-*work in progress*
+`IO` as well as any other monad can be used as a base type for `Lift` effect.
+There may be at most one instance of `Lift` effect in the effects list, and it
+must be handled the last. `Control.Eff.Lift` exports `runLift` handler and
+`lift` function, that provides an ability to run arbitrary monadic actions.
+Also, there are convenient type aliases, that allow for shorter type constraints.
+
+```haskell
+f :: IO ()
+f = runLift $ do printHello
+                 printWorld
+
+-- These two functions' types are equivalent.
+
+printHello :: SetMember Lift (Lift IO) r => Eff r ()
+printHello = lift (putStr "Hello")
+
+printWorld :: Lifted IO r => Eff r ()
+printWorld = lift (putStrLn " world!")
+```
+
+Note that, since `Lift` is a terminal effect, you do not need to use `run` to
+extract pure value. Instead, `runLift` returns a value wrapped in whatever monad
+you chose to use.
+
+In addition, `Lift` effect provides `MonadBase`, `MonadBaseControl`, and `MonadIO`
+instances, that may be useful, especially with packages like [lifted-base](http://hackage.haskell.org/package/lifted-base),
+[lifted-async](http://hackage.haskell.org/package/lifted-async), and other
+code that uses those typeclasses.
 
 ## Integration with Monad Transformers
 
