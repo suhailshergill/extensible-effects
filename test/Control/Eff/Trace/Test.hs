@@ -33,9 +33,10 @@ case_Trace_tdup = do
 
 case_Trace_tMd :: Assertion
 case_Trace_tMd = do
-  actual <- catchOutput tMd
+  (actualResult, actualOutput) <- catchOutput tMd
   assertEqual "Trace: higher-order effectful function"
-    (map (+ val) input, unlines $ map (("mapMdebug: " ++) . show) input) actual
+    (map (+ val) input, map (("mapMdebug: " ++) . show) input)
+    (actualResult, lines actualOutput)
   where
     val = (10::Int)
     input = [1..5]

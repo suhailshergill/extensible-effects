@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.6.1.1
+version:             2.6.2.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -137,6 +137,9 @@ library
                ,       transformers-base == 0.4.*
                        -- For MonadBaseControl
                ,       monad-control >= 1.0 && < 1.1
+  if impl(ghc < 8.0)
+                       -- For MonadIO
+     build-depends:    transformers >= 0.2.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
