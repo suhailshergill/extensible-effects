@@ -263,6 +263,13 @@ code that uses those typeclasses.
 
 *work in progress*
 
+## Other packages
+
+Some other packages may implement various effects. Here is a rather incomplete
+list:
+
+* [log-effect](http://hackage.haskell.org/package/log-effect)
+
 ## Background
 
 extensible-effects is based on the work
