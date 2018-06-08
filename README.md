@@ -120,7 +120,7 @@ something
 something = do
   readValue :: Float <- ask -- read a value from the environment
   when (readValue < 0) $ throwError readValue  -- if the value is negative, throw an error
-  modify ((round readValue :: Integer) :) -- add the rounded read element to the list
+  modify (\l -> (round readValue :: Integer) : l) -- add the rounded read element to the list
   currentState :: [Integer] <- get -- get the state after the modification
   return $ sum currentState -- sum the elements in the list and return that
 

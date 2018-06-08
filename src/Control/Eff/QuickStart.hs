@@ -21,23 +21,58 @@ import           Control.Eff.Exception
 import           Control.Monad                            ( when )
 
 
--- TODO: change number to match paper
--- TODO: find out more useful examples of the effects
-
 -- | an effectful function that can throw an error
+--
+-- @
+-- tooBig = do
+--   when (i > 100) $ throwError $ show i
+--   return i
+-- @
 tooBig :: Member (Exc String) r => Int -> Eff r Int
 tooBig i = do
   when (i > 100) $ throwError $ show i
   return i
 
+-- | run the @tooBig@ effect based on a provided Int.
+--
+-- @
+-- runTooBig i = run . runError $ tooBig i
+-- @
 runTooBig :: Int -> Either String Int
 runTooBig i = run . runError $ tooBig i
 
+-- | run the @tooBig@ effect, giving @1@ as input
+--
+-- @
+-- runTooBig1 = runTooBig 1
+-- -- Right 1
+-- @
 runTooBig1 :: Either String Int
 runTooBig1 = runTooBig 1 -- Right 1
+
+-- | run the @tooBig@ effect, giving @200@ as input, which is too big for this
+-- effect.
+--
+-- @
+-- runTooBig1 = runTooBig 200
+-- -- Left "200"
+-- @
 runTooBig200 :: Either String Int
 runTooBig200 = runTooBig 200 -- Left "200"
 
+-- | an effectul computation using state. The state is of type @[Int]@.
+-- This function takes the head off the list, if it is there and return it.
+-- If state is the empty list, then it stays the same and returns @Nothing@.
+--
+-- @
+-- popState = do
+--  stack <- get
+--  case stack of
+--    []       -> return Nothing
+--    (x : xs) -> do
+--      put xs
+--      return $ Just x
+-- @
 popState :: Member (State [Int]) r => Eff r (Maybe Int)
 popState = do
   stack <- get
@@ -47,10 +82,22 @@ popState = do
       put xs
       return $ Just x
 
+-- | run the popState effectful computation based on initial state. The
+-- result-type is the result of the computation @Maybe Int@ together with the
+-- state at the end of the computation @[Int]@
+--
+-- @
+-- runPopState xs = run . runState xs $ popState
+-- @
 runPopState :: [Int] -> (Maybe Int, [Int])
 runPopState xs = run . runState xs $ popState
 
--- | runPopState
+-- | run the popState effectful function
+--
+-- @
+-- runPopState123 = runPopState  [1, 2, 3]
+-- -- (Just 1, [2, 3])
+-- @
 runPopState123 :: (Maybe Int, [Int])
 runPopState123 = runPopState [1, 2, 3] -- (Just 1, [2, 3])
 
@@ -88,8 +135,8 @@ runOneMore1 = run . runReader 1 $ oneMore -- 2
 -- | An effectful computation with multiple effects:
 --
 -- * A value gets read
+-- * an error can be thrown depending on the read value
 -- * state gets read and transformed
--- * an error can be thrown
 --
 -- All these effects are composed using the @Eff@ monad using the corresponding
 -- Effect types.
@@ -98,7 +145,7 @@ runOneMore1 = run . runReader 1 $ oneMore -- 2
 -- something = do
 --   readValue :: Float <- ask -- read a value from the environment
 --   when (readValue < 0) $ throwError readValue  -- if the value is negative, throw an error
---   modify ((round readValue :: Integer) :) -- add the rounded read element to the list
+--   modify (\l -> (round readValue :: Integer) : l) -- add the rounded read element to the list
 --   currentState :: [Integer] <- get -- get the state after the modification
 --   return $ sum currentState -- sum the elements in the list and return that
 -- @
@@ -108,7 +155,7 @@ something
 something = do
   readValue :: Float <- ask
   when (readValue < 0) $ throwError readValue
-  modify ((round readValue :: Integer) :)
+  modify (\l -> (round readValue :: Integer) : l)
   currentState :: [Integer] <- get
   return $ sum currentState
 
@@ -146,4 +193,34 @@ runSomething2 :: [Integer] -> Float -> (Either Float Integer, [Integer])
 runSomething2 initialState newValue =
   run . runState initialState . runError . runReader newValue $ something
 
--- TODO: tests for the something effect
+-- | run the @runSomething1@ functin with @[]@ and @(-0.5)@ as parameters
+--
+-- @
+-- runSomething1InputNegative = runSomething1 [] (-0.5) -- Left (-0.5)
+-- @
+runSomething1InputNegative :: Either Float (Integer, [Integer])
+runSomething1InputNegative = runSomething1 [] (-0.5) -- Left (-0.5)
+
+-- | run the @runSomething1@ functin with @[2]@ and @1.3@ as parameters
+--
+-- @
+-- runSomething1InputPositive = runSomething1 [2] 1.3 -- Right (3, [1,2])
+-- @
+runSomething1InputPositive :: Either Float (Integer, [Integer])
+runSomething1InputPositive = runSomething1 [2] 1.3 -- Right (3, [1,2])
+
+-- | run the @runSomething2@ functin with @[4]@ and @(-2.4)@ as parameters
+--
+-- @
+-- runSomething2InputNegative = runSomething2 [4] (-2.4) -- (Left (-2.4), [4])
+-- @
+runSomething2InputNegative :: (Either Float Integer, [Integer])
+runSomething2InputNegative = runSomething2 [4] (-2.4) -- (Left (-2.4), [4])
+
+-- | run the @runSomething2@ functin with @[4]@ and @5.9@ as parameters
+--
+-- @
+-- runSomething2InputPositive = runSomething2 [4] 5.9 -- (Right 10, [6,4])
+-- @
+runSomething2InputPositive :: (Either Float Integer, [Integer])
+runSomething2InputPositive = runSomething2 [4] 5.9 -- (Right 10, [6,4])
