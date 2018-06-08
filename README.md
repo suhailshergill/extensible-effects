@@ -48,26 +48,27 @@ shown here.
 All examples from this module can be found and tested in the module
 `Control.Eff.Quickstart`.
 
+The following options and imports have been done in the `QuickStart` module.
+
 ```haskell
+{-# LANGUAGE ScopedTypeVariables #-}
+{-# LANGUAGE FlexibleContexts #-}
+{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
+
 import Control.Eff
-import Control.Eff.Writer.Lazy
-
-oneMore :: Member (Reader Int) r => Eff r Int
-oneMore = do
-  x <- ask
-  return $ x + 1
-
-runOneMore1 = run . runReader 1 $ oneMore
--- 2
+import Control.Eff.Reader.Lazy
+import Control.Eff.State.Lazy
+import Control.Eff.Exception
+import Control.Monad ( when )
 ```
 
-```haskell
-import Control.Eff
-import Control.Eff.Exception
+#### Exception
 
+```haskell
 tooBig :: Member (Exc String) r => Int -> Eff r Int
-tooBix i = do
-  if i > 100 then throwError $ show i else return i
+tooBig i = do
+  when (i > 100) $ throwError $ show i
+  return i
 
 runTooBig :: Int -> Either String Int
 runTooBig i = run . runError $ tooBig i
@@ -76,10 +77,9 @@ runTooBig 1 -- Right 1
 runTooBig 200 -- Left "200"
 ```
 
-```haskell
-import Control.Eff
-import Control.Eff.State.Lazy
+#### State
 
+```haskell
 popState :: Member (State [Int]) r => Eff r (Maybe Int)
 popState = do
   stack <- get
@@ -92,9 +92,57 @@ popState = do
 runPopState :: [Int] -> (Maybe Int, [Int])
 runPopState xs = run . runState xs $ popState
 
-runPopState [1, 2, 3] -- (Just 1, [2, 3])
-runPopState [] -- (Nothing, [])
+runPopState123 = runPopState [1, 2, 3]
+-- (Just 1, [2, 3])
+runPopStateEmpty = runPopState []
+-- (Nothing, [])
 
+```
+
+#### Reader
+
+```haskell
+oneMore :: Member (Reader Int) r => Eff r Int
+oneMore = do
+  x <- ask
+  return $ x + 1
+
+runOneMore1 = run . runReader 1 $ oneMore
+-- 2
+```
+
+#### Effect composition
+
+```haskell
+something
+  :: (Member (Reader Float) r, Member (State [Integer]) r, Member (Exc Float) r)
+  => Eff r Integer
+something = do
+  readValue :: Float <- ask -- read a value from the environment
+  when (readValue < 0) $ throwError readValue  -- if the value is negative, throw an error
+  modify ((round readValue :: Integer) :) -- add the rounded read element to the list
+  currentState :: [Integer] <- get -- get the state after the modification
+  return $ sum currentState -- sum the elements in the list and return that
+
+runSomething :: [Integer] -> Float -> Either Float (Integer, [Integer])
+runSomething initialState newValue =
+  run . runError . runState initialState . runReader newValue $ something
+
+runSomething1 = runSomething [2, 3, 4] 1.2
+-- Right (1, [1, 2, 3, 4])
+runSomething2 = runSomething [5, 6, 7] (-4.4)
+-- Left (-4.4)
+
+```
+
+```haskell
+oneMore :: Member (Reader Int) r => Eff r Int
+oneMore = do
+  x <- ask
+  return $ x + 1
+
+runOneMore1 = run . runReader 1 $ oneMore
+-- 2
 ```
 
 ## Tour through Extensible Effects
@@ -277,6 +325,10 @@ Instead of writing
 `(Member (Exc e) r, Member (State s) r) => ...` it is
 possible to use the type operator `<::` and write
 `[ Exc e, State s ] <:: r => ...`, which has the same meaning.
+
+It might be convenient to include the necessary language extensions and the
+disabling of the class-constriant warnings in the cabal-file of your project.
+*Explanation is work in progress*
 
 ## Other Effects
 
