@@ -1,8 +1,18 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
-{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
+-- {-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 
 -- | This module contains several tiny examples of how to use effects.
+-- For technical details, see the documentation in the effect-modules.
+--
+-- Note that most examples given here are very small. For them,
+-- using `Eff` monad is more complicated compared to a standard functional
+-- approach.
+-- The power of extensible effects lie in the fact that these computations can
+-- be used to construct much more complicated programs by composing the little
+-- pieces shown here.
+--
+-- This module imports and reexports modules from this library:
 --
 -- @
 -- import Control.Eff
@@ -11,8 +21,13 @@
 -- import Control.Eff.State.Lazy
 -- import Control.Eff.Exception
 -- @
-
-module Control.Eff.QuickStart where
+--
+module Control.Eff.QuickStart
+  ( module Control.Eff.QuickStart
+  , module Control.Eff.Reader.Lazy
+  , module Control.Eff.State.Lazy
+  , module Control.Eff.Exception
+  ) where
 
 import           Control.Eff
 import           Control.Eff.Reader.Lazy
@@ -38,27 +53,14 @@ tooBig i = do
 -- @
 -- runTooBig i = run . runError $ tooBig i
 -- @
+--
+-- >>> runTooBig 1
+-- Right 1
+--
+-- >>> runTooBig 200
+-- Left "200"
 runTooBig :: Int -> Either String Int
 runTooBig i = run . runError $ tooBig i
-
--- | run the @tooBig@ effect, giving @1@ as input
---
--- @
--- runTooBig1 = runTooBig 1
--- -- Right 1
--- @
-runTooBig1 :: Either String Int
-runTooBig1 = runTooBig 1 -- Right 1
-
--- | run the @tooBig@ effect, giving @200@ as input, which is too big for this
--- effect.
---
--- @
--- runTooBig1 = runTooBig 200
--- -- Left "200"
--- @
-runTooBig200 :: Either String Int
-runTooBig200 = runTooBig 200 -- Left "200"
 
 -- | an effectul computation using state. The state is of type @[Int]@.
 -- This function takes the head off the list, if it is there and return it.
@@ -89,26 +91,14 @@ popState = do
 -- @
 -- runPopState xs = run . runState xs $ popState
 -- @
+--
+-- >>> runPopState  [1, 2, 3]
+-- (Just 1, [2, 3])
+--
+-- >>> runPopState []
+-- (Nothing, [])
 runPopState :: [Int] -> (Maybe Int, [Int])
 runPopState xs = run . runState xs $ popState
-
--- | run the popState effectful function
---
--- @
--- runPopState123 = runPopState  [1, 2, 3]
--- -- (Just 1, [2, 3])
--- @
-runPopState123 :: (Maybe Int, [Int])
-runPopState123 = runPopState [1, 2, 3] -- (Just 1, [2, 3])
-
--- | run the popState effectful function
---
--- @
--- runPopStateEmpty = runPopState []
--- -- (Nothing, [])
--- @
-runPopStateEmpty :: (Maybe Int, [Int])
-runPopStateEmpty = runPopState [] -- (Nothing, [])
 
 -- | an effect that returns a number one more than the given
 --
@@ -125,12 +115,13 @@ oneMore = do
 -- | Run the @oneMore@ effectful function by giving it a value to read.
 --
 -- @
--- runOneMore = run . runReader 1 $ oneMore
--- -- 2
+-- runOneMore i = run . runReader i $ oneMore
 -- @
--- TODO: runOneMore function and separate runOneMore1
-runOneMore1 :: Int
-runOneMore1 = run . runReader 1 $ oneMore -- 2
+--
+-- >>> runOneMore 1
+-- 2
+runOneMore :: Int -> Int
+runOneMore i = run . runReader i $ oneMore
 
 -- | An effectful computation with multiple effects:
 --
@@ -170,6 +161,12 @@ something = do
 --   runReader newValue $ -- provide the computation with the dynamic value to read/ask for
 --   something -- the computation - function
 -- @
+--
+-- >>> runSomething1 [] (-0.5)
+-- Left (-0.5)
+--
+-- >>> runSomething1 [2] 1.3
+-- Right (3, [1,2])
 runSomething1 :: [Integer] -> Float -> Either Float (Integer, [Integer])
 runSomething1 initialState newValue =
   run . runError . runState initialState . runReader newValue $ something
@@ -189,38 +186,12 @@ runSomething1 initialState newValue =
 --   runReader newValue $
 --   something -- the computation - function
 -- @
+--
+-- >>> runSomething2 [4] (-2.4)
+-- (Left (-2.4), [4])
+--
+-- >>> runSomething2 [4] 5.9
+-- (Right 10, [6,4])
 runSomething2 :: [Integer] -> Float -> (Either Float Integer, [Integer])
 runSomething2 initialState newValue =
   run . runState initialState . runError . runReader newValue $ something
-
--- | run the @runSomething1@ functin with @[]@ and @(-0.5)@ as parameters
---
--- @
--- runSomething1InputNegative = runSomething1 [] (-0.5) -- Left (-0.5)
--- @
-runSomething1InputNegative :: Either Float (Integer, [Integer])
-runSomething1InputNegative = runSomething1 [] (-0.5) -- Left (-0.5)
-
--- | run the @runSomething1@ functin with @[2]@ and @1.3@ as parameters
---
--- @
--- runSomething1InputPositive = runSomething1 [2] 1.3 -- Right (3, [1,2])
--- @
-runSomething1InputPositive :: Either Float (Integer, [Integer])
-runSomething1InputPositive = runSomething1 [2] 1.3 -- Right (3, [1,2])
-
--- | run the @runSomething2@ functin with @[4]@ and @(-2.4)@ as parameters
---
--- @
--- runSomething2InputNegative = runSomething2 [4] (-2.4) -- (Left (-2.4), [4])
--- @
-runSomething2InputNegative :: (Either Float Integer, [Integer])
-runSomething2InputNegative = runSomething2 [4] (-2.4) -- (Left (-2.4), [4])
-
--- | run the @runSomething2@ functin with @[4]@ and @5.9@ as parameters
---
--- @
--- runSomething2InputPositive = runSomething2 [4] 5.9 -- (Right 10, [6,4])
--- @
-runSomething2InputPositive :: (Either Float Integer, [Integer])
-runSomething2InputPositive = runSomething2 [4] 5.9 -- (Right 10, [6,4])
