@@ -1,6 +1,5 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
--- {-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
 
 -- | This module contains several tiny examples of how to use effects.
 -- For technical details, see the documentation in the effect-modules.
