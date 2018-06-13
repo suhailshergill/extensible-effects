@@ -22,7 +22,9 @@
 -- @
 --
 module Control.Eff.QuickStart
-  ( module Control.Eff.QuickStart
+  ( -- * Examples
+    module Control.Eff.QuickStart
+    -- * Imported effect modules
   , module Control.Eff.Reader.Lazy
   , module Control.Eff.State.Lazy
   , module Control.Eff.Exception
