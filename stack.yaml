@@ -8,10 +8,9 @@ extra-deps: []
 flags:
   extensible-effects:
     force-openunion-51: false
-    lib-werror: true
+    lib-werror: false
 
 extra-package-dbs: []
 
 nix:
   packages: []
-

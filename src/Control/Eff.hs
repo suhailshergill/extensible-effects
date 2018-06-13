@@ -2,10 +2,13 @@
 
 module Control.Eff
   ( -- * Effect base-type
-    Internal.Eff
+    -- | The the monad that contains all effects --TODO: comment
+    Internal.run
+  , Internal.Eff
     -- * Effect list
   , OpenUnion.Member
-    -- Rest (not included in documentation)
+  , type(<::)
+    -- Rest (not included in documentation somehow)
   , module Internal
   , module OpenUnion
   ) where
