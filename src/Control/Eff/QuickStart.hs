@@ -94,10 +94,10 @@ popState = do
 -- @
 --
 -- >>> runPopState  [1, 2, 3]
--- (Just 1, [2, 3])
+-- (Just 1,[2,3])
 --
 -- >>> runPopState []
--- (Nothing, [])
+-- (Nothing,[])
 runPopState :: [Int] -> (Maybe Int, [Int])
 runPopState xs = run . runState xs $ popState
 
@@ -167,7 +167,7 @@ something = do
 -- Left (-0.5)
 --
 -- >>> runSomething1 [2] 1.3
--- Right (3, [1,2])
+-- Right (3,[1,2])
 runSomething1 :: [Integer] -> Float -> Either Float (Integer, [Integer])
 runSomething1 initialState newValue =
   run . runError . runState initialState . runReader newValue $ something
@@ -189,10 +189,10 @@ runSomething1 initialState newValue =
 -- @
 --
 -- >>> runSomething2 [4] (-2.4)
--- (Left (-2.4), [4])
+-- (Left (-2.4),[4])
 --
 -- >>> runSomething2 [4] 5.9
--- (Right 10, [6,4])
+-- (Right 10,[6,4])
 runSomething2 :: [Integer] -> Float -> (Either Float Integer, [Integer])
 runSomething2 initialState newValue =
   run . runState initialState . runError . runReader newValue $ something
