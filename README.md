@@ -25,125 +25,15 @@ though all transformers.
 
 To experiment with this library, it is suggested to write some lines within
 `ghci`.
-This section will include some code-examples, which you should try on your own!
 
 Recommended Procedure:
 
-1. add `extensible-effects` as a dependency to a existing cabal or stack project
-or `git clone https://github.com/suhailshergill/extensible-effects.git`
-2. start `stack ghci` or `cabal repl`
-3. import some library modules as described in this section
-
-### Examples
-
-In this section, a lot of examples are given. For technical details, see the
-next section.
-
-Note that most examples given here are very small. For them,
-using `Eff` monad is more complicated.
-The power of extensible effects lie in the fact that these comutations can be
-used to construct much more complicated programs by composing the little pieces
-shown here.
-
-All examples from this module can be found and tested in the module
-`Control.Eff.Quickstart`.
-
-The following options and imports have been done in the `QuickStart` module.
-
-```haskell
-{-# LANGUAGE ScopedTypeVariables #-}
-{-# LANGUAGE FlexibleContexts #-}
-{-# OPTIONS_GHC -Wno-simplifiable-class-constraints #-}
-
-import Control.Eff
-import Control.Eff.Reader.Lazy
-import Control.Eff.State.Lazy
-import Control.Eff.Exception
-import Control.Monad ( when )
-```
-
-#### Exception
-
-```haskell
-tooBig :: Member (Exc String) r => Int -> Eff r Int
-tooBig i = do
-  when (i > 100) $ throwError $ show i
-  return i
-
-runTooBig :: Int -> Either String Int
-runTooBig i = run . runError $ tooBig i
-
-runTooBig 1 -- Right 1
-runTooBig 200 -- Left "200"
-```
-
-#### State
-
-```haskell
-popState :: Member (State [Int]) r => Eff r (Maybe Int)
-popState = do
-  stack <- get
-  case stack of
-    [] -> return Nothing
-    (x:xs) -> do
-      put xs
-      return x
-
-runPopState :: [Int] -> (Maybe Int, [Int])
-runPopState xs = run . runState xs $ popState
-
-runPopState123 = runPopState [1, 2, 3]
--- (Just 1, [2, 3])
-runPopStateEmpty = runPopState []
--- (Nothing, [])
-
-```
-
-#### Reader
-
-```haskell
-oneMore :: Member (Reader Int) r => Eff r Int
-oneMore = do
-  x <- ask
-  return $ x + 1
-
-runOneMore1 = run . runReader 1 $ oneMore
--- 2
-```
-
-#### Effect composition
-
-```haskell
-something
-  :: (Member (Reader Float) r, Member (State [Integer]) r, Member (Exc Float) r)
-  => Eff r Integer
-something = do
-  readValue :: Float <- ask -- read a value from the environment
-  when (readValue < 0) $ throwError readValue  -- if the value is negative, throw an error
-  modify (\l -> (round readValue :: Integer) : l) -- add the rounded read element to the list
-  currentState :: [Integer] <- get -- get the state after the modification
-  return $ sum currentState -- sum the elements in the list and return that
-
-runSomething :: [Integer] -> Float -> Either Float (Integer, [Integer])
-runSomething initialState newValue =
-  run . runError . runState initialState . runReader newValue $ something
-
-runSomething1 = runSomething [2, 3, 4] 1.2
--- Right (1, [1, 2, 3, 4])
-runSomething2 = runSomething [5, 6, 7] (-4.4)
--- Left (-4.4)
-
-```
-
-```haskell
-oneMore :: Member (Reader Int) r => Eff r Int
-oneMore = do
-  x <- ask
-  return $ x + 1
-
-runOneMore1 = run . runReader 1 $ oneMore
--- 2
-```
+1. get `extensible-effects` by doing one of the following:
+  * add `extensible-effects` as a dependency to a existing cabal or stack project
+  * `git clone https://github.com/suhailshergill/extensible-effects.git`
+2. start `stack ghci` or `cabal repl` inside the project
+3. import `Control.Eff` and `Control.Eff.QuickStart`
+4. start with the examples provided in the documentation of the `Control.Eff.QuickStart` module
 
 ## Tour through Extensible Effects
 

@@ -18,9 +18,12 @@ import qualified Control.Eff.State.Strict.Test
 import qualified Control.Eff.Trace.Test
 import qualified Control.Eff.Writer.Lazy.Test
 import qualified Control.Eff.Writer.Strict.Test
+import DoctestRun (runDocTest)
 
 main :: IO ()
-main = defaultMain testGroups
+main = do
+  runDocTest
+  defaultMain testGroups
 
 testGroups :: [Test]
 testGroups = []
