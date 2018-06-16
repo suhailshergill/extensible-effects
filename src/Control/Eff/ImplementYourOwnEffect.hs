@@ -6,10 +6,28 @@ module Control.Eff.ImplementYourOwnEffect
   , inj
   , prj
   , decomp
-  -- , Member already exported in Control.Eff; users should import both
   , SetMember
   , weaken
-  ) where
+  -- * Helper functions that are used for implementing effect-handlers
+  , handle_relay
+  , handle_relay_s
+  , interpose
+  , raise
+  -- * Arrow types and compositions
+  , Arr
+  , Arrs
+  , first
+  , singleK
+  , qApp
+  , (^$)
+  , arr
+  , ident
+  , comp
+  , (^|>)
+  , qComp
+  , qComps
+  )
+where
 
---import Control.Eff.Internal as Internal hiding (Lift(..), lift, runLift)
-import Data.OpenUnion as OpenUnion
+import           Data.OpenUnion                as OpenUnion
+import           Control.Eff.Internal

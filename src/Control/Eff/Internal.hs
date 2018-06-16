@@ -28,7 +28,7 @@ module Control.Eff.Internal
     Eff(..)
   , run
   , send
-    -- * helper functions that are use
+    -- * helper functions that are used for implementing effect-handlers
   , handle_relay
   , handle_relay_s
   , interpose
@@ -37,7 +37,8 @@ module Control.Eff.Internal
   , Lift(..)
   , lift
   , runLift
-    -- * arrow types
+    -- * arrow types and compositions
+    -- | Effectful arrows are are used for raw interaction with the Eff monad
   , Arr
   , Arrs
   , first
