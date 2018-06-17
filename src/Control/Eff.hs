@@ -1,8 +1,13 @@
 {-# OPTIONS_GHC -Wno-duplicate-exports #-}
 
+-- | The main entry-point of this library.
+--
+-- This module provides the @Eff@ monad - the base monad for all effectful
+-- computation.
+--
+
 module Control.Eff
   ( -- * Effect base-type
-    -- | The the monad that contains all effects --TODO: comment
     Internal.run
   , Internal.Eff
     -- * Effect list
