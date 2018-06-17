@@ -1,4 +1,11 @@
+{-# LANGUAGE CPP #-}
+{-# LANGUAGE ExplicitNamespaces #-}
+
+#if __GLASGOW_HASKELL__ < 800
+{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
+#else
 {-# OPTIONS_GHC -Wno-duplicate-exports #-}
+#endif
 
 -- | The main entry-point of this library.
 --
