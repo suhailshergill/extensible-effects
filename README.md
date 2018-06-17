@@ -1,5 +1,5 @@
 
-# Extensible effects
+# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg))
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -262,6 +262,13 @@ code that uses those typeclasses.
 ## Writing your own Effects and Handlers
 
 *work in progress*
+
+## Other packages
+
+Some other packages may implement various effects. Here is a rather incomplete
+list:
+
+* [log-effect](http://hackage.haskell.org/package/log-effect)
 
 ## Background
 
