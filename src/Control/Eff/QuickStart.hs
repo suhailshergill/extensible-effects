@@ -1,5 +1,6 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE FlexibleContexts #-}
+{-# LANGUAGE MonoLocalBinds #-}
 
 -- | This module contains several tiny examples of how to use effects.
 -- For technical details, see the documentation in the effect-modules.
@@ -26,6 +27,7 @@
 -- @
 -- {-# LANGUAGE ScopedTypeVariables #-}
 -- {-# LANGUAGE FlexibleContexts #-}
+-- {-# LANGUAGE MonoLocalBinds #-}
 -- @
 --
 module Control.Eff.QuickStart
