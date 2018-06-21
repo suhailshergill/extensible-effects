@@ -7,6 +7,7 @@
 module Control.Eff.Example where
 
 import Control.Eff
+import Control.Eff.Extend
 import Control.Eff.Exception
 
 import Control.Eff.Reader.Lazy

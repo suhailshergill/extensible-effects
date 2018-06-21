@@ -1,11 +1,4 @@
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE ExplicitNamespaces #-}
-
-#if __GLASGOW_HASKELL__ < 800
-{-# OPTIONS_GHC -fno-warn-duplicate-exports #-}
-#else
-{-# OPTIONS_GHC -Wno-duplicate-exports #-}
-#endif
 
 -- | A monadic library for implementing effectful computation in a modular way.
 --
@@ -32,11 +25,9 @@ module Control.Eff
   , Internal.Eff
     -- * Effect list
   , OpenUnion.Member
+  , OpenUnion.SetMember
   , type(<::)
-    -- Rest (not included in documentation somehow)
-  , module Internal
-  , module OpenUnion
   ) where
 
-import Control.Eff.Internal as Internal hiding (Lift(..), lift, runLift)
+import Control.Eff.Internal as Internal
 import Data.OpenUnion as OpenUnion

@@ -3,8 +3,12 @@
 --
 
 module Control.Eff.Extend
-  ( -- * Open Unions
-    OpenUnion.Union
+  ( -- * The effect monad
+    Eff(..)
+  , run
+    -- * Open Unions
+  , OpenUnion.Union
+  , OpenUnion.Member
   , inj
   , prj
   , decomp
@@ -15,6 +19,7 @@ module Control.Eff.Extend
   , handle_relay_s
   , interpose
   , raise
+  , send
   -- * Arrow types and compositions
   , Arr
   , Arrs

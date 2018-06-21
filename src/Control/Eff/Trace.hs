@@ -10,6 +10,7 @@ module Control.Eff.Trace( Trace (..)
                         ) where
 
 import Control.Eff
+import Control.Eff.Extend
 
 -- | Trace effect for debugging
 data Trace v where
