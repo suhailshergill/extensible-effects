@@ -22,36 +22,7 @@
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example can be found under "Control.Eff.Example". To run the
 -- effects, consult the tests.
-module Control.Eff.Internal
-  (
-    -- * the Effect type
-    Eff(..)
-  , run
-  , send
-    -- * helper functions that are used for implementing effect-handlers
-  , handle_relay
-  , handle_relay_s
-  , interpose
-  , raise
-    -- * lift
-  , Lift(..)
-  , lift
-  , runLift
-    -- * arrow types and compositions
-    -- | Effectful arrows are are used for raw interaction with the Eff monad
-  , Arr
-  , Arrs
-  , first
-  , singleK
-  , qApp
-  , (^$)
-  , arr
-  , ident
-  , comp
-  , (^|>)
-  , qComp
-  , qComps
-  ) where
+module Control.Eff.Internal where
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
@@ -110,7 +81,7 @@ qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
 qApp :: Arrs r b w -> b -> Eff r w
 qApp q x = case tviewl q of
    TOne k  -> k x
-   k :| t -> binqCompsd' (k x) t
+   k :| t -> bind' (k x) t
  where
    bind' :: Eff r a -> Arrs r a b -> Eff r b
    bind' (Pure y) k     = qApp k y

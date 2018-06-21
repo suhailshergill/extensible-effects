@@ -1,6 +1,8 @@
 -- | This module exports functions, types, and typeclasses necessary for
--- implementing a custom effect and/or effect handler
-module Control.Eff.ImplementYourOwnEffect
+-- implementing a custom effect and/or effect handler.
+--
+
+module Control.Eff.Extend
   ( -- * Open Unions
     OpenUnion.Union
   , inj

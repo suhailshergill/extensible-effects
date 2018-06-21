@@ -7,10 +7,22 @@
 {-# OPTIONS_GHC -Wno-duplicate-exports #-}
 #endif
 
--- | The main entry-point of this library.
+-- | A monadic library for implementing effectful computation in a modular way.
 --
--- This module provides the @Eff@ monad - the base monad for all effectful
+-- This module provides the @Eff@ monad - the base type for all effectful
 -- computation.
+-- The @Member@ typeclass is the main interface for describing the .
+--
+-- Consult the @Control.Eff.QuickStart@ module and the readme for gentle
+-- introductions.
+--
+-- To use extensible effects effectively some language extensions are
+-- necessary/suggested.
+--
+-- @
+-- {-# LANGUAGE ScopedTypeVariables #-}
+-- {-# LANGUAGE FlexibleContexts #-}
+-- @
 --
 
 module Control.Eff

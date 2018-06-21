@@ -21,6 +21,13 @@
 -- import Control.Eff.Exception
 -- @
 --
+-- also, some language extensions are required
+--
+-- @
+-- {-# LANGUAGE ScopedTypeVariables #-}
+-- {-# LANGUAGE FlexibleContexts #-}
+-- @
+--
 module Control.Eff.QuickStart
   ( -- * Examples
     module Control.Eff.QuickStart
