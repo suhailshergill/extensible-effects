@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             2.6.2.0
+version:             2.6.3.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -84,6 +84,7 @@ library
                        Control.Eff.Writer.Lazy
                        Control.Eff.Writer.Strict
                        Data.OpenUnion
+                       Control.Eff.QuickStart
 
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal
@@ -175,6 +176,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Trace.Test
                 , Control.Eff.Writer.Lazy.Test
                 , Control.Eff.Writer.Strict.Test
+                , DoctestRun
 
   ghc-options: -Wall
   if impl(ghc >= 8.0)
@@ -192,6 +194,7 @@ test-suite extensible-effects-tests
               , test-framework-hunit == 0.3.*
               , test-framework-quickcheck2 == 0.3.*
               , test-framework-th >= 0.2
+              , doctest
               , extensible-effects
 
   default-language:    Haskell2010

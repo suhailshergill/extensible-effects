@@ -1,5 +1,5 @@
 
-# Extensible effects
+# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg))
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -25,19 +25,15 @@ though all transformers.
 
 To experiment with this library, it is suggested to write some lines within
 `ghci`.
-This section will include some code-examples, which you should try on your own!
 
 Recommended Procedure:
 
-1. add `extensible-effects` as a dependency to a existing cabal or stack project
-or `git clone https://github.com/suhailshergill/extensible-effects.git`
-2. start `stack ghci` or `cabal repl`
-3. import some library modules as described in this section
-
-*examples are a work in progress and there will be some Quickstart module to go
-along the guide here*
-
-*examples...*
+1. get `extensible-effects` by doing one of the following:
+  * add `extensible-effects` as a dependency to a existing cabal or stack project
+  * `git clone https://github.com/suhailshergill/extensible-effects.git`
+2. start `stack ghci` or `cabal repl` inside the project
+3. import `Control.Eff` and `Control.Eff.QuickStart`
+4. start with the examples provided in the documentation of the `Control.Eff.QuickStart` module
 
 ## Tour through Extensible Effects
 
@@ -83,7 +79,7 @@ For the `Writer`, `Reader` and `State`, there are lazy and a strict variants.
 Each has its own module that provide the same interface.
 By importing one or the other, it can be controlled if the effect is strict or
 lazy in its inputs and outputs.
-Note that this changes the strictness of that effect only.
+Unless required otherwise, it is suggested to use the lazy variants.
 
 In this section, only the core functions associated with an effect are
 presented.
@@ -196,7 +192,7 @@ run1 :: (Either e a, s)
 run1 = run . runState initalState . runError $ myComp
 
 run2 :: Either e (a, s)
-runs = run . runError . runState initalState $ myComp
+run2 = run . runError . runState initalState $ myComp
 ```
 
 However, the order of the handlers does matter for the final result.
@@ -219,6 +215,10 @@ Instead of writing
 `(Member (Exc e) r, Member (State s) r) => ...` it is
 possible to use the type operator `<::` and write
 `[ Exc e, State s ] <:: r => ...`, which has the same meaning.
+
+It might be convenient to include the necessary language extensions and the
+disabling of the class-constriant warnings in the cabal-file of your project.
+*Explanation is work in progress*
 
 ## Other Effects
 
@@ -262,6 +262,13 @@ code that uses those typeclasses.
 ## Writing your own Effects and Handlers
 
 *work in progress*
+
+## Other packages
+
+Some other packages may implement various effects. Here is a rather incomplete
+list:
+
+* [log-effect](http://hackage.haskell.org/package/log-effect)
 
 ## Background
 
