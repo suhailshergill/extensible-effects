@@ -12,9 +12,14 @@
 -- be used to construct much more complicated programs by composing the little
 -- pieces shown here.
 --
--- This module imports and reexports modules from this library:
+-- This module imports and reexports modules from this library and requires
+-- some language extensions:
 --
 -- @
+-- {-\# LANGUAGE ScopedTypeVariables \#-}
+-- {-\# LANGUAGE FlexibleContexts \#-}
+-- {-\# LANGUAGE MonoLocalBinds \#-}
+--
 -- import Control.Eff
 -- import Control.Eff.Reader.Lazy
 -- import Control.Eff.Writer.Lazy
@@ -22,13 +27,8 @@
 -- import Control.Eff.Exception
 -- @
 --
--- also, some language extensions are required
---
--- @
--- {-# LANGUAGE ScopedTypeVariables #-}
--- {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE MonoLocalBinds #-}
--- @
+-- If you want to see what each extension is good for, you can disable it and
+-- see what GHC will complain about.
 --
 module Control.Eff.QuickStart
   ( -- * Examples

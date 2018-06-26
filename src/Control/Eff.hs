@@ -4,18 +4,19 @@
 --
 -- This module provides the @Eff@ monad - the base type for all effectful
 -- computation.
--- The @Member@ typeclass is the main interface for describing the .
+-- The @Member@ typeclass is the main interface for describing which effects
+-- are necessary for a given function.
 --
 -- Consult the @Control.Eff.QuickStart@ module and the readme for gentle
 -- introductions.
 --
 -- To use extensible effects effectively some language extensions are
--- necessary/suggested.
+-- necessary/recommended.
 --
 -- @
--- {-# LANGUAGE ScopedTypeVariables #-}
--- {-# LANGUAGE FlexibleContexts #-}
--- {-# LANGUAGE MonoLocalBinds #-}
+-- {-\# LANGUAGE ScopedTypeVariables \#-}
+-- {-\# LANGUAGE FlexibleContexts \#-}
+-- {-\# LANGUAGE MonoLocalBinds \#-}
 -- @
 --
 
