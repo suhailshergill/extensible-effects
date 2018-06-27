@@ -15,8 +15,9 @@ module Control.Eff.Reader.Lazy ( Reader (..)
                               , runReader
                               ) where
 
-import Control.Eff.Internal
-import Data.OpenUnion
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control

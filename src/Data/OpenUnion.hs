@@ -94,6 +94,11 @@ prj' n (Union n' x) | n == n'   = Just (unsafeCoerce x)
 
 newtype P t r = P{unP :: Int}
 
+-- | Typeclass that asserts that effect @t@ is contained inside the effect-list
+-- @r@.
+--
+-- The @FindElem@ typeclass is necessary for implementation reasons and is not
+-- required for using the effect list.
 class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)

@@ -15,8 +15,9 @@
 -- | Another implementation of nondeterministic choice effect
 module Control.Eff.NdetEff where
 
-import Control.Eff.Internal
-import Data.OpenUnion
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
 
 import Control.Applicative
 import Control.Monad

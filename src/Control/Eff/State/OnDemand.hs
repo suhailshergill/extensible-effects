@@ -11,10 +11,12 @@
 -- | Lazy state effect
 module Control.Eff.State.OnDemand where
 
-import Control.Eff.Internal
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
+
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
-import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control

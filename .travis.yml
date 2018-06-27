@@ -11,7 +11,7 @@ addons:
     - libgmp-dev
 
 env:
-- GHC="8.4.1"
+- GHC="8.4.2"
 - GHC="8.2.2"
 - GHC="8.0.2"
 - GHC="7.10.3"

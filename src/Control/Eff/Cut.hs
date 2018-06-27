@@ -41,6 +41,7 @@
 module Control.Eff.Cut where
 
 import Control.Eff
+import Control.Eff.Extend
 import Control.Eff.Exception
 import Control.Eff.Choose
 

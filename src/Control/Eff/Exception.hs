@@ -24,8 +24,9 @@ module Control.Eff.Exception ( Exc (..)
                             , ignoreFail
                             ) where
 
-import Control.Eff.Internal
-import Data.OpenUnion
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
 
 import Control.Monad (void)
 import Control.Monad.Base
@@ -54,8 +55,8 @@ throwError :: (Member (Exc e) r) => e -> Eff r a
 throwError e = send (Exc e)
 {-# INLINE throwError #-}
 
--- | Throw an exception in an effectful computation. The type is unit, 
---   which suppresses the ghc-mod warning "A do-notation statement 
+-- | Throw an exception in an effectful computation. The type is unit,
+--   which suppresses the ghc-mod warning "A do-notation statement
 --   discarded a result of type"
 throwError_ :: (Member (Exc e) r) => e -> Eff r ()
 throwError_ = throwError
