@@ -22,8 +22,7 @@
 -- Extensible Effects are implemented as typeclass constraints on an Eff[ect] datatype.
 -- A contrived example can be found under "Control.Eff.Example". To run the
 -- effects, consult the tests.
-module Control.Eff.Internal ( module Control.Eff.Internal
-                            ) where
+module Control.Eff.Internal where
 
 #if __GLASGOW_HASKELL__ < 710
 import Control.Applicative
@@ -189,10 +188,10 @@ send t = E (inj t) (singleK Val)
 
 
 -- ------------------------------------------------------------------------
--- | The initial case, no effects. Get the result from a pure computation.
+-- | Get the result from a pure (i.e. no effects) computation.
 --
 -- The type of run ensures that all effects must be handled:
--- only pure computations may be run.
+-- only pure computations can be run.
 run :: Eff '[] w -> w
 run (Val x) = x
 -- | the other case is unreachable since Union [] a cannot be

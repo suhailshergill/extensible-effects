@@ -19,6 +19,7 @@ module Control.Eff.Operational ( Program (..)
                                ) where
 
 import Control.Eff
+import Control.Eff.Extend
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.

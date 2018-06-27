@@ -11,6 +11,7 @@ module Control.Eff.Coroutine( Yield (..)
                             ) where
 
 import Control.Eff
+import Control.Eff.Extend
 
 -- ------------------------------------------------------------------------
 -- | Co-routines

@@ -8,7 +8,7 @@
 
 *Implement effectful computations in a modular way!*
 
-The main and only monad is built upon `Eff` from `Control.Eff`.
+The main monad of this package is `Eff` from `Control.Eff`.
 `Eff r a` is parameterized by the effect-list `r` and the monadic-result type
 `a` similar to other monads.
 It is the intention that all other monadic computations can be replaced by the

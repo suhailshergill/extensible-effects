@@ -12,10 +12,12 @@
 -- | Strict state effect
 module Control.Eff.State.Strict where
 
-import Control.Eff.Internal
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
+
 import Control.Eff.Writer.Strict
 import Control.Eff.Reader.Strict
-import Data.OpenUnion
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control

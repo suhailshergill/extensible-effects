@@ -18,8 +18,10 @@ module Control.Eff.Choose ( Choose (..)
                           , mplus'
                           ) where
 
-import Control.Eff.Internal
-import Data.OpenUnion
+import Control.Eff
+import Control.Eff.Extend
+import Control.Eff.Lift
+      
 import Control.Applicative
 import Control.Monad
 import Control.Monad.Base
