@@ -97,8 +97,8 @@ newtype P t r = P{unP :: Int}
 -- | Typeclass that asserts that effect @t@ is contained inside the effect-list
 -- @r@.
 --
--- The @FindElem@ typeclass is necessary for implementation reasons and is not
--- required for using the effect list.
+-- The @FindElem@ typeclass is a implementation detail and not required for
+-- using the effect list or implementing custom effects.
 class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)
@@ -144,17 +144,13 @@ instance {-# INCOHERENT #-}  (FindElem t r) => Member t r where
   prj = prj' (unP $ (elemNo :: P t r))
 #endif
 
--- | A useful operator for reducing boilerplate.
+-- | A useful operator for reducing boilerplate in signatures.
+--
+-- The following lines are equivalent.
 --
 -- @
--- f :: [Reader Int, Writer String] <:: r
---   => a -> Eff r b
--- @
--- is equal to
---
--- @
--- f :: (Member (Reader Int) r, Member (Writer String) r)
---   => a -> Eff r b
+-- (Member (Exc e) r, Member (State s) r) => ...
+-- [ Exc e, State s ] <:: r => ...
 -- @
 type family (<::) (ms :: [* -> *]) r where
   (<::) '[] r = (() :: Constraint)

@@ -109,19 +109,17 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 (^|>) :: Arrs r a b -> Arr r b c -> Arrs r a c
 (Arrs f) ^|> g = Arrs (f |> g)
 
--- | The Eff monad (not a transformer!). It is a fairly standard coroutine monad
--- where the type @r@ is the type of effects that can be handled, and the
--- missing type @a@ (from the type application) is the type of value that is
--- returned.  It is NOT a Free monad! There are no Functor constraints.
+-- | The monad that all effectful computation in this library bases on.
 --
--- The two constructors denote the status of a coroutine (client): done with the
--- value of type a, or sending a request of type Union r with the continuation
--- Arrs r b a. Expressed another way: an `Eff` can either be a value (i.e.,
--- 'Val' case), or an effect of type @`Union` r@ producing another `Eff` (i.e.,
--- 'E' case). The result is that an `Eff` can produce an arbitrarily long chain
--- of @`Union` r@ effects, terminated with a pure value.
+-- The type `Eff r a` has 2 argumens where `r` is a type-level list of effects
+-- that can occur inside an effectful computation and `a` is the computation's
+-- result.
 --
--- Potentially, inline Union into E
+-- This monad is used via the  functions provided by  concrete effect-types
+-- implemented in this or another library.
+-- Have a look at the examples in the 'Control.Eff.QuickStart.quickstart'
+-- module.
+--
 data Eff r a = Val a
              | forall b. E  (Union r b) (Arrs r b a)
 
@@ -136,8 +134,6 @@ qComp g h = \a -> h $ (g ^$ a)
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 qComps g h = singleK $ qComp g h
 
--- | Eff is still a monad and a functor (and Applicative)
--- (despite the lack of the Functor constraint)
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
   fmap f (Val x) = Val (f x)
@@ -188,7 +184,7 @@ send t = E (inj t) (singleK Val)
 
 
 -- ------------------------------------------------------------------------
--- | Get the result from a pure (i.e. no effects) computation.
+-- | Get the result from a pure computation (i.e. no unhandled effects) .
 --
 -- The type of run ensures that all effects must be handled:
 -- only pure computations can be run.
@@ -227,11 +223,11 @@ handle_relay_s s ret h m = loop s m
       Left  u0 -> E u0 (singleK (k s0))
      where k s1 x = loop s1 $ qApp q x
 
--- | Add something like Control.Exception.catches? It could be useful
+-- Add something like Control.Exception.catches? It could be useful
 -- for control with cut.
---
--- Intercept the request and possibly reply to it, but leave it unhandled
--- (that's why we use the same r all throuout)
+
+-- | Intercept the request and possibly reply to it, but leave it unhandled
+-- (that's why the same r is used all throuout)
 {-# INLINE interpose #-}
 interpose :: Member t r =>
              (a -> Eff r w) -> (forall v. t v -> Arr r v w -> Eff r w) ->
@@ -257,7 +253,10 @@ raise = loop
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift (m a)
 
--- | We make the Lift layer to be unique, using SetMember
+-- | lift a operation of type `m a` into the `Eff` monad.
+--
+-- By using SetMember, it is possible to assert that the lifted type occurs
+-- only once in the effect list
 lift :: (SetMember Lift (Lift m) r) => m a -> Eff r a
 lift = send . Lift
 

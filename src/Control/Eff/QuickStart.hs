@@ -45,6 +45,13 @@ import           Control.Eff.State.Lazy
 import           Control.Eff.Exception
 import           Control.Monad                            ( when )
 
+-- | a function that runs through some examples
+quickstart :: IO ()
+quickstart = do
+    putStrLn "a few examples"
+    putStrLn ""
+    putStrLn "work in progress"
+    putStrLn ""
 
 -- | an effectful function that can throw an error
 --
