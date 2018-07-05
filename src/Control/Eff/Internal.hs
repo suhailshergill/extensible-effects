@@ -109,19 +109,20 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 (^|>) :: Arrs r a b -> Arr r b c -> Arrs r a c
 (Arrs f) ^|> g = Arrs (f |> g)
 
--- | The monad that all effectful computation in this library bases on.
+-- | The monad that all effects in this library are based on.
 --
--- The type `Eff r a` has 2 argumens where `r` is a type-level list of effects
--- that can occur inside an effectful computation and `a` is the computation's
--- result.
+-- An effectful computation is a value of type `Eff r a` where `r` is a
+-- type-level list of effects that can be requested inside an effectful
+-- computation and `a` is the computation's result.
 --
--- This monad is used via the  functions provided by  concrete effect-types
--- implemented in this or another library.
--- Have a look at the examples in the 'Control.Eff.QuickStart.quickstart'
--- module.
+-- Effects occuring inside the effect-list @r@ can be handled via the
+-- effect's `run*` functions.
+--
+-- To get started, have a look at the examples in the
+-- 'Control.Eff.QuickStart.quickstart' module.
 --
 data Eff r a = Val a
-             | forall b. E  (Union r b) (Arrs r b a)
+             | forall b. E (Union r b) (Arrs r b a)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
@@ -253,7 +254,8 @@ raise = loop
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift (m a)
 
--- | lift a operation of type `m a` into the `Eff` monad.
+-- | embed an operation of type `m a` into the `Eff` monad when @Lift m@ is in
+-- a part of the effect-list.
 --
 -- By using SetMember, it is possible to assert that the lifted type occurs
 -- only once in the effect list
