@@ -115,12 +115,6 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- type-level list of effects that can be requested inside an effectful
 -- computation and `a` is the computation's result.
 --
--- Effects occuring inside the effect-list @r@ can be handled via the
--- effect's `run*` functions.
---
--- To get started, have a look at the examples in the
--- 'Control.Eff.QuickStart.quickstart' module.
---
 data Eff r a = Val a
              | forall b. E (Union r b) (Arrs r b a)
 
