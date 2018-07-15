@@ -111,10 +111,15 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
 -- | The monad that all effects in this library are based on.
 --
--- An effectful computation is a value of type `Eff r a` where `r` is a
--- type-level list of effects that can be requested inside an effectful
--- computation and `a` is the computation's result.
+-- An effectful computation is a value of type `Eff r a`.
+-- In this signature, `r` is a type-level list of effects that can be requested
+-- and need to be handled inside an effectful computation.
+--`a` is the computation's result similar to other monads.
 --
+-- A computation's result can be retrieved via the 'run' function.
+-- However, all effects used in the computation need to be handled by the use
+-- of the effects' @run*@ functions before unwrapping the final result.
+-- For additional details, see the documentation of the effects you are using.
 data Eff r a = Val a
              | forall b. E (Union r b) (Arrs r b a)
 
@@ -179,14 +184,13 @@ send t = E (inj t) (singleK Val)
 
 
 -- ------------------------------------------------------------------------
--- | Get the result from a pure computation (i.e. no unhandled effects) .
+-- | Get the result from a pure computation
 --
--- The type of run ensures that all effects must be handled:
--- only pure computations can be run.
+-- A pure computation has type @Eff '[] a@. The empty effect-list indicates that
+-- no furhter effect needs to be handled.
 run :: Eff '[] w -> w
 run (Val x) = x
--- | the other case is unreachable since Union [] a cannot be
--- constructed.
+-- | the other case is unreachable since @Union []@ has no nonbottom values
 -- Therefore, run is a total function if its argument terminates.
 run (E _ _) = error "extensible-effects: the impossible happened!"
 
