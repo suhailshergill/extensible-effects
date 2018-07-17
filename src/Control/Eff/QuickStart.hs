@@ -49,7 +49,7 @@ import           Control.Monad                            ( when )
 -- | an effectful function that can throw an error
 --
 -- @
--- tooBig = do
+-- tooBig i = do
 --   when (i > 100) $ throwError $ show i
 --   return i
 -- @
