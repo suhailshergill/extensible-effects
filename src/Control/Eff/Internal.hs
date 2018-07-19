@@ -190,9 +190,13 @@ send t = E (inj t) (singleK Val)
 -- no furhter effect needs to be handled.
 run :: Eff '[] w -> w
 run (Val x) = x
--- | the other case is unreachable since @Union []@ has no nonbottom values
--- Therefore, run is a total function if its argument terminates.
-run (E _ _) = error "extensible-effects: the impossible happened!"
+-- | @Union []@ has no nonbottom values.
+-- Due to laziness it is possible to get into this branch but its union argument
+-- cannot terminate.
+-- To extract the true error, the evaluation of union is forced.
+-- 'run' is a total function if its argument is different from bottom.
+run (E union _) =
+  union `seq` error "extensible-effects: the impossible happened!"
 
 -- | A convenient pattern: given a request (open union), either
 -- handle it or relay it.
