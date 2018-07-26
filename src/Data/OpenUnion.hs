@@ -97,7 +97,7 @@ newtype P t r = P{unP :: Int}
 -- | Typeclass that asserts that effect @t@ is contained inside the effect-list
 -- @r@.
 --
--- The @FindElem@ typeclass is a implementation detail and not required for
+-- The @FindElem@ typeclass is an implementation detail and not required for
 -- using the effect list or implementing custom effects.
 class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
