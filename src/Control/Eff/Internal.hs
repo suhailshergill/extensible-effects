@@ -112,8 +112,8 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- | The monad that all effects in this library are based on.
 --
 -- An effectful computation is a value of type `Eff r a`.
--- In this signature, `r` is a type-level list of effects that can be requested
--- and need to be handled inside an effectful computation.
+-- In this signature, `r` is a type-level list of effects that are being
+-- requested and need to be handled inside an effectful computation.
 --`a` is the computation's result similar to other monads.
 --
 -- A computation's result can be retrieved via the 'run' function.
@@ -187,7 +187,7 @@ send t = E (inj t) (singleK Val)
 -- | Get the result from a pure computation
 --
 -- A pure computation has type @Eff '[] a@. The empty effect-list indicates that
--- no furhter effect needs to be handled.
+-- no further effects need to be handled.
 run :: Eff '[] w -> w
 run (Val x) = x
 -- | @Union []@ has no nonbottom values.
