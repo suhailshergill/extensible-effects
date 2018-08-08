@@ -45,7 +45,6 @@ import           Control.Eff.State.Lazy
 import           Control.Eff.Exception
 import           Control.Monad                            ( when )
 
-
 -- | an effectful function that can throw an error
 --
 -- @

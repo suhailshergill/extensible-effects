@@ -21,7 +21,7 @@
 --
 
 module Control.Eff
-  ( -- * Effect base-type
+  ( -- * Effect type
     Internal.run
   , Internal.Eff
     -- * Effect list
