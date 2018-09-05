@@ -1,1 +1,17 @@
-./stack/stack-8.4.3.yaml
+resolver: lts-12.9
+
+packages:
+- '.'
+
+extra-deps: []
+
+flags:
+  extensible-effects:
+    force-openunion-51: false
+    lib-werror: true
+
+extra-package-dbs: []
+
+nix:
+  packages: []
+
