@@ -1,16 +1,1 @@
-resolver: lts-11.2
-
-packages:
-- '.'
-
-extra-deps: []
-
-flags:
-  extensible-effects:
-    force-openunion-51: false
-    lib-werror: true
-
-extra-package-dbs: []
-
-nix:
-  packages: []
+./stack/stack-8.4.3.yaml

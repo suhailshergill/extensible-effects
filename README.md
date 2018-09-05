@@ -75,11 +75,11 @@ The handler functions typically are called `run*`, `eval*` or `exec*`.
 
 The most common effects used are `Writer`, `Reader`, `Exception` and `State`.
 
-For the `Writer`, `Reader` and `State`, there are lazy and a strict variants.
-Each has its own module that provide the same interface.
-By importing one or the other, it can be controlled if the effect is strict or
-lazy in its inputs and outputs.
-Unless required otherwise, it is suggested to use the lazy variants.
+`Writer`, `Reader` and `State` all provide lazy and strict variants. Each has
+its own module that exposes a common interface. Importing one or the other
+controls whether the effect is strict or lazy in its inputs and outputs. It's
+recommended that you use the lazy variants by default unless you know you need
+strictness.
 
 In this section, only the core functions associated with an effect are
 presented.
@@ -123,9 +123,8 @@ modify :: Member (State s) r => (s -> s) -> Eff r ()
 runState :: s -> Eff (State s ': r) a -> Eff r (a, s)
 ```
 
-The `get` functions accesses the current state and makes it usable within the
-further computation.
-The `put` function sets the state to the given value.
+The `get` function fetches the current state and makes it available within
+subsequent computation. The `put` function sets the state to a given value.
 `modify` updates the state using a mapping function by combining `get` and
 `put`.
 
@@ -147,8 +146,8 @@ ask :: Member (Reader e) r => e -> Eff r e
 runReader :: e -> Eff (Reader e ': r) a -> Eff r a
 ```
 
-The environment given to the handle the reader effect is the one given during
-the computation if asked for.
+`ask` can be used to retrieve the environment provided to `runReader` from
+within a computation which has the `Reader` effect.
 
 #### The Writer Effect
 
@@ -156,7 +155,7 @@ the computation if asked for.
 import Control.Eff.Writer.{Strict | Lazy}
 ```
 
-The writer effect allows to output messages during a computation.
+The writer effect allows one to collect messages during a computation.
 It is sometimes referred to as write-only state, which gets retrieved at the
 end of the computation.
 
@@ -167,8 +166,8 @@ runListWriter :: Eff (Writer w ': r) a -> Eff r (a, [w])
 ```
 
 Running a writer can be done in several ways.
-The most general function is `runWriter` that folds over all written values.
-However, if you only want to collect the the values written, the `runListWriter`
+The most general function is `runWriter` which folds over all written values.
+However, if you only want to collect the values written, the `runListWriter`
 function does that.
 
 Note that compared to mtl, the value written has no Monoid constraint on it and
@@ -206,8 +205,8 @@ computation succeeded - transaction style.
 
 There are several constructs that make it easier to work with the effects.
 
-If only a part of the result is necessary for the further computation, have a
-look at the `eval*` and `exec*` functions, which exist for some effects.
+If only a part of the result is necessary for further computation, have a
+look at the `eval*` and `exec*` functions which exist for some effects.
 The `exec*` functions discard the result of the computation (the `a` type).
 The `eval*` functions discard the final result of the effect.
 
@@ -216,21 +215,23 @@ Instead of writing
 possible to use the type operator `<::` and write
 `[ Exc e, State s ] <:: r => ...`, which has the same meaning.
 
-It might be convenient to include the necessary language extensions and the
-disabling of the class-constriant warnings in the cabal-file of your project.
-*Explanation is work in progress*
+It might be convenient to include the necessary language extensions and disable
+class-constraint warnings in your project's `.cabal` file (or `package.yaml` if
+you're using `stack`).
+
+*Explanation is a work in progress.*
 
 ## Other Effects
 
-*work in progress*
+*Work in progress.*
 
 ## Integration with IO
 
-`IO` as well as any other monad can be used as a base type for `Lift` effect.
-There may be at most one instance of `Lift` effect in the effects list, and it
-must be handled the last. `Control.Eff.Lift` exports `runLift` handler and
-`lift` function, that provides an ability to run arbitrary monadic actions.
-Also, there are convenient type aliases, that allow for shorter type constraints.
+`IO` or any other monad can be used as a base type for the `Lift` effect.
+There may be at most one instance of the `Lift` effect in the effects list, and it
+must be handled last. `Control.Eff.Lift` exports the `runLift` handler and
+`lift` function which provide the ability to run arbitrary monadic actions.
+Also, there are convenient type aliases that allow for shorter type constraints.
 
 ```haskell
 f :: IO ()
@@ -247,21 +248,22 @@ printWorld = lift (putStrLn " world!")
 ```
 
 Note that, since `Lift` is a terminal effect, you do not need to use `run` to
-extract pure value. Instead, `runLift` returns a value wrapped in whatever monad
-you chose to use.
+extract pure values. Instead, `runLift` returns a value wrapped in whatever
+monad you chose to use.
 
-In addition, `Lift` effect provides `MonadBase`, `MonadBaseControl`, and `MonadIO`
-instances, that may be useful, especially with packages like [lifted-base](http://hackage.haskell.org/package/lifted-base),
+Additionally, the `Lift` effect provides `MonadBase`, `MonadBaseControl`, and
+`MonadIO` instances that may be useful, especially with packages like
+[lifted-base](http://hackage.haskell.org/package/lifted-base),
 [lifted-async](http://hackage.haskell.org/package/lifted-async), and other
 code that uses those typeclasses.
 
 ## Integration with Monad Transformers
 
-*work in progress*
+*Work in progress.*
 
 ## Writing your own Effects and Handlers
 
-*work in progress*
+*Work in progress.*
 
 ## Other packages
 
@@ -272,7 +274,7 @@ list:
 
 ## Background
 
-extensible-effects is based on the work
+`extensible-effects` is based on the work of
 [Extensible Effects: An Alternative to Monad Transformers](http://okmij.org/ftp/Haskell/extensible/).
 The [paper](http://okmij.org/ftp/Haskell/extensible/exteff.pdf) and
 the followup [freer paper](http://okmij.org/ftp/Haskell/extensible/more.pdf)
@@ -281,9 +283,10 @@ contain details. Additional explanation behind the approach can be found on [Ole
 ## Limitations
 
 ### Ambiguity-Flexibility tradeoff
-The extensibility of `Eff` comes at the cost of some ambiguity. A useful pattern
-to mitigate the ambiguity is to specialize the call to the handler of effects
-using [type application](https://ghc.haskell.org/trac/ghc/wiki/TypeApplication)
+The extensibility of `Eff` comes at the cost of some ambiguity. A useful
+pattern to mitigate this ambiguity is to specialize calls to effect handlers
+using
+[type application](https://ghc.haskell.org/trac/ghc/wiki/TypeApplication)
 or type annotation. Examples of this pattern can be seen in
 [Example/Test.hs](./test/Control/Eff/Example/Test.hs).
 
@@ -293,8 +296,8 @@ from some of the advantages. For details see section 4.1 in the
 
 Some examples where the cost of extensibility is apparent:
 
-  * Common functions can't be grouped using typeclasses, e.g.
-    the `ask` and `getState` functions can't be grouped with some
+  * Common functions can't be grouped using typeclasses, e.g. the `ask` and
+    `getState` functions can't be grouped in the case of:
 
     ```haskell
     class Get t a where
@@ -305,7 +308,7 @@ Some examples where the cost of extensibility is apparent:
     a constraint on `t`, and nothing more. To specify fully, a parameter
     involving the type `t` would need to be added, which would defeat the
     point of having the grouping in the first place.
-  * Code requires greater number of type annotations. For details see
+  * Code requires a greater number of type annotations. For details see
     [#31](https://github.com/suhailshergill/extensible-effects/issues/31).
 
 ### Current implementation only supports GHC version 7.8 and above
