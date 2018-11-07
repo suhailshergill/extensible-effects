@@ -134,7 +134,7 @@ library
      ghc-options:      -Wno-simplifiable-class-constraints
 
   -- Other library packages from which modules are imported.
-  build-depends:       base >= 4.7 && < 4.12
+  build-depends:       base >= 4.7 && < 5
                        -- For MonadBase
                ,       transformers-base == 0.4.*
                        -- For MonadBaseControl
@@ -186,7 +186,7 @@ test-suite extensible-effects-tests
      ghc-options:      -fno-warn-type-defaults -fno-warn-missing-signatures -fno-warn-name-shadowing
 
   build-depends:
-                base >= 4.7 && < 4.12
+                base >= 4.7 && < 5
               , QuickCheck
               , HUnit
               , monad-control >= 1.0
