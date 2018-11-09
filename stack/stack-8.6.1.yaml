@@ -1,0 +1,17 @@
+resolver: nightly-2018-11-07
+
+packages:
+- '..'
+
+extra-deps: []
+
+flags:
+  extensible-effects:
+    force-openunion-51: false
+    lib-werror: true
+
+extra-package-dbs: []
+
+nix:
+  packages: []
+
