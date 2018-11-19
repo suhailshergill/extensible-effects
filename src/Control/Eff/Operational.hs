@@ -34,8 +34,8 @@ singleton = send . Singleton
 runProgram :: forall f r a. (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
 runProgram advent = handle_relay return h
   where
-    h :: forall v. Program f v -> (v -> Eff r a) -> Eff r a
-    h (Singleton instr) k = advent instr >>= k
+    h :: forall v. (v -> Eff r a) -> Program f v -> Eff r a
+    h k (Singleton instr) = advent instr >>= k
 
 -- $usage
 --

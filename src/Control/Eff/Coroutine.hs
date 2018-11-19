@@ -43,5 +43,5 @@ data Y r a w = Y a (w -> Eff r (Y r a w))
 runC :: Eff (Yield a b ': r) w -> Eff r (Y r a b)
 runC m = handle_relay
   (const $ return Done)
-  (\(Yield a) k -> return $ Y a k)
+  (\k (Yield a) -> return $ Y a k)
    m

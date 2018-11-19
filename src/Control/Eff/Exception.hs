@@ -71,7 +71,7 @@ die = throwError ()
 runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
 runError = handle_relay
   (return . Right)
-  (\(Exc e) _k -> return (Left e))
+  (\_k (Exc e) -> return (Left e))
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.

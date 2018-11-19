@@ -241,13 +241,13 @@ on f w x y = f (w x) (w y)
 -- handle it or relay it.
 {-# INLINE handle_relay #-}
 handle_relay :: (a -> Eff r w) ->
-                (forall v. t v -> Arr r v w -> Eff r w) ->
+                (forall v. Arr r v w -> t v -> Eff r w) ->
                 Eff (t ': r) a -> Eff r w
 handle_relay ret h = fix step                 -- limit
  where
   step next = eff ret                           -- base
               (on impureDecomp (. (qThen next)) -- recurse
-                (flip h)                          -- handle
+                h                                 -- handle
                 (E . (~^))                        -- relay
               )
 

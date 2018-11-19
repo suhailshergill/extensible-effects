@@ -57,7 +57,7 @@ ask = send Ask
 runReader :: e -> Eff (Reader e ': r) w -> Eff r w
 runReader e = handle_relay
   return
-  (\Ask -> ($ e))
+  (\k Ask -> k e)
 
 -- | Locally rebind the value in the dynamic environment This function is like a
 -- relay; it is both an admin for Reader requests, and a requestor of them.

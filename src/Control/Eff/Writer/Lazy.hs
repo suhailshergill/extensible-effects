@@ -74,7 +74,7 @@ censor f = interpose return h
 runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
 runWriter accum b = handle_relay
   (\x -> return (x, b))
-  (\(Tell w) k -> k () >>= \(x, l) -> return (x, w `accum` l))
+  (\k (Tell w) -> k () >>= \(x, l) -> return (x, w `accum` l))
   -- the second arg to 'handle_relay' above is same as:
   -- (\(Tell w) k -> second (accum w) `fmap` k ())
   -- where

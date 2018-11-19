@@ -73,9 +73,9 @@ instance Member Choose r => MonadPlus (Eff r) where
 makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
 makeChoice = handle_relay
   (return . (:[]))
-  (\(Choose lst) k -> handle lst k)
+  (\k (Choose lst) -> handle k lst)
   where
-    handle :: [t] -> (t -> Eff r [a]) -> Eff r [a]
-    handle []  _ = return []
-    handle [x] k = k x
-    handle lst k = fmap concat $ mapM k lst
+    handle :: (t -> Eff r [a]) -> [t] -> Eff r [a]
+    handle _  [] = return []
+    handle k [x] = k x
+    handle k lst = fmap concat $ mapM k lst

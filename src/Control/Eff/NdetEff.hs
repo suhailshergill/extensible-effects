@@ -54,7 +54,7 @@ instance ( MonadBase m m
 -- The cause probably is mapping every failure to empty
 -- It takes then a lot of timne and space to store those empty
 makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0 = handle_relay (return . pure) $ \m k -> case m of
+makeChoiceA0 = handle_relay (return . pure) $ \k m -> case m of
     MZero -> return empty
     MPlus -> liftM2 (<|>) (k True) (k False)
 
