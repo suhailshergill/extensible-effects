@@ -83,7 +83,7 @@ put s = send (Put s)
 runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
 runState' =
   handle_relay_s (\s0 x -> return (x,s0))
-                 (\s0 sreq k -> case sreq of
+                 (\s0 k sreq -> case sreq of
                       Get    -> k s0 s0
                       Put s1 -> k s1 ())
 

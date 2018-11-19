@@ -62,7 +62,7 @@ runFresh' s m = fst `fmap` runFreshReturn s m
 runFreshReturn :: Int -> Eff (Fresh ': r) w -> Eff r (w,Int)
 runFreshReturn =
   handle_relay_s (\s' x -> return (x,s'))
-                 (\s' e k -> case e of
+                 (\s' k e -> case e of
                                Fresh -> (k $! s' + 1) s'
                                Replace i -> k i ())
 

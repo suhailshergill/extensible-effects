@@ -77,7 +77,7 @@ runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
 runState' =
   handle_relay_s
   (\s0 x -> return (x,s0))
-  (\s0 sreq k -> case sreq of
+  (\s0 k sreq -> case sreq of
       Get    -> k s0 s0
       Put s1 -> k s1 ()
       Delay m1 -> let ~(x,s1) = run $ runState' s0 m1
@@ -153,7 +153,7 @@ runStateBack m =
  where
    go :: ([s],[s]) -> Eff '[OnDemandState s] a -> Eff '[] (a,([s],[s]))
    go = handle_relay_s (\ss0 x -> return (x,ss0))
-        (\ss0@(sg,sp) req k -> case req of
+        (\ss0@(sg,sp) k req -> case req of
             Get    -> k ss0 (head sg)
             Put s1  -> k (tail sg,sp++[s1]) ()
             Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
