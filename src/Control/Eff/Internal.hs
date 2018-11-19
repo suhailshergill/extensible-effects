@@ -270,14 +270,15 @@ handle_relay_s ret h = fix step                            -- limit
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled (that's why the same r is used all throughout).
 {-# INLINE interpose #-}
-interpose :: Member t r =>
-             (a -> Eff r w) -> (forall v. t v -> Arr r v w -> Eff r w) ->
-             Eff r a -> Eff r w
+interpose :: Member t r
+          => (a -> Eff r w)
+          -> (forall v. Arr r v w -> t v -> Eff r w)
+          -> Eff r a -> Eff r w
 interpose ret h = fix step                  -- limit
  where
    step next = eff ret                        -- base
                (on impurePrj (. (qThen next)) -- recurse
-                 (flip h)                       -- respond
+                 h                              -- respond
                  (E . (~^))                     -- relay
                )
 

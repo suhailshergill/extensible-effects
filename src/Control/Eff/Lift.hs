@@ -34,7 +34,7 @@ catchDynE :: forall e a r.
 catchDynE m eh = interpose return h m
  where
    -- Polymorphic local binding: signature is needed
-   h :: Lift IO v -> Arr r v a -> Eff r a
-   h (Lift em) k = lift (Exc.try em) >>= \x -> case x of
+   h :: Arr r v a -> Lift IO v -> Eff r a
+   h k (Lift em) = lift (Exc.try em) >>= \x -> case x of
          Right x0 -> k x0
          Left  e -> eh e

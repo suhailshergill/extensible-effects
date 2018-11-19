@@ -66,8 +66,8 @@ local :: forall e a r. Member (Reader e) r =>
 local f m = do
   e <- reader f
   let
-    h :: Reader e t -> (t -> Eff r b) -> Eff r b
-    h Ask = ($ e)
+    h :: (t -> Eff r b) -> Reader e t -> Eff r b
+    h k Ask = k e
   interpose return h m
 
 -- | Request the environment value using a transformation function.

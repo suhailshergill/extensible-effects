@@ -65,8 +65,8 @@ tell w = send $ Tell w
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
 censor f = interpose return h
   where
-    h :: Writer w t -> (t -> Eff r b) -> Eff r b
-    h (Tell w) k = tell (f w) >>= k
+    h :: (t -> Eff r b) -> Writer w t -> Eff r b
+    h k (Tell w) = tell (f w) >>= k
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate
