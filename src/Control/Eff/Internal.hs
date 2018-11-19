@@ -35,6 +35,7 @@ import Control.Monad.Trans.Control (MonadBaseControl(..))
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
+import Data.Function (fix)
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
@@ -65,6 +66,9 @@ first x = \(a,c) -> (, c) `fmap` x a
 {-# INLINE singleK #-}
 singleK :: Arr r a b -> Arrs r a b
 singleK = Arrs . tsingleton
+{-# INLINE (~^) #-}
+(~^) :: Arr r a b -> Arrs r a b
+(~^) = singleK
 
 -- | Application to the `generalized effectful function' Arrs r b w, i.e.,
 -- convert 'Arrs' to 'Arr'
@@ -122,17 +126,44 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- For additional details, see the documentation of the effects you are using.
 data Eff r a = Val a
              | forall b. E (Union r b) (Arrs r b a)
+-- | Case analysis for 'Eff' datatype. If the value is @'Val' a@ apply
+-- the first function to @a@; if it is @'E' u q@, apply the second
+-- function.
+eff :: (a -> b)
+    -> (forall v. Union r v -> Arrs r v a -> b)
+    -> Eff r a -> b
+eff f _ (Val a) = f a
+eff _ g (E u q) = g u q
+-- | Case analysis for impure computations for 'Eff' datatype. This
+-- uses 'decomp'.
+impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
+             -> (Arrs (t ': r) v a -> Union r v -> b)
+             -> (Union (t ': r) v -> Arrs (t ': r) v a -> b)
+impureDecomp h rest u q = either (rest q) (h q) (decomp u)
+-- | Case analysis for impure computations for 'Eff' datatype. This
+-- uses 'prj'.
+impurePrj :: Member t r
+          => (Arrs r v a -> t v -> b)
+          -> (Arrs r v a -> Union r v -> b)
+          -> Union r v -> Arrs r v a -> b
+impurePrj h def u q = maybe (def q u) (h q) (prj u)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h $ (g ^$ a)
+{-# INLINABLE qThen #-}
+qThen :: (Eff r b -> Eff r' c) -> Arrs r a b -> Arr r' a c
+qThen = flip qComp
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 qComps g h = singleK $ qComp g h
+{-# INLINABLE (^|$^) #-}
+(^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
+(^|$^) = qComps
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
@@ -198,19 +229,27 @@ run (Val x) = x
 run (E union _) =
   union `seq` error "extensible-effects: the impossible happened!"
 
+-- | Higher-order 'on' function
+on :: ((t2 -> x1) -> (t2 -> x2) -> t3)
+   -> (forall x. (t1 -> x) -> t2 -> x)
+   -> (t1 -> x1)
+   -> (t1 -> x2)
+   -> t3
+on f w x y = f (w x) (w y)
+
 -- | A convenient pattern: given a request (open union), either
 -- handle it or relay it.
 {-# INLINE handle_relay #-}
 handle_relay :: (a -> Eff r w) ->
                 (forall v. t v -> Arr r v w -> Eff r w) ->
                 Eff (t ': r) a -> Eff r w
-handle_relay ret h m = loop m
+handle_relay ret h = fix step                 -- limit
  where
-  loop (Val x)  = ret x
-  loop (E u q)  = case decomp u of
-    Right x -> h x k
-    Left  u0 -> E u0 (singleK k)
-   where k = qComp q loop
+  step next = eff ret                           -- base
+              (on impureDecomp (. (qThen next)) -- recurse
+                (flip h)                          -- handle
+                ((flip E) . (~^))                 -- relay
+              )
 
 -- | Parameterized handle_relay
 {-# INLINE handle_relay_s #-}
@@ -218,43 +257,43 @@ handle_relay_s :: s ->
                 (s -> a -> Eff r w) ->
                 (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
                 Eff (t ': r) a -> Eff r w
-handle_relay_s s ret h m = loop s m
+handle_relay_s s0 ret h = (fix step) s0                    -- limit
   where
-    loop s0 (Val x)  = ret s0 x
-    loop s0 (E u q)  = case decomp u of
-      Right x -> h s0 x k
-      Left  u0 -> E u0 (singleK (k s0))
-     where k s1 x = loop s1 $ qApp q x
+    step next s = eff (ret s)                                -- base
+                  (on impureDecomp (. (flip (qThen . next))) -- recurse
+                    (flip (h $ s))                             -- handle
+                    ((flip E) . (~^) . ($ s))                  -- relay
+                  )
 
 -- Add something like Control.Exception.catches? It could be useful
 -- for control with cut.
 
--- | Intercept the request and possibly reply to it, but leave it unhandled
--- (that's why the same r is used all throuout)
+-- | Intercept the request and possibly respond to it, but leave it
+-- unhandled (that's why the same r is used all throughout).
 {-# INLINE interpose #-}
 interpose :: Member t r =>
              (a -> Eff r w) -> (forall v. t v -> Arr r v w -> Eff r w) ->
              Eff r a -> Eff r w
-interpose ret h m = loop m
+interpose ret h = fix step                  -- limit
  where
-   loop (Val x)  = ret x
-   loop (E u q)  = case prj u of
-     Just x -> h x k
-     _      -> E u (singleK k)
-    where k = qComp q loop
+   step next = eff ret                        -- base
+               (on impurePrj (. (qThen next)) -- recurse
+                 (flip h)                       -- respond
+                 ((flip E) . (~^))              -- relay
+               )
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
 raise :: Eff r a -> Eff (e ': r) a
-raise = loop
+raise = fix step
   where
-    loop (Val x) = pure x
-    loop (E u q) = E (weaken u) $ qComps q loop
+    step next = eff pure
+                (\u -> (E (weaken u)) . (~^) . (qThen next))
 {-# INLINE raise #-}
 
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers
-newtype Lift m a = Lift (m a)
+newtype Lift m a = Lift { unLift :: m a }
 
 -- | embed an operation of type `m a` into the `Eff` monad when @Lift m@ is in
 -- a part of the effect-list.
@@ -267,7 +306,8 @@ lift = send . Lift
 -- | The handler of Lift requests. It is meant to be terminal:
 -- we only allow a single Lifted Monad.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift (Val x) = return x
-runLift (E u q) = case prj u of
-                  Just (Lift m) -> m >>= runLift . qApp q
-                  Nothing -> error "Impossible: Nothing cannot occur"
+runLift = eff return
+          (impurePrj
+            (\q x -> (unLift x) >>= (runLift . (q ^$)))
+            (\_ _ -> error "Impossible: Nothing cannot occur")
+          )
