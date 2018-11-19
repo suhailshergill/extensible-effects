@@ -81,11 +81,11 @@ put s = send (Put s)
 -- | Run a state effect. compared to the @runState@ function, this is
 --   implemented naively and is expected to perform slower.
 runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
-runState' s =
-  handle_relay_s s (\s0 x -> return (x,s0))
-                   (\s0 sreq k -> case sreq of
-                       Get    -> k s0 s0
-                       Put s1 -> k s1 ())
+runState' =
+  handle_relay_s (\s0 x -> return (x,s0))
+                 (\s0 sreq k -> case sreq of
+                      Get    -> k s0 s0
+                      Put s1 -> k s1 ())
 
 -- | Run a State effect. This variant is a bit optimized compared to
 --   @runState'@.

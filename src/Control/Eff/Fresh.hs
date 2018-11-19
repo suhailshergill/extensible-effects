@@ -61,11 +61,11 @@ runFresh' m s = fst `fmap` runFreshReturn m s
 
 runFreshReturn :: Eff (Fresh ': r) w -> Int -> Eff r (w,Int)
 runFreshReturn m s =
-  handle_relay_s s (\s' x -> return (x,s'))
-                   (\s' e k -> case e of
-                                 Fresh -> (k $! s' + 1) s'
-                                 Replace i -> k i ())
-                   m
+  handle_relay_s (\s' x -> return (x,s'))
+                 (\s' e k -> case e of
+                               Fresh -> (k $! s' + 1) s'
+                               Replace i -> k i ())
+                 s m
 {-
 -- Finally, the worst implementation but the one that answers
 -- reviewer's question: implementing Fresh in terms of State

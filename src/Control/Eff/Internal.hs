@@ -214,11 +214,10 @@ handle_relay ret h m = loop m
 
 -- | Parameterized handle_relay
 {-# INLINE handle_relay_s #-}
-handle_relay_s :: s ->
-                (s -> a -> Eff r w) ->
-                (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay_s s ret h m = loop s m
+handle_relay_s :: (s -> a -> Eff r w)
+               -> (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w)
+               -> s -> Eff (t ': r) a -> Eff r w
+handle_relay_s ret h s m = loop s m
   where
     loop s0 (Val x)  = ret s0 x
     loop s0 (E u q)  = case decomp u of
