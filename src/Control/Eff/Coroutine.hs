@@ -35,13 +35,13 @@ yield x = send (Yield x)
 --
 --   Type parameter @w@ is the type of the value returned from the
 --   coroutine when it has completed.
-data Y r a w = Y a (w -> Eff r (Y r a w))
+data Y r w a = Y (w -> Eff r (Y r w a)) a
              | Done
 
 
 -- | Launch a thread and report its status
-runC :: Eff (Yield a b ': r) w -> Eff r (Y r a b)
+runC :: Eff (Yield a b ': r) w -> Eff r (Y r b a)
 runC m = handle_relay
   (const $ return Done)
-  (\k (Yield a) -> return $ Y a k)
+  (\k (Yield a) -> return $ Y k a)
    m

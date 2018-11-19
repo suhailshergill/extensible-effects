@@ -32,7 +32,7 @@ case_Coroutines_c1 = do
     th1 = yieldInt 1 >> yieldInt 2
 
     c1 = runTrace (loop =<< runC th1)
-      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> k () >>= loop
             loop (Done)    = trace ("Done")
 
 case_Coroutines_c2 :: Assertion
@@ -54,12 +54,12 @@ case_Coroutines_c2 = do
 
     -- Code is essentially the same as in transf.hs; no liftIO though
     c2 = runTrace $ runReader (10::Int) (loop =<< runC th2)
-      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> k () >>= loop
             loop Done    = trace "Done"
 
     -- locally changing the dynamic environment for the suspension
     c21 = runTrace $ runReader (10::Int) (loop =<< runC th2)
-      where loop (Y x k) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
             loop Done    = trace "Done"
 
 case_Coroutines_c3 :: Assertion
@@ -80,20 +80,20 @@ case_Coroutines_c3 = do
       where ay = ask >>= yieldInt
 
     c3 = runTrace $ runReader (10::Int) (loop =<< runC th3)
-      where loop (Y x k) = trace (show (x::Int)) >> k () >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> k () >>= loop
             loop Done    = trace "Done"
 
     -- The desired result: the coroutine shares the dynamic environment with its
     -- parent; however, when the environment is locally rebound, it becomes
     -- private to coroutine.
     c31 = runTrace $ runReader (10::Int) (loop =<< runC th3)
-      where loop (Y x k) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
             loop Done    = trace "Done"
 
     -- We now make explicit that the client computation, run by th4,
     -- is abstract. We abstract it out of th4
     c4 = runTrace $ runReader (10::Int) (loop =<< runC (th4 client))
-      where loop (Y x k) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> local (+(1::Int)) (k ()) >>= loop
             loop Done    = trace "Done"
 
             -- cl, client, ay are monomorphic bindings
@@ -122,7 +122,7 @@ case_Corountines_c5 = do
     expected actual
   where
     c5 = runTrace $ runReader (10::Int) (loop =<< runC (th client))
-      where loop (Y x k) = trace (show (x::Int)) >> local (\_y->x+1) (k ()) >>= loop
+      where loop (Y k x) = trace (show (x::Int)) >> local (\_y->x+1) (k ()) >>= loop
             loop Done    = trace "Done"
 
             -- cl, client, ay are monomorphic bindings
@@ -164,7 +164,7 @@ case_Coroutines_c7 = do
   where
     c7 = runTrace $
           runReader (1000::Double) (runReader (10::Int) (loop =<< runC (th client)))
-     where loop (Y x k) = trace (show (x::Int)) >>
+     where loop (Y k x) = trace (show (x::Int)) >>
                           local (\_y->fromIntegral (x+1)::Double) (k ()) >>= loop
            loop Done    = trace "Done"
 
@@ -208,7 +208,7 @@ case_Coroutines_c7' = do
   where
     c7' = runTrace $
           runReader (1000::Double) (runReader (10::Int) (loop =<< runC (th client)))
-     where loop (Y x k) = trace (show (x::Int)) >>
+     where loop (Y k x) = trace (show (x::Int)) >>
                           local (\_y->fromIntegral (x+1)::Double) (k ()) >>= loop
            loop Done    = trace "Done"
 
