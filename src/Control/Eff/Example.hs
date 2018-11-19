@@ -82,14 +82,14 @@ data Move x where
 
 handUp :: Eff (Move ': r) a -> Eff r a
 handUp (Val x) = return x
-handUp (E u q) = case decomp u of
+handUp (E q u) = case decomp u of
   Right Move -> handDown $ qApp q ()
   -- Relay other requests
-  Left u0     -> E u0 ident >>= handUp . qApp q
+  Left u0     -> E ident u0 >>= handUp . qApp q
 
 handDown :: Eff (Move ': r) a -> Eff r a
 handDown (Val x) = return x
-handDown (E u q) = case decomp u of
+handDown (E q u) = case decomp u of
   Right Move -> handUp $ qApp q ()
   -- Relay other requests
-  Left u0     -> E u0 ident >>= handDown . qApp q
+  Left u0     -> E ident u0 >>= handDown . qApp q

@@ -67,12 +67,12 @@ makeChoiceA m = loop [] m
  where
    loop [] (Val x)    = return (pure x)
    loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
-   loop jq (E u q) = case  decomp u of
+   loop jq (E q u) = case  decomp u of
      Right MZero     -> case jq of
        []    -> return empty
        (h:t) -> loop t h
      Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
-     Left  u0 -> E u0 (singleK (\x -> loop jq (q ^$ x)))
+     Left  u0 -> E (singleK (\x -> loop jq (q ^$ x))) u0
 
 -- | Same as makeChoiceA, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
@@ -97,14 +97,14 @@ msplit = loop []
  -- definite result and perhaps some others
  loop jq (Val x)  = return (Just (x, msum jq))
  -- not yet definite answer
- loop jq (E u q)  = case prj u of
+ loop jq (E q u)  = case prj u of
   Just MZero -> case jq of
                    -- no futher choices
                    []     -> return Nothing
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((q ^$ False):jq) (q ^$ True)
-  _          -> E u (qComps q (loop jq))
+  _          -> E (qComps q (loop jq)) u
 
 -- Other committed choice primitives can be implemented in terms of msplit
 -- The following implementations are directly from the LogicT paper

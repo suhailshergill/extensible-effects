@@ -24,7 +24,7 @@ trace = send . Trace
 -- The handler for IO request: a terminal handler
 runTrace :: Eff '[Trace] w -> IO w
 runTrace (Val x) = return x
-runTrace (E u q) = case decomp u of
+runTrace (E q u) = case decomp u of
      Right (Trace s) -> putStrLn s >> runTrace (q ^$ ())
      -- Nothing more can occur
      Left _ -> error "runTrace: the impossible happened!: Union []"

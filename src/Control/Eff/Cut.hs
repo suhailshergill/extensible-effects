@@ -66,7 +66,7 @@ call m = loop [] m where
        -> Eff (Exc CutFalse ': r) a
        -> Eff r a
   loop jq (Val x) = return x `mplus'` next jq          -- (C2)
-  loop jq (E u q) = case decomp u of
+  loop jq (E q u) = case decomp u of
     Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
     Left u0 -> check jq u0 q
 
@@ -75,7 +75,7 @@ call m = loop [] m where
   check jq u _ | Just (Choose []) <- prj u  = next jq  -- (C1)
   check jq u q | Just (Choose [x]) <- prj u = loop jq (q ^$ x)  -- (C3), optim
   check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
-  check jq u q = loop jq (E (weaken u) q)     -- (C4)
+  check jq u q = loop jq (E q (weaken u))     -- (C4)
 
   next :: Member Choose r
        => [Eff (Exc CutFalse ': r) a]

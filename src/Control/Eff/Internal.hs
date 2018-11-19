@@ -79,7 +79,7 @@ qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
     cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
     cons = \k t -> case k x of
       Val y -> qApp (Arrs t) y
-      E u (Arrs q0) -> E u (Arrs (q0 >< t))
+      E (Arrs q0) u -> E (Arrs (q0 >< t)) u
 {-
 -- A bit more understandable version
 qApp :: Arrs r b w -> b -> Eff r w
@@ -125,28 +125,28 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- of the effects' @run*@ functions before unwrapping the final result.
 -- For additional details, see the documentation of the effects you are using.
 data Eff r a = Val a
-             | forall b. E (Union r b) (Arrs r b a)
+             | forall b. E (Arrs r b a) (Union r b)
 -- | Case analysis for 'Eff' datatype. If the value is @'Val' a@ apply
 -- the first function to @a@; if it is @'E' u q@, apply the second
 -- function.
 eff :: (a -> b)
-    -> (forall v. Union r v -> Arrs r v a -> b)
+    -> (forall v. Arrs r v a -> Union r v -> b)
     -> Eff r a -> b
 eff f _ (Val a) = f a
-eff _ g (E u q) = g u q
+eff _ g (E q u) = g q u
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'decomp'.
 impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
              -> (Arrs (t ': r) v a -> Union r v -> b)
-             -> (Union (t ': r) v -> Arrs (t ': r) v a -> b)
-impureDecomp h rest u q = either (rest q) (h q) (decomp u)
+             -> (Arrs (t ': r) v a -> Union (t ': r) v -> b)
+impureDecomp h rest q u = either (rest q) (h q) (decomp u)
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'prj'.
 impurePrj :: Member t r
           => (Arrs r v a -> t v -> b)
           -> (Arrs r v a -> Union r v -> b)
-          -> Union r v -> Arrs r v a -> b
-impurePrj h def u q = maybe (def q u) (h q) (prj u)
+          -> Arrs r v a -> Union r v -> b
+impurePrj h def q u = maybe (def q u) (h q) (prj u)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
@@ -168,23 +168,23 @@ qComps g h = singleK $ qComp g h
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
   fmap f (Val x) = Val (f x)
-  fmap f (E u q) = E u (q ^|> (Val . f)) -- does no mapping yet!
+  fmap f (E q u) = E (q ^|> (Val . f)) u -- does no mapping yet!
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
   pure = Val
   Val f <*> e = f `fmap` e
-  E u q <*> e = E u (q ^|> (`fmap` e))
+  E q u <*> e = E (q ^|> (`fmap` e)) u
 
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
   Val x >>= k = k x
-  E u q >>= k = E u (q ^|> k)          -- just accumulates continuations
+  E q u >>= k = E (q ^|> k) u          -- just accumulates continuations
 {-
   Val _ >> m = m
-  E u q >> m = E u (q ^|> const m)
+  E q u >> m = E (q ^|> const m) u
 -}
 
 instance (MonadBase b m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
@@ -206,11 +206,11 @@ instance (MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
 -- computation).
 {-# INLINE [2] send #-}
 send :: Member t r => t v -> Eff r v
-send t = E (inj t) (singleK Val)
+send t = E (singleK Val) (inj t)
 -- This seems to be a very beneficial rule! On micro-benchmarks, cuts
 -- the needed memory in half and speeds up almost twice.
 {-# RULES
-  "send/bind" [~3] forall t k. send t >>= k = E (inj t) (singleK k)
+  "send/bind" [~3] forall t k. send t >>= k = E (singleK k) (inj t)
  #-}
 
 
@@ -226,7 +226,7 @@ run (Val x) = x
 -- cannot terminate.
 -- To extract the true error, the evaluation of union is forced.
 -- 'run' is a total function if its argument is different from bottom.
-run (E union _) =
+run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
 -- | Higher-order 'on' function
@@ -248,7 +248,7 @@ handle_relay ret h = fix step                 -- limit
   step next = eff ret                           -- base
               (on impureDecomp (. (qThen next)) -- recurse
                 (flip h)                          -- handle
-                ((flip E) . (~^))                 -- relay
+                (E . (~^))                        -- relay
               )
 
 -- | Parameterized handle_relay
@@ -261,7 +261,7 @@ handle_relay_s ret h = fix step                            -- limit
     step next s = eff (ret s)                                -- base
                   (on impureDecomp (. (flip (qThen . next))) -- recurse
                     (flip (h $ s))                             -- handle
-                    ((flip E) . (~^) . ($ s))                  -- relay
+                    (E . (~^) . ($ s))                         -- relay
                   )
 
 -- Add something like Control.Exception.catches? It could be useful
@@ -278,7 +278,7 @@ interpose ret h = fix step                  -- limit
    step next = eff ret                        -- base
                (on impurePrj (. (qThen next)) -- recurse
                  (flip h)                       -- respond
-                 ((flip E) . (~^))              -- relay
+                 (E . (~^))                     -- relay
                )
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
@@ -287,7 +287,7 @@ raise :: Eff r a -> Eff (e ': r) a
 raise = fix step
   where
     step next = eff pure
-                (\u -> (E (weaken u)) . (~^) . (qThen next))
+                (\q -> ((E . (~^) . (qThen next)) q) . weaken)
 {-# INLINE raise #-}
 
 -- ------------------------------------------------------------------------

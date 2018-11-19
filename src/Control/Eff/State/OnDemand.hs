@@ -89,12 +89,12 @@ runState :: s                            -- ^ Initial state
          -> Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
          -> Eff r (w,s)                  -- ^ Effect containing final state and a return value
 runState s (Val x) = return (x,s)
-runState s0 (E u0 q) = case decomp u0 of
+runState s0 (E q u0) = case decomp u0 of
   Right Get     -> runState s0 (q ^$ s0)
   Right (Put s1) -> runState s1 (q ^$ ())
   Right (Delay m1) -> let ~(x,s1) = run $ runState s0 m1
                       in runState s1 (q ^$ x)
-  Left  u -> E u (singleK (\x -> runState s0 (q ^$ x)))
+  Left  u -> E (singleK (\x -> runState s0 (q ^$ x))) u
 
 -- | Transform the state with a function.
 modify :: (Member (OnDemandState s) r) => (s -> s) -> Eff r ()
@@ -116,11 +116,11 @@ runStateR s0 m0 = loop s0 m0
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
    loop s (Val x) = return (x,s)
-   loop s (E u0 q) = case decomp u0 of
+   loop s (E q u0) = case decomp u0 of
      Right (Tell w) -> k w ()
      Left  u  -> case decomp u of
        Right Ask -> k s s
-       Left u1 -> E u1 (singleK (k s))
+       Left u1 -> E (singleK (k s)) u1
     where k x = qComp q (loop x)
 
 -- | Backwards state
@@ -136,7 +136,7 @@ runStateBack0 m =
  where
    go :: s -> Eff '[OnDemandState s] a -> (a,s)
    go s (Val x) = (x,s)
-   go s0 (E u q) = case decomp u of
+   go s0 (E q u) = case decomp u of
          Right Get      -> go s0 $ (q ^$ s0)
          Right (Put s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
          Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ (q ^$ x)
