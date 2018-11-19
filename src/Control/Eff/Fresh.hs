@@ -42,7 +42,7 @@ instance ( MonadBase m m
     type StM (Eff (Fresh ': r)) a = StM (Eff r) (a, Int)
     liftBaseWith f = do i <- fresh
                         raise $ liftBaseWith $ \runInBase ->
-                          f (\k -> runInBase $ runFreshReturn k i)
+                          f (\k -> runInBase $ runFreshReturn i k)
     restoreM x = do (r,i) <- raise (restoreM x)
                     replace i
                     return r
@@ -56,16 +56,16 @@ replace :: Member Fresh r => Int -> Eff r ()
 replace = send . Replace
 
 -- | Run an effect requiring unique values.
-runFresh' :: Eff (Fresh ': r) w -> Int -> Eff r w
-runFresh' m s = fst `fmap` runFreshReturn m s
+runFresh' :: Int -> Eff (Fresh ': r) w -> Eff r w
+runFresh' s m = fst `fmap` runFreshReturn s m
 
-runFreshReturn :: Eff (Fresh ': r) w -> Int -> Eff r (w,Int)
-runFreshReturn m s =
+runFreshReturn :: Int -> Eff (Fresh ': r) w -> Eff r (w,Int)
+runFreshReturn =
   handle_relay_s (\s' x -> return (x,s'))
                  (\s' e k -> case e of
                                Fresh -> (k $! s' + 1) s'
                                Replace i -> k i ())
-                 s m
+
 {-
 -- Finally, the worst implementation but the one that answers
 -- reviewer's question: implementing Fresh in terms of State
