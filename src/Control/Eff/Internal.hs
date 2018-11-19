@@ -253,11 +253,10 @@ handle_relay ret h = fix step                 -- limit
 
 -- | Parameterized handle_relay
 {-# INLINE handle_relay_s #-}
-handle_relay_s :: s ->
-                (s -> a -> Eff r w) ->
-                (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay_s s0 ret h = (fix step) s0                    -- limit
+handle_relay_s :: (s -> a -> Eff r w)
+               -> (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w)
+               -> s -> Eff (t ': r) a -> Eff r w
+handle_relay_s ret h = fix step                            -- limit
   where
     step next s = eff (ret s)                                -- base
                   (on impureDecomp (. (flip (qThen . next))) -- recurse

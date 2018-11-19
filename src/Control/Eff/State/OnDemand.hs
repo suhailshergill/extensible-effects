@@ -74,8 +74,8 @@ onDemand :: Member (OnDemandState s) r => Eff '[OnDemandState s] v -> Eff r v
 onDemand = send . Delay
 
 runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
-runState' s =
-  handle_relay_s s
+runState' =
+  handle_relay_s
   (\s0 x -> return (x,s0))
   (\s0 sreq k -> case sreq of
       Get    -> k s0 s0
@@ -152,12 +152,12 @@ runStateBack m =
   (x,head sp)
  where
    go :: ([s],[s]) -> Eff '[OnDemandState s] a -> Eff '[] (a,([s],[s]))
-   go ss = handle_relay_s ss (\ss0 x -> return (x,ss0))
-                   (\ss0@(sg,sp) req k -> case req of
-                       Get    -> k ss0 (head sg)
-                       Put s1  -> k (tail sg,sp++[s1]) ()
-                       Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
-                                   in k ss1 x)
+   go = handle_relay_s (\ss0 x -> return (x,ss0))
+        (\ss0@(sg,sp) req k -> case req of
+            Get    -> k ss0 (head sg)
+            Put s1  -> k (tail sg,sp++[s1]) ()
+            Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
+                        in k ss1 x)
 
 -- ^ A different notion of `backwards' is realized if we change the Put
 -- handler slightly. How?
