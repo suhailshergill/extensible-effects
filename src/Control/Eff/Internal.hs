@@ -129,19 +129,29 @@ data Eff r a = Val a
 -- | Case analysis for 'Eff' datatype. If the value is @'Val' a@ apply
 -- the first function to @a@; if it is @'E' u q@, apply the second
 -- function.
+{-# INLINE eff #-}
 eff :: (a -> b)
     -> (forall v. Arrs r v a -> Union r v -> b)
     -> Eff r a -> b
 eff f _ (Val a) = f a
 eff _ g (E q u) = g q u
+
+-- | The usual 'bind' fnuction with arguments flipped. This is a
+-- common pattern for Eff.
+{-# INLINE bind #-}
+bind :: Arr r a b -> Eff r a -> Eff r b
+bind k = eff k (E . (^|> k))         -- just accumulates continuations
+
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'decomp'.
+{-# INLINE impureDecomp #-}
 impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
              -> (Arrs (t ': r) v a -> Union r v -> b)
-             -> (Arrs (t ': r) v a -> Union (t ': r) v -> b)
+             -> Arrs (t ': r) v a -> Union (t ': r) v -> b
 impureDecomp h rest q u = either (rest q) (h q) (decomp u)
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'prj'.
+{-# INLINE impurePrj #-}
 impurePrj :: Member t r
           => (Arrs r v a -> t v -> b)
           -> (Arrs r v a -> Union r v -> b)
@@ -167,21 +177,18 @@ qComps g h = singleK $ qComp g h
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
-  fmap f (Val x) = Val (f x)
-  fmap f (E q u) = E (q ^|> (Val . f)) u -- does no mapping yet!
+  fmap f = bind (Val . f)
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
   pure = Val
-  Val f <*> e = f `fmap` e
-  E q u <*> e = E (q ^|> (`fmap` e)) u
+  mf <*> e = bind (`fmap` e) mf
 
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
-  Val x >>= k = k x
-  E q u >>= k = E (q ^|> k) u          -- just accumulates continuations
+  (>>=) = flip bind
 {-
   Val _ >> m = m
   E q u >> m = E (q ^|> const m) u

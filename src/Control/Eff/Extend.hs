@@ -6,6 +6,7 @@ module Control.Eff.Extend
   ( -- * The effect monad
     Eff(..)
   , run
+  , eff, impurePrj, impureDecomp
     -- * Open Unions
   , OpenUnion.Union
   , OpenUnion.Member
@@ -32,7 +33,8 @@ module Control.Eff.Extend
   , comp
   , (^|>)
   , qComp
-  , qComps
+  , qComps, (^|$^)
+  , on, (~^), qThen
   )
 where
 

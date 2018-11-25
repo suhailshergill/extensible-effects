@@ -100,7 +100,7 @@ rethrowError :: (Member (Exc e') r)
            => (e -> e')
            -> Eff (Exc e ': r) a
            -> Eff r a
-rethrowError t eff = runError eff >>= either (throwError . t) return
+rethrowError t e = runError e >>= either (throwError . t) return
 
 -- | Treat Lefts as exceptions and Rights as return values.
 liftEither :: (Member (Exc e) r) => Either e a -> Eff r a
