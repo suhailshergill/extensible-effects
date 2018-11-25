@@ -167,6 +167,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Exception.Test
                 , Control.Eff.Fresh.Test
                 , Control.Eff.Lift.Test
+                , Control.Eff.NdetEff.Bench
                 , Control.Eff.NdetEff.Test
                 , Control.Eff.Operational.Test
                 , Control.Eff.Reader.Lazy.Test
@@ -190,6 +191,7 @@ test-suite extensible-effects-tests
               , QuickCheck
               , HUnit
               , monad-control >= 1.0
+              , mtl
               , silently >= 1.2
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
