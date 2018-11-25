@@ -13,10 +13,18 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Another implementation of nondeterministic choice effect
-module Control.Eff.NdetEff where
+module Control.Eff.NdetEff (
+  NdetEff
+  , makeChoiceA
+  , makeChoiceA0
+  , makeChoiceLst
+  , msplit0, msplit1
+  , module Control.Eff.Logic
+  ) where
 
 import Control.Eff
 import Control.Eff.Extend
+import Control.Eff.Logic
 import Control.Eff.Lift
 
 import Control.Applicative
@@ -77,17 +85,15 @@ makeChoiceA m = loop [] m where
 -- Required for MonadBaseControl instance.
 makeChoiceLst :: Eff (NdetEff ': r) a -> Eff r [a]
 makeChoiceLst = makeChoiceA
--- ------------------------------------------------------------------------
--- Soft-cut: non-deterministic if-then-else, aka Prolog's *->
--- Declaratively,
---    ifte t th el = (t >>= th) `mplus` ((not t) >> el)
--- However, t is evaluated only once. In other words, ifte t th el
--- is equivalent to t >>= th if t has at least one solution.
--- If t fails, ifte t th el is the same as el.
 
 -- | We actually implement LogicT, the non-determinism reflection,
 -- of which soft-cut is one instance.
--- See the LogicT paper for an explanation
+instance Member NdetEff r => MSplit (Eff r) where
+  msplit = msplit1
+
+-- | Straightforward implementation using 'interpose'. See the LogicT
+-- paper for an explanation. This should be correct, but hasn't been
+-- tested yet.
 msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit0 = interpose (\a -> return (Just (a,mzero))) $ \k x -> case x of
   MZero -> return Nothing
@@ -97,8 +103,8 @@ msplit0 = interpose (\a -> return (Just (a,mzero))) $ \k x -> case x of
 
 -- | A different implementation, more involved. Unclear whether this
 -- is faster or not.
-msplit :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit = loop []
+msplit1 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit1 = loop []
  where
  -- single result
  loop [] (Val x)  = return (Just (x,mzero))
@@ -113,20 +119,3 @@ msplit = loop []
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((q ^$ False):jq) (q ^$ True)
   _          -> E (q ^|$^ (loop jq)) u
-
--- | 'reflect' from the LogicT paper.
-reflect :: Member NdetEff r => (Maybe (a, Eff r a)) -> Eff r a
-reflect Nothing      = mzero
-reflect (Just (a,m)) = return a `mplus` m
-
--- Other committed choice primitives can be implemented in terms of msplit
--- The following implementations are directly from the LogicT paper
-ifte :: Member NdetEff r => Eff r a -> (a -> Eff r b) -> Eff r b -> Eff r b
-ifte t th el = msplit t >>= check
- where check Nothing          = el
-       check (Just (sg1,sg2)) = (th sg1) `mplus` (sg2 >>= th)
-
-once :: Member NdetEff r => Eff r a -> Eff r a
-once m = msplit m >>= check
- where check Nothing        = mzero
-       check (Just (sg1,_)) = return sg1
