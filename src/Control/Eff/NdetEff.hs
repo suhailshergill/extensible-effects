@@ -63,16 +63,15 @@ makeChoiceA0 = handle_relay (return . pure) $ \k m -> case m of
 -- The benefit of the effect framework is that we can have many
 -- interpreters.
 makeChoiceA :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA m = loop [] m
- where
-   loop [] (Val x)    = return (pure x)
-   loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
-   loop jq (E q u) = case  decomp u of
-     Right MZero     -> case jq of
-       []    -> return empty
-       (h:t) -> loop t h
-     Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
-     Left  u0 -> E (singleK (\x -> loop jq (q ^$ x))) u0
+makeChoiceA m = loop [] m where
+  loop [] (Val x)    = return (pure x)
+  loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
+  loop jq (E q u) = case  decomp u of
+    Right MZero     -> case jq of
+      []    -> return empty
+      (h:t) -> loop t h
+    Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
+    Left  u0 -> E (q ^|$^ (loop jq)) u0
 
 -- | Same as makeChoiceA, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
@@ -86,13 +85,22 @@ makeChoiceLst = makeChoiceA
 -- is equivalent to t >>= th if t has at least one solution.
 -- If t fails, ifte t th el is the same as el.
 
--- We actually implement LogicT, the non-determinism reflection,
+-- | We actually implement LogicT, the non-determinism reflection,
 -- of which soft-cut is one instance.
 -- See the LogicT paper for an explanation
+msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit0 = interpose (\a -> return (Just (a,mzero))) $ \k x -> case x of
+  MZero -> return Nothing
+  MPlus -> k True >>= \r -> case r of
+    Nothing -> k False
+    Just(a, m) -> return (Just (a, m <|> (k False >>= reflect)))
+
+-- | A different implementation, more involved. Unclear whether this
+-- is faster or not.
 msplit :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit = loop []
  where
- -- singleK result
+ -- single result
  loop [] (Val x)  = return (Just (x,mzero))
  -- definite result and perhaps some others
  loop jq (Val x)  = return (Just (x, msum jq))
@@ -104,7 +112,12 @@ msplit = loop []
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((q ^$ False):jq) (q ^$ True)
-  _          -> E (qComps q (loop jq)) u
+  _          -> E (q ^|$^ (loop jq)) u
+
+-- | 'reflect' from the LogicT paper.
+reflect :: Member NdetEff r => (Maybe (a, Eff r a)) -> Eff r a
+reflect Nothing      = mzero
+reflect (Just (a,m)) = return a `mplus` m
 
 -- Other committed choice primitives can be implemented in terms of msplit
 -- The following implementations are directly from the LogicT paper
