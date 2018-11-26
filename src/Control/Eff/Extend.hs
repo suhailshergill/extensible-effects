@@ -9,7 +9,9 @@ module Control.Eff.Extend
   , eff, impurePrj, impureDecomp
     -- * Lifting operations
   , Lift(..), Lifted, LiftedBase
-  , lift, runLift, catchDynE
+  , lift, runLift
+  , catchDynE
+  , HandlerDynE(..), catchesDynE
     -- * Open Unions
   , OpenUnion.Union
   , OpenUnion.Member

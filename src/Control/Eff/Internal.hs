@@ -323,8 +323,19 @@ catchDynE m eh = interpose return h m
          Right x0 -> k x0
          Left  e -> eh e
 
--- Add something like Control.Exception.catches? It could be useful
--- for control with cut.
+-- | You need this when using 'catches'.
+data HandlerDynE r a =
+  forall e. (Exc.Exception e, Lifted IO r) => HandlerDynE (e -> Eff r a)
+
+-- | Catch multiple dynamic exceptions. The implementation follows
+-- that in Control.Exception almost exactly. Not yet tested.
+-- Could this be useful for control with cut?
+catchesDynE :: Lifted IO r => Eff r a -> [HandlerDynE r a] -> Eff r a
+catchesDynE m hs = m `catchDynE` catchesHandler hs where
+  catchesHandler :: Lifted IO r => [HandlerDynE r a] -> Exc.SomeException -> Eff r a
+  catchesHandler handlers e = foldr tryHandler (lift . Exc.throw $ e) handlers
+    where
+      tryHandler (HandlerDynE h) res = maybe res h (Exc.fromException e)
 
 instance (MonadBase b m, Lifted m r) => MonadBase b (Eff r) where
     liftBase = lift . liftBase
