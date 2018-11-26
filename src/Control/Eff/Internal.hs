@@ -7,6 +7,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
+{-# LANGUAGE ConstraintKinds #-}
 
 {-# LANGUAGE CPP #-}
 
@@ -32,6 +33,7 @@ import qualified Control.Category as C
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Control (MonadBaseControl(..))
+import qualified Control.Exception as Exc
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
@@ -194,21 +196,6 @@ instance Monad (Eff r) where
   E q u >> m = E (q ^|> const m) u
 -}
 
-instance (MonadBase b m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
-    liftBase = lift . liftBase
-    {-# INLINE liftBase #-}
-
-instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
-    type StM (Eff '[Lift m]) a = a
-    liftBaseWith f = lift (f runLift)
-    {-# INLINE liftBaseWith #-}
-    restoreM = return
-    {-# INLINE restoreM #-}
-
-instance (MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
-    liftIO = lift . liftIO
-    {-# INLINE liftIO #-}
-
 -- | Send a request and wait for a reply (resulting in an effectful
 -- computation).
 {-# INLINE [2] send #-}
@@ -271,9 +258,6 @@ handle_relay_s ret h = fix step                            -- limit
                     (E . (~^) . ($ s))                         -- relay
                   )
 
--- Add something like Control.Exception.catches? It could be useful
--- for control with cut.
-
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled (that's why the same r is used all throughout).
 {-# INLINE interpose #-}
@@ -302,12 +286,18 @@ raise = fix step
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift { unLift :: m a }
 
+-- |A convenient alias to 'SetMember Lift (Lift m) r', which allows us
+-- to assert that the lifted type occurs ony once in the effect list.
+type Lifted m r = SetMember Lift (Lift m) r
+
+-- |Same as 'Lifted' but with additional 'MonadBaseControl' constraint
+type LiftedBase m r = ( SetMember Lift (Lift m) r
+                      , MonadBaseControl m (Eff r)
+                      )
+
 -- | embed an operation of type `m a` into the `Eff` monad when @Lift m@ is in
 -- a part of the effect-list.
---
--- By using SetMember, it is possible to assert that the lifted type occurs
--- only once in the effect list
-lift :: (SetMember Lift (Lift m) r) => m a -> Eff r a
+lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
 -- | The handler of Lift requests. It is meant to be terminal:
@@ -318,3 +308,35 @@ runLift = eff return
             (\q x -> (unLift x) >>= (runLift . (q ^$)))
             (\_ _ -> error "Impossible: Nothing cannot occur")
           )
+
+-- | Catching of dynamic exceptions
+-- See the problem in
+-- http://okmij.org/ftp/Haskell/misc.html#catch-MonadIO
+catchDynE :: forall e a r.
+             (Lifted IO r, Exc.Exception e) =>
+             Eff r a -> (e -> Eff r a) -> Eff r a
+catchDynE m eh = interpose return h m
+ where
+   -- Polymorphic local binding: signature is needed
+   h :: Arr r v a -> Lift IO v -> Eff r a
+   h k (Lift em) = lift (Exc.try em) >>= \x -> case x of
+         Right x0 -> k x0
+         Left  e -> eh e
+
+-- Add something like Control.Exception.catches? It could be useful
+-- for control with cut.
+
+instance (MonadBase b m, Lifted m r) => MonadBase b (Eff r) where
+    liftBase = lift . liftBase
+    {-# INLINE liftBase #-}
+
+instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
+    type StM (Eff '[Lift m]) a = a
+    liftBaseWith f = lift (f runLift)
+    {-# INLINE liftBaseWith #-}
+    restoreM = return
+    {-# INLINE restoreM #-}
+
+instance (MonadIO m, Lifted m r) => MonadIO (Eff r) where
+    liftIO = lift . liftIO
+    {-# INLINE liftIO #-}

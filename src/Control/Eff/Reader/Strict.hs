@@ -18,7 +18,6 @@ module Control.Eff.Reader.Strict ( Reader (..)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -76,8 +75,7 @@ reader :: (Member (Reader e) r) => (e -> a) -> Eff r a
 reader f = f `fmap` ask
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) s
-         , MonadBaseControl m (Eff s)
+         , LiftedBase m s
          ) => MonadBaseControl m (Eff (Reader e ': s)) where
     type StM (Eff (Reader e ': s)) a = StM (Eff s) a
     liftBaseWith f = do !e <- ask

@@ -26,7 +26,6 @@ module Control.Eff.Writer.Lazy ( Writer(..)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Applicative ((<|>))
 
@@ -47,8 +46,7 @@ data Writer w v where
   Tell :: w -> Writer w ()
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (Writer w ': r)) where
     type StM (Eff (Writer w ': r)) a = StM (Eff r) (a, [w])
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->

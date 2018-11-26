@@ -8,7 +8,6 @@ import Control.Eff
 import Control.Eff.Example
 import Control.Eff.Example.Test (ex2)
 import Control.Eff.Exception
-import Control.Eff.Lift
 import Control.Eff.Choose
 import Utils
 

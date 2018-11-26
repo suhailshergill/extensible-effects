@@ -6,8 +6,8 @@
 module Control.Eff.Fresh.Test (testGroups) where
 
 import Test.HUnit hiding (State)
+import Control.Eff
 import Control.Eff.Fresh
-import Control.Eff.Lift
 import Control.Eff.Trace
 import Utils
 

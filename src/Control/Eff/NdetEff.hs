@@ -25,7 +25,6 @@ module Control.Eff.NdetEff (
 import Control.Eff
 import Control.Eff.Extend
 import Control.Eff.Logic
-import Control.Eff.Lift
 
 import Control.Applicative
 import Control.Monad
@@ -48,8 +47,7 @@ instance Member NdetEff r => MonadPlus (Eff r) where
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (NdetEff ': r)) where
     type StM (Eff (NdetEff ': r)) a = StM (Eff r) [a]
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->

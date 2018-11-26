@@ -14,7 +14,6 @@ module Control.Eff.State.Strict where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Eff.Writer.Strict
 import Control.Eff.Reader.Strict
@@ -44,8 +43,7 @@ data State s v where
   Put :: !s -> State s ()
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (State s ': r)) where
     type StM (Eff (State s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get

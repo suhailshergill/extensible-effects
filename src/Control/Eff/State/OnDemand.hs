@@ -13,7 +13,6 @@ module Control.Eff.State.OnDemand where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
@@ -34,8 +33,7 @@ data OnDemandState s v where
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (OnDemandState s ': r)) where
     type StM (Eff (OnDemandState s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get

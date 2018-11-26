@@ -9,7 +9,6 @@ import Test.HUnit hiding (State)
 import Test.QuickCheck
 
 import Control.Eff
-import Control.Eff.Lift
 import Control.Eff.Reader.Lazy
 import Control.Eff.Writer.Lazy
 import Utils

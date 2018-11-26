@@ -21,7 +21,6 @@ module Control.Eff.Choose ( Choose (..)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 import Control.Eff.Logic
       
 import Control.Applicative
@@ -40,8 +39,7 @@ import Control.Monad.Trans.Control
 newtype Choose a = Choose [a]
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (Choose ': r)) where
     type StM (Eff (Choose ': r)) a = StM (Eff r) [a]
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->

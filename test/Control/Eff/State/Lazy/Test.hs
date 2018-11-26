@@ -7,7 +7,6 @@ module Control.Eff.State.Lazy.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
-import Control.Eff.Lift
 import Control.Eff.State.Lazy
 import Utils
 

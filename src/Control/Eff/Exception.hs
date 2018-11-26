@@ -26,7 +26,6 @@ module Control.Eff.Exception ( Exc (..)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Monad (void)
 import Control.Monad.Base
@@ -39,8 +38,7 @@ import Control.Monad.Trans.Control
 newtype Exc e v = Exc e
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (Exc e ': r)) where
     type StM (Eff (Exc e ': r)) a = StM (Eff r) (Either e a)
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
@@ -108,7 +106,7 @@ liftEither = either throwError return
 {-# INLINE liftEither #-}
 
 -- | `liftEither` in a lifted Monad
-liftEitherM :: (Member (Exc e) r, SetMember Lift (Lift m) r)
+liftEitherM :: (Member (Exc e) r, Lifted m r)
             => m (Either e a)
             -> Eff r a
 liftEitherM m = lift m >>= liftEither
@@ -120,7 +118,7 @@ liftMaybe = maybe die return
 {-# INLINE liftMaybe #-}
 
 -- | `liftMaybe` in a lifted Monad
-liftMaybeM :: (Member Fail r, SetMember Lift (Lift m) r)
+liftMaybeM :: (Member Fail r, Lifted m r)
            => m (Maybe a)
            -> Eff r a
 liftMaybeM m = lift m >>= liftMaybe

@@ -71,7 +71,6 @@ library
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
-                       Control.Eff.Lift
                        Control.Eff.Logic
                        Control.Eff.NdetEff
                        Control.Eff.Operational
@@ -167,7 +166,6 @@ test-suite extensible-effects-tests
                 , Control.Eff.Example.Test
                 , Control.Eff.Exception.Test
                 , Control.Eff.Fresh.Test
-                , Control.Eff.Lift.Test
                 , Control.Eff.NdetEff.Bench
                 , Control.Eff.NdetEff.Test
                 , Control.Eff.Operational.Test

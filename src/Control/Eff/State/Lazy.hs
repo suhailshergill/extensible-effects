@@ -13,7 +13,6 @@ module Control.Eff.State.Lazy where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
@@ -43,8 +42,7 @@ data State s v where
   Put :: s -> State s ()
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (State s ': r)) where
     type StM (Eff (State s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get

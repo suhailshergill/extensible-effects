@@ -9,7 +9,6 @@ module Control.Eff.Exception.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
-import Control.Eff.Lift
 import Control.Eff.Writer.Strict
 #if __GLASGOW_HASKELL__ < 710
 import Data.Monoid

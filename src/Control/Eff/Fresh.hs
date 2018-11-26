@@ -15,7 +15,6 @@ module Control.Eff.Fresh( Fresh (Fresh)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -36,8 +35,7 @@ data Fresh v where
   Replace :: !Int -> Fresh ()
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (Fresh ': r)) where
     type StM (Eff (Fresh ': r)) a = StM (Eff r) (a, Int)
     liftBaseWith f = do i <- fresh

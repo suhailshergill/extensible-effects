@@ -8,7 +8,6 @@ module Control.Eff.Operational.Example where
 
 import Control.Eff.Operational
 import Control.Eff
-import Control.Eff.Lift
 import Control.Eff.Writer.Lazy
 import Control.Eff.State.Lazy
 
@@ -25,7 +24,7 @@ prog = do
    singleton $ Print ("the input is " ++ str)
 
 -- | Then, implements interpreters from the data to effects.
-adventIO :: (SetMember Lift (Lift IO) r) => Jail a -> Eff r a
+adventIO :: Lifted IO r => Jail a -> Eff r a
 adventIO (Print a) = lift $ putStrLn a
 adventIO Scan = lift getLine
 

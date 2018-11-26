@@ -7,7 +7,6 @@ module Control.Eff.NdetEff.Test (testGroups, gen_testCA, gen_ifte_test) where
 import Test.HUnit hiding (State)
 import Control.Applicative
 import Control.Eff
-import Control.Eff.Lift
 import Control.Eff.NdetEff
 import Control.Eff.Writer.Strict
 import Control.Monad (msum, guard, mzero, mplus)
