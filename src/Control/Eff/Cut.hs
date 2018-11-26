@@ -44,11 +44,17 @@ import Control.Eff
 import Control.Eff.Extend
 import Control.Eff.Exception
 import Control.Eff.Choose
+import Control.Monad
 
 data CutFalse = CutFalse
 
 cutfalse :: Member (Exc CutFalse) r => Eff r a
 cutfalse = throwError CutFalse
+
+-- | Prolog 'cut', taken from Hinze 2000 (Deriving backtracking monad
+-- transformers).
+(!) :: (Member (Exc CutFalse) r, MonadPlus (Eff r)) => Eff r ()
+(!) = return () `mplus` cutfalse
 
 -- | The interpreter -- it is like reify . reflect with a twist.  Compare this
 -- implementation with the huge implementation of call in Hinze 2000 (Figure 9).

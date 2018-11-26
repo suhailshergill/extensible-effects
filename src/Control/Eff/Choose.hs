@@ -16,6 +16,7 @@ module Control.Eff.Choose ( Choose (..)
                           , makeChoice
                           , mzero'
                           , mplus'
+                          , module Control.Eff.Logic
                           ) where
 
 import Control.Eff
