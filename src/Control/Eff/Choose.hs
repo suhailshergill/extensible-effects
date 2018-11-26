@@ -21,6 +21,7 @@ module Control.Eff.Choose ( Choose (..)
 import Control.Eff
 import Control.Eff.Extend
 import Control.Eff.Lift
+import Control.Eff.Logic
       
 import Control.Applicative
 import Control.Monad
@@ -79,3 +80,14 @@ makeChoice = handle_relay
     handle _  [] = return []
     handle k [x] = k x
     handle k lst = fmap concat $ mapM k lst
+
+instance Member Choose r => MSplit (Eff r) where
+  msplit = interpose (\a -> return (Just (a, mzero)))
+           (\k (Choose lst) -> handle k lst)
+    where
+      handle :: Arr r v (Maybe (a, Eff r a))
+             -> [v] -> Eff r (Maybe (a, Eff r a))
+      handle _ [] = return Nothing
+      handle k (h:t) = k h >>= \r -> case r of
+        Nothing -> handle k t
+        Just (a, m) -> return (Just (a, m <|> (handle k t >>= reflect)))
