@@ -11,8 +11,6 @@
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
 
-{-# LANGUAGE CPP #-}
-
 -- ------------------------------------------------------------------------
 -- | A monadic library for communication between a handler and
 -- its client, the administered computation
@@ -27,9 +25,6 @@
 -- effects, consult the tests.
 module Control.Eff.Internal where
 
-#if __GLASGOW_HASKELL__ < 710
-import Control.Applicative
-#endif
 import qualified Control.Arrow as A
 import qualified Control.Category as C
 import Control.Monad.Base (MonadBase(..))

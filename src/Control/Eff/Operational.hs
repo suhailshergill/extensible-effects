@@ -5,7 +5,6 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
-{-# LANGUAGE CPP #-}
 {-# LANGUAGE Safe #-}
 
 -- | Operational Monad (<https://wiki.haskell.org/Operational>) implemented with

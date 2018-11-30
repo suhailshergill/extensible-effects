@@ -1,4 +1,4 @@
-resolver: lts-12.9
+resolver: lts-12.20
 
 packages:
 - '.'
@@ -7,7 +7,6 @@ extra-deps: []
 
 flags:
   extensible-effects:
-    force-openunion-51: false
     lib-werror: true
 
 extra-package-dbs: []

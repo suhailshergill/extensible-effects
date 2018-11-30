@@ -7,7 +7,6 @@ extra-deps: []
 
 flags:
   extensible-effects:
-    force-openunion-51: false
     lib-werror: true
 
 extra-package-dbs: []

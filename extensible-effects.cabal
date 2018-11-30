@@ -41,7 +41,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.4.3, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
+tested-with:         GHC==8.6.2, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
 
 build-type:          Simple
 
@@ -55,11 +55,6 @@ cabal-version:       >=1.10
 flag lib-Werror
   default: False
   manual: True
-
-flag force-openunion-51
-  description:         Force usage of OpenUnion51.hs implementation
-  default:             False
-  manual:              True
 
 library
   ghc-options:         -Wall
@@ -128,8 +123,6 @@ library
                        , Trustworthy
                        , TypeOperators
                        , UndecidableInstances
-  if impl(ghc < 7.8.1)
-     other-extensions: OverlappingInstances
   if impl(ghc >= 8.2)
      ghc-options:      -Wno-simplifiable-class-constraints
 
@@ -139,9 +132,6 @@ library
                ,       transformers-base == 0.4.*
                        -- For MonadBaseControl
                ,       monad-control >= 1.0 && < 1.1
-  if impl(ghc < 8.0)
-                       -- For MonadIO
-     build-depends:    transformers >= 0.2.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -149,8 +139,6 @@ library
   -- Base language which the package is written in.
   default-language:    Haskell2010
 
-  -- TODO: uncomment when https://github.com/haskell/cabal/issues/2527 is
-  -- resolved
   if flag(lib-Werror)
      ghc-options: -Werror
 
