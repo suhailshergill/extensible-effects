@@ -242,16 +242,24 @@ class Handle t k where
 
 -- | A convenient pattern: given a request (in an open union), either
 -- handle it (using default Handler) or relay it.
+--
+-- "Handle" implies that all requests of type @t@ are dealt with,
+-- i.e., @k@ (the response type) doesn't have @t@ as part of its
+-- effect list. The @Relay k r@ constraint ensures that @k@ is an
+-- effectful computation (with effectlist @r@).
+--
+-- Note that we can only handle the leftmost effect type (a
+-- consequence of the 'OpenUnion' implementation.
 handle_relay :: forall t k r a. Handle t k => Relay k r
-             => (a -> k)
+             => (a -> k) -- ^ return
              -> Eff (t ': r) a -> k
 handle_relay ret = handle_relay' ret handle
 
--- | A convenient pattern: given a request (in an open union), either
--- handle it or relay it, using an explicit handler.
+-- | A less commonly needed variant with an explicit handler (instead
+-- of @Handle t k@ constraint).
 handle_relay' :: forall t k r a. Relay k r
-              => (a -> k)
-              -> (forall v. (v -> k) -> t v -> k)
+              => (a -> k) -- ^ return
+              -> (forall v. (v -> k) -> t v -> k) -- ^ handler
               -> Eff (t ': r) a -> k
 handle_relay' ret h = fix step
   where
@@ -261,25 +269,27 @@ handle_relay' ret h = fix step
                   (relay `andThen` next))
 
 -- | Intercept the request and possibly respond to it, but leave it
--- unhandled (that's why the same r is used all throughout).
-interpose :: Member t r => Relay k r
-            => (a -> k)
-            -> (forall v. (v -> k) -> t v -> k)
-            -> Eff r a -> k
-interpose ret h = fix step
+-- unhandled. The @Relay k r@ constraint ensures that @k@ is an
+-- effectful computation (with effectlist @r@). As such, the effect
+-- type @t@ will show up in the response type @k@.
+respond_relay :: Member t r => Relay k r
+              => (a -> k)
+              -> (forall v. (v -> k) -> t v -> k)
+              -> Eff r a -> k
+respond_relay ret h = fix step
   where
     step next = eff ret
                 (impurePrj
                   (h `andThen` next)
                   (relay `andThen` next))
 
--- | Sometimes we have the appropriate 'Handle' defined (in general,
--- we may need to define new datatypes (e.g., TxState)), so we can
--- call interpose with the default handler.
-interpose' :: forall t k r a. (Member t r, Handle t k, Relay k r)
-           => (a -> k)
-           -> Eff r a -> k
-interpose' ret = interpose ret (handle @t)
+-- | A less common variant which uses the default 'handle' from the
+-- @Handle t k@ instance (in general, we may need to define new
+-- datatypes to call respond_relay with the default handler).
+respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
+               => (a -> k)
+               -> Eff r a -> k
+respond_relay' ret = respond_relay ret (handle @t)
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
@@ -331,7 +341,7 @@ runLift = fix step
 catchDynE :: forall e a r.
              (Lifted IO r, Exc.Exception e) =>
              Eff r a -> (e -> Eff r a) -> Eff r a
-catchDynE m eh = interpose return h m
+catchDynE m eh = respond_relay return h m
  where
    -- Polymorphic local binding: signature is needed
    h :: Arr r v a -> Lift IO v -> Eff r a

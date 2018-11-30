@@ -71,8 +71,8 @@ local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local f m = do
   e <- reader f
-  interpose' @(Reader e) withReader m e
-  -- or we could redefine handle and pass it to interpose
+  respond_relay' @(Reader e) withReader m e
+  -- or we could redefine handle and pass it to respond_relay
 
 -- | Request the environment value using a transformation function.
 reader :: (Member (Reader e) r) => (e -> a) -> Eff r a

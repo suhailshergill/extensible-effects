@@ -73,7 +73,7 @@ tell w = send $ Tell w
 
 -- | Transform the state being produced.
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
-censor f = interpose return h
+censor f = respond_relay return h
   where
     h :: (v -> Eff r b) -> Writer w v -> Eff r b
     h k (Tell w) = tell (f w) >>= k

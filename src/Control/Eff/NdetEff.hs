@@ -103,11 +103,11 @@ makeChoiceLst = makeChoiceA
 instance Member NdetEff r => MSplit (Eff r) where
   msplit = msplit1
 
--- | Straightforward implementation using 'interpose'. See the LogicT
--- paper for an explanation. This should be correct, but hasn't been
--- tested yet.
+-- | Straightforward implementation using 'respond_relay'. See the
+-- LogicT paper for an explanation. This should be correct, but hasn't
+-- been tested yet.
 msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit0 = interpose (flip withMSplit empty) $ \k x -> case x of
+msplit0 = respond_relay (flip withMSplit empty) $ \k x -> case x of
   MZero -> return Nothing              -- definite failure
   MPlus -> left k >>= \r -> case r of  -- check left first
     Nothing -> right k                 -- failure, continue exploring

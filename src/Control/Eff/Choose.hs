@@ -84,7 +84,7 @@ makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
 makeChoice = handle_relay withChoose
 
 instance Member Choose r => MSplit (Eff r) where
-  msplit = interpose (flip withMSplit empty)
+  msplit = respond_relay (flip withMSplit empty)
            (\k (Choose lst) -> hdl k lst)
     where
       hdl :: Arr r v (Maybe (a, Eff r a))

@@ -133,7 +133,7 @@ transactionState' :: forall s r a. Member (State s) r
                   => TxState s -> Eff r a -> Eff r a
 transactionState' _ m = do
   s <- get
-  (interpose' @(State s) (withTxState @s)) m s
+  (respond_relay' @(State s) (withTxState @s)) m s
 
 -- | More involved implementation.
 transactionState :: forall s r a. Member (State s) r

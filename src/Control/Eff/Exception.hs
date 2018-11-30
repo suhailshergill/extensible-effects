@@ -96,7 +96,7 @@ runFail = fmap (either (const Nothing) Just) . runError
 -- exception
 catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
-catchError m h = interpose return (\_ (Exc e) -> h e) m
+catchError m h = respond_relay return (\_ (Exc e) -> h e) m
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.
