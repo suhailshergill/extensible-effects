@@ -8,6 +8,8 @@
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
 {-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 {-# LANGUAGE CPP #-}
 
@@ -162,12 +164,19 @@ impurePrj h def q u = maybe (def q u) (h q) (prj u)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
-qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
+qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h $ (g ^$ a)
 {-# INLINABLE qThen #-}
-qThen :: (Eff r b -> Eff r' c) -> Arrs r a b -> Arr r' a c
+qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
 qThen = flip qComp
+
+-- | Compose and then apply to function. This is a common pattern when
+-- processing requests. Different options of 'f' allow us to handle or
+-- relay the request and continue on.
+andThen :: ((b -> c) -> t) -> (Eff r w -> c)
+        -> Arrs r b w -> t
+andThen f next = f . (qThen next)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
@@ -223,55 +232,59 @@ run (Val x) = x
 run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
--- | Higher-order 'on' function
-on :: ((t2 -> x1) -> (t2 -> x2) -> t3)
-   -> (forall x. (t1 -> x) -> t2 -> x)
-   -> (t1 -> x1)
-   -> (t1 -> x2)
-   -> t3
-on f w x y = f (w x) (w y)
+-- | Abstract the recursive 'relay' pattern, i.e., "somebody else's
+-- problem".
+class Relay k r where
+  relay :: (v -> k) -> Union r v -> k
+instance Relay (Eff r w) r where
+  relay q u = E (singleK q) u
+instance Relay k r => Relay (s -> k) r where
+  relay q u s = relay (\x -> q x s) u
 
--- | A convenient pattern: given a request (open union), either
--- handle it or relay it.
-{-# INLINE handle_relay #-}
-handle_relay :: (a -> Eff r w) ->
-                (forall v. Arr r v w -> t v -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay ret h = fix step                 -- limit
- where
-  step next = eff ret                           -- base
-              (on impureDecomp (. (qThen next)) -- recurse
-                h                                 -- handle
-                (E . (~^))                        -- relay
-              )
+-- | Respond to requests of type 't'.
+class Handle t k where
+  handle :: (v -> k) -> t v -> k
 
--- | Parameterized handle_relay
-{-# INLINE handle_relay_s #-}
-handle_relay_s :: (s -> a -> Eff r w)
-               -> (forall v. s -> (s -> Arr r v w) -> t v -> Eff r w)
-               -> s -> Eff (t ': r) a -> Eff r w
-handle_relay_s ret h = fix step                            -- limit
+-- | A convenient pattern: given a request (in an open union), either
+-- handle it (using default Handler) or relay it.
+handle_relay :: forall t k r a. Handle t k => Relay k r
+             => (a -> k)
+             -> Eff (t ': r) a -> k
+handle_relay ret = handle_relay' ret handle
+
+-- | A convenient pattern: given a request (in an open union), either
+-- handle it or relay it, using an explicit handler.
+handle_relay' :: forall t k r a. Relay k r
+              => (a -> k)
+              -> (forall v. (v -> k) -> t v -> k)
+              -> Eff (t ': r) a -> k
+handle_relay' ret h = fix step
   where
-    step next s = eff (ret s)                                -- base
-                  (on impureDecomp (. (flip (qThen . next))) -- recurse
-                    (h $ s)                                    -- handle
-                    (E . (~^) . ($ s))                         -- relay
-                  )
+    step next = eff ret
+                (impureDecomp
+                  (h `andThen` next)
+                  (relay `andThen` next))
 
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled (that's why the same r is used all throughout).
-{-# INLINE interpose #-}
-interpose :: Member t r
-          => (a -> Eff r w)
-          -> (forall v. Arr r v w -> t v -> Eff r w)
-          -> Eff r a -> Eff r w
-interpose ret h = fix step                  -- limit
- where
-   step next = eff ret                        -- base
-               (on impurePrj (. (qThen next)) -- recurse
-                 h                              -- respond
-                 (E . (~^))                     -- relay
-               )
+interpose :: Member t r => Relay k r
+            => (a -> k)
+            -> (forall v. (v -> k) -> t v -> k)
+            -> Eff r a -> k
+interpose ret h = fix step
+  where
+    step next = eff ret
+                (impurePrj
+                  (h `andThen` next)
+                  (relay `andThen` next))
+
+-- | Sometimes we have the appropriate 'Handle' defined (in general,
+-- we may need to define new datatypes (e.g., TxState)), so we can
+-- call interpose with the default handler.
+interpose' :: forall t k r a. (Member t r, Handle t k, Relay k r)
+           => (a -> k)
+           -> Eff r a -> k
+interpose' ret = interpose ret (handle @t)
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
@@ -300,14 +313,22 @@ type LiftedBase m r = ( SetMember Lift (Lift m) r
 lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
--- | The handler of Lift requests. It is meant to be terminal:
--- we only allow a single Lifted Monad.
+-- | Handle lifted requests by running them sequentially
+instance Monad m => Handle (Lift m) (m k) where
+  handle k (Lift x) = x >>= k
+
+-- | The handler of Lift requests. It is meant to be terminal: we only
+-- allow a single Lifted Monad. Note, too, how this is different from
+-- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift = eff return
-          (impurePrj
-            (\q x -> (unLift x) >>= (runLift . (q ^$)))
-            (\_ _ -> error "Impossible: Nothing cannot occur")
-          )
+runLift = fix step
+  where
+    step :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
+    step next = eff return
+                (impurePrj
+                 (handle `andThen` next)
+                 (\_ _ -> error "Impossible: Nothing to relay!")
+                )
 
 -- | Catching of dynamic exceptions
 -- See the problem in
@@ -319,9 +340,7 @@ catchDynE m eh = interpose return h m
  where
    -- Polymorphic local binding: signature is needed
    h :: Arr r v a -> Lift IO v -> Eff r a
-   h k (Lift em) = lift (Exc.try em) >>= \x -> case x of
-         Right x0 -> k x0
-         Left  e -> eh e
+   h k (Lift em) = lift (Exc.try em) >>= either eh k
 
 -- | You need this when using 'catches'.
 data HandlerDynE r a =

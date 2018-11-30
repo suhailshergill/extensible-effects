@@ -82,6 +82,7 @@ case_Lift_tMd' = do
 data MyException = MyException String deriving (Show)
 instance Exc.Exception MyException
 
+exfn :: Lifted IO r => Bool -> Eff r Bool
 exfn True = lift . Exc.throw $ (MyException "thrown")
 exfn False = return True
 

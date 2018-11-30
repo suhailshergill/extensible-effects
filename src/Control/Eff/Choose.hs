@@ -12,6 +12,7 @@
 
 -- | Nondeterministic choice effect
 module Control.Eff.Choose ( Choose (..)
+                          , withChoose
                           , choose
                           , makeChoice
                           , mzero'
@@ -37,6 +38,15 @@ import Control.Monad.Trans.Control
 -- returned in response to a (Choose a) request is just a, without
 -- any constraints.
 newtype Choose a = Choose [a]
+
+-- | Embed a pure value
+withChoose :: Monad m => a -> m [a]
+withChoose = return . (:[])
+-- | Given a continuation and a Choose request, respond to it.
+instance Monad m => Handle Choose (m [a]) where
+  handle _ (Choose []) = return []
+  handle k (Choose [x]) = k x
+  handle k (Choose lst) = fmap concat $ mapM k lst
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -71,22 +81,15 @@ instance Member Choose r => MonadPlus (Eff r) where
 
 -- | Run a nondeterministic effect, returning all values.
 makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
-makeChoice = handle_relay
-  (return . (:[]))
-  (\k (Choose lst) -> handle k lst)
-  where
-    handle :: (t -> Eff r [a]) -> [t] -> Eff r [a]
-    handle _  [] = return []
-    handle k [x] = k x
-    handle k lst = fmap concat $ mapM k lst
+makeChoice = handle_relay withChoose
 
 instance Member Choose r => MSplit (Eff r) where
-  msplit = interpose (\a -> return (Just (a, mzero)))
-           (\k (Choose lst) -> handle k lst)
+  msplit = interpose (flip withMSplit empty)
+           (\k (Choose lst) -> hdl k lst)
     where
-      handle :: Arr r v (Maybe (a, Eff r a))
-             -> [v] -> Eff r (Maybe (a, Eff r a))
-      handle _ [] = return Nothing
-      handle k (h:t) = k h >>= \r -> case r of
-        Nothing -> handle k t
-        Just (a, m) -> return (Just (a, m <|> (handle k t >>= reflect)))
+      hdl :: Arr r v (Maybe (a, Eff r a))
+          -> [v] -> Eff r (Maybe (a, Eff r a))
+      hdl _ [] = return Nothing             -- definite failure
+      hdl k (h:t) = k h >>= \r -> case r of -- possibility
+        Nothing -> hdl k t                  -- failure, continue exploring
+        Just (a, m) -> withMSplit a (m <|> (hdl k t >>= reflect)) -- definite success

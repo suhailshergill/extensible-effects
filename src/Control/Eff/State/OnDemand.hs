@@ -16,6 +16,7 @@ import Control.Eff.Extend
 
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
+import qualified Control.Eff.State.Lazy as S
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -31,6 +32,13 @@ data OnDemandState s v where
   Get  :: OnDemandState s s
   Put  :: s -> OnDemandState s ()
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
+
+-- | Given a continuation, respond to requests
+instance Handle (OnDemandState s) (s -> r) where
+  handle k Get s = k s s
+  handle k (Put s) _ = k () s
+  handle k (Delay m) s = let ~(x, s') = run $ handle_relay S.withState m s
+                         in k x s'
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -72,21 +80,14 @@ onDemand :: Member (OnDemandState s) r => Eff '[OnDemandState s] v -> Eff r v
 onDemand = send . Delay
 
 runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
-runState' =
-  handle_relay_s
-  (\s0 x -> return (x,s0))
-  (\s0 k sreq -> case sreq of
-      Get    -> k s0 s0
-      Put s1 -> k s1 ()
-      Delay m1 -> let ~(x,s1) = run $ runState' s0 m1
-                  in k s1 x)
+runState' s m = handle_relay S.withState m s
 
 -- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
 runState :: s                            -- ^ Initial state
          -> Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
          -> Eff r (w,s)                  -- ^ Effect containing final state and a return value
-runState s (Val x) = return (x,s)
+runState s (Val x) = S.withState x s
 runState s0 (E q u0) = case decomp u0 of
   Right Get     -> runState s0 (q ^$ s0)
   Right (Put s1) -> runState s1 (q ^$ ())
@@ -113,7 +114,7 @@ runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
 runStateR s0 m0 = loop s0 m0
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-   loop s (Val x) = return (x,s)
+   loop s (Val x) = S.withState x s
    loop s (E q u0) = case decomp u0 of
      Right (Tell w) -> k w ()
      Left  u  -> case decomp u of
@@ -150,12 +151,13 @@ runStateBack m =
   (x,head sp)
  where
    go :: ([s],[s]) -> Eff '[OnDemandState s] a -> Eff '[] (a,([s],[s]))
-   go = handle_relay_s (\ss0 x -> return (x,ss0))
-        (\ss0@(sg,sp) k req -> case req of
-            Get    -> k ss0 (head sg)
-            Put s1  -> k (tail sg,sp++[s1]) ()
-            Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
-                        in k ss1 x)
+   go s m' = handle_relay' S.withState
+             (\k req ss0@(sg,sp) -> case req of
+                 Get    -> k (head sg) ss0
+                 Put s1  -> k () (tail sg,sp++[s1])
+                 Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
+                             in k x ss1)
+             m' s
 
 -- ^ A different notion of `backwards' is realized if we change the Put
 -- handler slightly. How?

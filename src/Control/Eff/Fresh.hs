@@ -9,6 +9,7 @@
 {-# LANGUAGE Safe #-}
 -- | Create unique Enumerable values.
 module Control.Eff.Fresh( Fresh (Fresh)
+                        , withFresh
                         , fresh
                         , runFresh'
                         ) where
@@ -34,6 +35,16 @@ data Fresh v where
   Fresh :: Fresh Int
   Replace :: !Int -> Fresh ()
 
+-- | Embed a pure value. Note that this is a specialized form of
+-- State's and we could have reused it.
+withFresh :: Monad m => a -> Int -> m (a, Int)
+withFresh x s = return (x, s)
+
+-- | Given a continuation and requests, respond to them
+instance Handle Fresh (Int -> r) where
+  handle k Fresh s = k s (s + 1)
+  handle k (Replace i) _ = k () i
+
 instance ( MonadBase m m
          , LiftedBase m r
          ) => MonadBaseControl m (Eff (Fresh ': r)) where
@@ -58,11 +69,7 @@ runFresh' :: Int -> Eff (Fresh ': r) w -> Eff r w
 runFresh' s m = fst `fmap` runFreshReturn s m
 
 runFreshReturn :: Int -> Eff (Fresh ': r) w -> Eff r (w,Int)
-runFreshReturn =
-  handle_relay_s (\s' x -> return (x,s'))
-                 (\s' k e -> case e of
-                               Fresh -> (k $! s' + 1) s'
-                               Replace i -> k i ())
+runFreshReturn s m = handle_relay withFresh m s
 
 {-
 -- Finally, the worst implementation but the one that answers

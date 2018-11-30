@@ -14,6 +14,12 @@ class MSplit m where
   -- 2] msplit (return a `mplus` m) == return (Just(a, m))
   msplit :: m a -> m (Maybe (a, m a))
 
+-- | Embed a pure value into MSplit
+withMSplit :: MonadPlus m => a -> m a -> m (Maybe (a, m a))
+withMSplit a rest = return (Just (a, rest))
+-- The handlers are defined in terms of the specific non-determinism
+-- effects (instead of by way of a distinct MSplit handler
+
 reflect :: MonadPlus m => Maybe (a, m a) -> m a
 reflect Nothing      = mzero
 reflect (Just (a,m)) = return a `mplus` m

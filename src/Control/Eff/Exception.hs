@@ -8,6 +8,8 @@
 {-# LANGUAGE Safe #-}
 -- | Exception-producing and exception-handling effects
 module Control.Eff.Exception ( Exc (..)
+                            , exc
+                            , withException
                             , Fail
                             , throwError
                             , throwError_
@@ -36,6 +38,20 @@ import Control.Monad.Trans.Control
 --
 -- exceptions of the type e; no resumption
 newtype Exc e v = Exc e
+
+-- | Embed a pure value
+withException :: Monad m => a -> m (Either e a)
+withException = return . Right
+-- | Throw an error
+exc :: Monad m => e -> m (Either e a)
+exc = return . Left
+-- | Given a callback, and an 'Exc' request, respond to it.
+instance Monad m => Handle (Exc e) (m (Either e a)) where
+  handle _ (Exc e) = exc e
+
+-- runError :: (a -> m (Either e a)), (e -> m (Either e a))
+-- catchError :: (a -> Eff r a), (e -> Eff r a)
+-- exc :: e -> m (Either e a)
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -67,9 +83,7 @@ die = throwError ()
 
 -- | Run a computation that might produce an exception.
 runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
-runError = handle_relay
-  (return . Right)
-  (\_k (Exc e) -> return (Left e))
+runError = handle_relay withException
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
@@ -82,14 +96,14 @@ runFail = fmap (either (const Nothing) Just) . runError
 -- exception
 catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
-catchError m handle = interpose return (\_k (Exc e) -> handle e) m
+catchError m h = interpose return (\_ (Exc e) -> h e) m
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.
 onFail :: Eff (Fail ': r) a -- ^ The fallible computation.
        -> Eff r a           -- ^ The computation to run on failure.
        -> Eff r a
-onFail e handle = runFail e >>= maybe handle return
+onFail e handle_ = runFail e >>= maybe handle_ return
 {-# INLINE onFail #-}
 
 -- | Run a computation until it produces an exception,

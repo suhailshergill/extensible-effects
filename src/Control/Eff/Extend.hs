@@ -21,9 +21,12 @@ module Control.Eff.Extend
   , SetMember
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
+  , Handle, handle
+  , Relay, relay
   , handle_relay
-  , handle_relay_s
+  , handle_relay'
   , interpose
+  , interpose'
   , raise
   , send
   -- * Arrow types and compositions
@@ -39,7 +42,7 @@ module Control.Eff.Extend
   , (^|>)
   , qComp
   , qComps, (^|$^)
-  , on, (~^), qThen
+  , (~^), qThen, andThen
   )
 where
 

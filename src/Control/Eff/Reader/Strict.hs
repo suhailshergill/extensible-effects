@@ -7,14 +7,16 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE Safe #-}
 -- | Strict read-only state
 module Control.Eff.Reader.Strict ( Reader (..)
-                              , ask
-                              , local
-                              , reader
-                              , runReader
-                              ) where
+                                 , withReader
+                                 , ask
+                                 , local
+                                 , reader
+                                 , runReader
+                                 ) where
 
 import Control.Eff
 import Control.Eff.Extend
@@ -46,6 +48,13 @@ data Reader e v where
 -- ^ In the latter case, when we make the request, we make it as Reader id.
 -- So, strictly speaking, GADTs are not really necessary.
 
+-- | How to interpret a pure value in a reader context
+withReader :: Monad m => a -> e -> m a
+withReader x _ = return x
+-- | Given a value to read, and a callback, how to respond to
+-- requests.
+instance Handle (Reader e) (e -> r) where
+  handle k Ask e = k e e
 
 -- | Get the current value from a Reader.
 -- The signature is inferred (when using NoMonomorphismRestriction).
@@ -55,9 +64,7 @@ ask = send Ask
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
 runReader :: e -> Eff (Reader e ': r) w -> Eff r w
-runReader !e = handle_relay
-  return
-  (\k Ask -> k e)
+runReader !e m = handle_relay withReader m e
 
 -- | Locally rebind the value in the dynamic environment This function is like a
 -- relay; it is both an admin for Reader requests, and a requestor of them
@@ -65,10 +72,8 @@ local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local f m = do
   e <- reader f
-  let
-    h :: (t -> Eff r b) -> Reader e t -> Eff r b
-    h k Ask = k e
-  interpose return h m
+  interpose' @(Reader e) withReader m e
+  -- or we could redefine handle and pass it to interpose
 
 -- | Request the environment value using a transformation function.
 reader :: (Member (Reader e) r) => (e -> a) -> Eff r a

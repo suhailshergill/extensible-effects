@@ -28,7 +28,7 @@ adventIO :: Lifted IO r => Jail a -> Eff r a
 adventIO (Print a) = lift $ putStrLn a
 adventIO Scan = lift getLine
 
-adventPure :: (Member (Writer String) r, Member (State [String]) r) => Jail a -> Eff r a
+adventPure :: [ Writer String, State [String] ] <:: r => Jail a -> Eff r a
 adventPure (Print a) = tell (a ++ "\n")
 adventPure Scan = do
   x <- get

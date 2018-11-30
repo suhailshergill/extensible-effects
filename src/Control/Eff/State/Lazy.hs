@@ -8,6 +8,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE TypeApplications #-}
 -- | Lazy state effect
 module Control.Eff.State.Lazy where
 
@@ -40,6 +41,18 @@ import Control.Monad.Trans.Control
 data State s v where
   Get :: State s s
   Put :: s -> State s ()
+
+-- | Embed a pure value in a stateful computation, i.e., given an
+-- initial state, how to interpret a pure value in a stateful
+-- computation.
+withState :: Monad m => a -> s -> m (a, s)
+withState x s = return (x, s)
+
+-- | Handle 'State s' requests
+instance Handle (State s) (s -> r) where
+  handle k sreq s = case sreq of
+    Get    -> k s s
+    Put s' -> k () s'
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -79,11 +92,7 @@ put s = send (Put s)
 -- | Run a state effect. compared to the @runState@ function, this is
 --   implemented naively and is expected to perform slower.
 runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
-runState' =
-  handle_relay_s (\s0 x -> return (x,s0))
-                 (\s0 k sreq -> case sreq of
-                      Get    -> k s0 s0
-                      Put s1 -> k s1 ())
+runState' s m = handle_relay withState m s
 
 -- | Run a State effect. This variant is a bit optimized compared to
 --   @runState'@.
@@ -111,13 +120,28 @@ execState s = fmap snd . runState s
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished
 -- successfully
-data TxState s = TxState
-transactionState :: forall s r a. Member (State s) r =>
-                    TxState s -> Eff r a -> Eff r a
+data TxState s v where
+  TxState :: TxState s s
+type TxStateT s = TxState s s
+
+-- | Embed Transactional semantics to a stateful computation.
+withTxState :: Member (State s) r => a -> s -> Eff r a
+withTxState x s = put s >> return x
+
+-- | Confer transactional semantics on a stateful computation.
+transactionState' :: forall s r a. Member (State s) r
+                  => TxStateT s -> Eff r a -> Eff r a
+transactionState' _ m = do
+  s <- get
+  (interpose' @(State s) (withTxState @s)) m s
+
+-- | More involved implementation.
+transactionState :: forall s r a. Member (State s) r
+                 => TxStateT s -> Eff r a -> Eff r a
 transactionState _ m = do s <- get; loop s m
  where
    loop :: s -> Eff r a -> Eff r a
-   loop s (Val x) = put s >> return x
+   loop s (Val x) = withTxState x s
    loop s (E q (u::Union r b)) = case prj u :: Maybe (State s b) of
      Just Get      -> loop s (q ^$ s)
      Just (Put s') -> loop s'(q ^$ ())
@@ -130,10 +154,10 @@ runStateR :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
 runStateR s m = loop s m
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
-   loop s0 (Val x) = return (x,s0)
+   loop s0 (Val x) = x `withState` s0
    loop s0 (E q u) = case decomp u of
-     Right (Tell w) -> k w ()
+     Right (Tell w) -> handle k (Put w) s0
      Left  u1  -> case decomp u1 of
-       Right Ask -> k s0 s0
-       Left u2 -> E (singleK (k s0)) u2
-    where k x = qComp q (loop x)
+       Right Ask -> handle k Ask s0
+       Left u2 -> relay k u2 s0
+    where k s' x = qComp q (loop x) s'

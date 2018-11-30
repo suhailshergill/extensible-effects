@@ -15,6 +15,8 @@
 -- | Another implementation of nondeterministic choice effect
 module Control.Eff.NdetEff (
   NdetEff
+  , withNdetEff
+  , left, right
   , makeChoiceA
   , makeChoiceA0
   , makeChoiceLst
@@ -38,6 +40,20 @@ data NdetEff a where
   MZero :: NdetEff a
   MPlus :: NdetEff Bool
 
+-- | How to embed a pure value in non-deterministic context
+withNdetEff :: Alternative f => Monad m => a -> m (f a)
+withNdetEff = return . pure
+-- | The left branch
+left :: (Bool -> k) -> k
+left k = k True
+-- | The right branch
+right :: (Bool -> k) -> k
+right k = k False
+-- | Given a callback and NdetEff requests respond to them
+instance (Alternative f, Monad m) => Handle NdetEff (m (f a)) where
+  handle _ MZero = return empty
+  handle k MPlus = liftM2 (<|>) (left k) (right k)
+
 instance Member NdetEff r => Alternative (Eff r) where
   empty = mzero
   (<|>) = mplus
@@ -60,9 +76,7 @@ instance ( MonadBase m m
 -- The cause probably is mapping every failure to empty
 -- It takes then a lot of timne and space to store those empty
 makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0 = handle_relay (return . pure) $ \k m -> case m of
-    MZero -> return empty
-    MPlus -> liftM2 (<|>) (k True) (k False)
+makeChoiceA0 = handle_relay withNdetEff
 
 -- | A different implementation, more involved but faster and taking
 -- much less (100 times) less memory.
@@ -70,8 +84,8 @@ makeChoiceA0 = handle_relay (return . pure) $ \k m -> case m of
 -- interpreters.
 makeChoiceA :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
 makeChoiceA m = loop [] m where
-  loop [] (Val x)    = return (pure x)
-  loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
+  loop [] (Val x)    = withNdetEff x
+  loop (h:t) (Val x) = liftM2 (<|>) (withNdetEff x) (loop t h)
   loop jq (E q u) = case  decomp u of
     Right MZero     -> case jq of
       []    -> return empty
@@ -93,11 +107,11 @@ instance Member NdetEff r => MSplit (Eff r) where
 -- paper for an explanation. This should be correct, but hasn't been
 -- tested yet.
 msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit0 = interpose (\a -> return (Just (a,mzero))) $ \k x -> case x of
-  MZero -> return Nothing
-  MPlus -> k True >>= \r -> case r of
-    Nothing -> k False
-    Just(a, m) -> return (Just (a, m <|> (k False >>= reflect)))
+msplit0 = interpose (flip withMSplit empty) $ \k x -> case x of
+  MZero -> return Nothing              -- definite failure
+  MPlus -> left k >>= \r -> case r of  -- check left first
+    Nothing -> right k                 -- failure, continue exploring
+    Just(a, m) -> withMSplit a (m <|> (right k >>= reflect)) -- definite success
 
 -- | A different implementation, more involved. Unclear whether this
 -- is faster or not.

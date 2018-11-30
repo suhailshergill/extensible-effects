@@ -11,6 +11,7 @@
 {-# LANGUAGE CPP #-}
 -- | Strict write-only state
 module Control.Eff.Writer.Strict ( Writer(..)
+                               , withWriter
                                , tell
                                , censor
                                , runWriter
@@ -46,6 +47,16 @@ import Data.Monoid
 data Writer w v where
   Tell :: !w -> Writer w ()
 
+-- | How to interpret a pure value in a writer context, given the
+-- value for mempty.
+withWriter :: Monad m => a -> b -> (w -> b -> b) -> m (a, b)
+withWriter x empty _append = return (x, empty)
+-- | Given a value to write, and a callback (which includes empty and
+-- append), respond to requests.
+instance Monad m => Handle (Writer w) (b -> (w -> b -> b) -> m (a, b)) where
+  handle k (Tell w) e append = k () e append >>=
+    \(x, l) -> return (x, w `append` l)
+
 instance ( MonadBase m m
          , LiftedBase m r
          ) => MonadBaseControl m (Eff (Writer w ': r)) where
@@ -64,20 +75,14 @@ tell !w = send $ Tell w
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
 censor f = interpose return h
   where
-    h :: (t -> Eff r b) -> Writer w t -> Eff r b
+    h :: (v -> Eff r b) -> Writer w v -> Eff r b
     h k (Tell w) = tell (f w) >>= k
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate
 -- values, hence no Monoid constraints.
 runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
-runWriter accum !b = handle_relay
-  (\x -> return (x, b))
-  (\k (Tell w) -> k () >>= \(x, l) -> return (x, w `accum` l))
-  -- the second arg to 'handle_relay' above is same as:
-  -- (\(Tell w) k -> second (accum w) `fmap` k ())
-  -- where
-  --   second f (x, y) = (x, f y)
+runWriter accum !b m = handle_relay withWriter m b accum
 
 -- | Handle Writer requests, using a List to accumulate values.
 runListWriter :: Eff (Writer w ': r) a -> Eff r (a,[w])
