@@ -20,7 +20,7 @@ module Control.Eff.NdetEff (
   , makeChoiceA
   , makeChoiceA0
   , makeChoiceLst
-  , msplit0, msplit1
+  , msplit1
   , module Control.Eff.Logic
   ) where
 
@@ -98,20 +98,15 @@ makeChoiceA m = loop [] m where
 makeChoiceLst :: Eff (NdetEff ': r) a -> Eff r [a]
 makeChoiceLst = makeChoiceA
 
--- | We actually implement LogicT, the non-determinism reflection,
--- of which soft-cut is one instance.
+-- | We actually implement LogicT, the non-determinism reflection, of
+-- which soft-cut is one instance. Straightforward implementation
+-- using 'respond_relay'. See the LogicT paper for an explanation.
 instance Member NdetEff r => MSplit (Eff r) where
-  msplit = msplit1
-
--- | Straightforward implementation using 'respond_relay'. See the
--- LogicT paper for an explanation. This should be correct, but hasn't
--- been tested yet.
-msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit0 = respond_relay (flip withMSplit empty) $ \k x -> case x of
-  MZero -> return Nothing              -- definite failure
-  MPlus -> left k >>= \r -> case r of  -- check left first
-    Nothing -> right k                 -- failure, continue exploring
-    Just(a, m) -> withMSplit a (m <|> (right k >>= reflect)) -- definite success
+  msplit = respond_relay (flip withMSplit empty) $ \k x -> case x of
+    MZero -> return Nothing              -- definite failure
+    MPlus -> left k >>= \r -> case r of  -- check left first
+      Nothing -> right k                 -- failure, continue exploring
+      Just(a, m) -> withMSplit a (m <|> (right k >>= reflect)) -- definite success
 
 -- | A different implementation, more involved. Unclear whether this
 -- is faster or not.
@@ -119,9 +114,9 @@ msplit1 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit1 = loop []
  where
  -- single result
- loop [] (Val x)  = return (Just (x,mzero))
+ loop [] (Val x)  = withMSplit x mzero
  -- definite result and perhaps some others
- loop jq (Val x)  = return (Just (x, msum jq))
+ loop jq (Val x)  = withMSplit x (msum jq)
  -- not yet definite answer
  loop jq (E q u)  = case prj u of
   Just MZero -> case jq of
