@@ -85,8 +85,6 @@ library
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal
                        Data.FTCQueue
-  if flag(force-openunion-51)
-    cpp-options:       -DFORCE_OU51
 
   default-extensions:  NoMonomorphismRestriction
                      , MonoLocalBinds
