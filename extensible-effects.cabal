@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             3.1.0.2
+version:             4.0.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -214,7 +214,7 @@ benchmark extensible-effects-benchmarks
                        -fno-warn-name-shadowing -fno-warn-unused-matches
 
   build-depends:
-                base >= 4.7 && < 4.12
+                base >= 4.7 && < 5
               , criterion
               , extensible-effects
               , mtl
