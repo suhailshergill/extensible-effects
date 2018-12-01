@@ -111,16 +111,13 @@ execState s = fmap snd . runState s
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-runStateR s0 m0 = loop s0 m0
- where
-   loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-   loop s (Val x) = S.withState x s
-   loop s (E q u0) = case decomp u0 of
-     Right (Tell w) -> k w ()
-     Left  u  -> case decomp u of
-       Right Ask -> k s s
-       Left u1 -> E (singleK (k s)) u1
-    where k x = qComp q (loop x)
+runStateR s (Val x) = S.withState x s
+runStateR s (E q u) = case decomp u of
+  Right (Tell w) -> handle k (S.Put w) s
+  Left  u1  -> case decomp u1 of
+    Right Ask -> handle k S.Get s
+    Left u2 -> relay k u2 s
+  where k s' x = qComp q (runStateR x) s'
 
 -- | Backwards state
 -- The overall state is represented with two attributes: the inherited

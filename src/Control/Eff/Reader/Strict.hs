@@ -67,7 +67,7 @@ runReader :: e -> Eff (Reader e ': r) w -> Eff r w
 runReader !e m = handle_relay withReader m e
 
 -- | Locally rebind the value in the dynamic environment This function is like a
--- relay; it is both an admin for Reader requests, and a requestor of them
+-- relay; it is both an admin for Reader requests, and a requestor of them.
 local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local f m = do

@@ -129,23 +129,11 @@ withTxState :: Member (State s) r => a -> s -> Eff r a
 withTxState x s = put s >> return x
 
 -- | Confer transactional semantics on a stateful computation.
-transactionState' :: forall s r a. Member (State s) r
-                  => TxState s -> Eff r a -> Eff r a
-transactionState' _ m = do
-  s <- get
-  (respond_relay' @(State s) (withTxState @s)) m s
-
--- | More involved implementation.
 transactionState :: forall s r a. Member (State s) r
                  => TxState s -> Eff r a -> Eff r a
-transactionState _ m = do s <- get; loop s m
- where
-   loop :: s -> Eff r a -> Eff r a
-   loop s (Val x) = withTxState x s
-   loop s (E q (u::Union r b)) = case prj u :: Maybe (State s b) of
-     Just Get      -> loop s (q ^$ s)
-     Just (Put s') -> loop s'(q ^$ ())
-     _             -> E (qComps q (loop s)) u
+transactionState _ m = do
+  s <- get
+  (respond_relay' @(State s) (withTxState @s)) m s
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
