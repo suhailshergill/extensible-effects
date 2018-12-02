@@ -127,16 +127,18 @@ runStateR s (E q u) = case decomp u of
 -- and the synthesized is the result of the handler |go| below.
 runStateBack0 :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack0 m =
-  let (x,s) = go s m in
+  let (x,s) = go m s in
   (x,s)
  where
-   go :: s -> Eff '[OnDemandState s] a -> (a,s)
-   go s (Val x) = (x,s)
-   go s0 (E q u) = case decomp u of
-         Right Get      -> go s0 $ (q ^$ s0)
-         Right (Put s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
-         Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ (q ^$ x)
-         Left _ -> error "Impossible happened: Union []"
+   go :: Eff '[OnDemandState s] a -> s -> (a,s)
+   go (Val x) s = (x,s)
+   go (E q u) s0 = case decomp u of
+     Right Get      -> k s0 s0
+     Right (Put s1)  -> let ~(x,sp) = k () sp in (x,s1)
+     Right (Delay m1) -> let ~(x,s1) = go m1 s0 in k x s1
+     Left _ -> error "Impossible happened: Nothing to relay!"
+     where
+       k = qComp q go
 
 -- | Another implementation, exploring Haskell's laziness to make putAttr
 -- also technically inherited, to accumulate the sequence of
@@ -144,17 +146,14 @@ runStateBack0 m =
 -- lets us play with different notions of `backwardness'
 runStateBack :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack m =
-  let (x,(_sg,sp)) = run $ go (sp,[]) m in
+  let (x,(_,sp)) = run $ go m (sp,[]) in
   (x,head sp)
  where
-   go :: ([s],[s]) -> Eff '[OnDemandState s] a -> Eff '[] (a,([s],[s]))
-   go s m' = handle_relay' S.withState
-             (\k req ss0@(sg,sp) -> case req of
-                 Get    -> k (head sg) ss0
-                 Put s1  -> k () (tail sg,sp++[s1])
-                 Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
-                             in k x ss1)
-             m' s
+   go :: Eff '[OnDemandState s] a -> ([s],[s]) -> Eff '[] (a,([s],[s]))
+   go = handle_relay' S.withState h
+   h k Get s0@(sg, _) = k (head sg) s0
+   h k (Put s1) (sg, sp) = k () (tail sg,sp++[s1])
+   h k (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in k x s1
 
 -- ^ A different notion of `backwards' is realized if we change the Put
 -- handler slightly. How?
