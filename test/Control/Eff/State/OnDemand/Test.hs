@@ -9,7 +9,6 @@ module Control.Eff.State.OnDemand.Test (testGroups) where
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
-import Control.Eff.Lift
 import Control.Eff.State.OnDemand
 import Utils
 

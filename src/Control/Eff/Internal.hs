@@ -7,8 +7,9 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE TypeFamilies #-}
 {-# LANGUAGE UndecidableInstances #-}
-
-{-# LANGUAGE CPP #-}
+{-# LANGUAGE ConstraintKinds #-}
+{-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE TypeApplications #-}
 
 -- ------------------------------------------------------------------------
 -- | A monadic library for communication between a handler and
@@ -24,17 +25,16 @@
 -- effects, consult the tests.
 module Control.Eff.Internal where
 
-#if __GLASGOW_HASKELL__ < 710
-import Control.Applicative
-#endif
 import qualified Control.Arrow as A
 import qualified Control.Category as C
 import Control.Monad.Base (MonadBase(..))
 import Control.Monad.IO.Class (MonadIO(..))
 import Control.Monad.Trans.Control (MonadBaseControl(..))
+import qualified Control.Exception as Exc
 import safe Data.OpenUnion
 import safe Data.FTCQueue
 import GHC.Exts (inline)
+import Data.Function (fix)
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
@@ -65,6 +65,9 @@ first x = \(a,c) -> (, c) `fmap` x a
 {-# INLINE singleK #-}
 singleK :: Arr r a b -> Arrs r a b
 singleK = Arrs . tsingleton
+{-# INLINE (~^) #-}
+(~^) :: Arr r a b -> Arrs r a b
+(~^) = singleK
 
 -- | Application to the `generalized effectful function' Arrs r b w, i.e.,
 -- convert 'Arrs' to 'Arr'
@@ -75,7 +78,7 @@ qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
     cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
     cons = \k t -> case k x of
       Val y -> qApp (Arrs t) y
-      E u (Arrs q0) -> E u (Arrs (q0 >< t))
+      E (Arrs q0) u -> E (Arrs (q0 >< t)) u
 {-
 -- A bit more understandable version
 qApp :: Arrs r b w -> b -> Eff r w
@@ -121,65 +124,91 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- of the effects' @run*@ functions before unwrapping the final result.
 -- For additional details, see the documentation of the effects you are using.
 data Eff r a = Val a
-             | forall b. E (Union r b) (Arrs r b a)
+             | forall b. E (Arrs r b a) (Union r b)
+-- | Case analysis for 'Eff' datatype. If the value is @'Val' a@ apply
+-- the first function to @a@; if it is @'E' u q@, apply the second
+-- function.
+{-# INLINE eff #-}
+eff :: (a -> b)
+    -> (forall v. Arrs r v a -> Union r v -> b)
+    -> Eff r a -> b
+eff f _ (Val a) = f a
+eff _ g (E q u) = g q u
+
+-- | The usual 'bind' fnuction with arguments flipped. This is a
+-- common pattern for Eff.
+{-# INLINE bind #-}
+bind :: Arr r a b -> Eff r a -> Eff r b
+bind k = eff k (E . (^|> k))         -- just accumulates continuations
+
+-- | Case analysis for impure computations for 'Eff' datatype. This
+-- uses 'decomp'.
+{-# INLINE impureDecomp #-}
+impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
+             -> (Arrs (t ': r) v a -> Union r v -> b)
+             -> Arrs (t ': r) v a -> Union (t ': r) v -> b
+impureDecomp h rest q u = either (rest q) (h q) (decomp u)
+-- | Case analysis for impure computations for 'Eff' datatype. This
+-- uses 'prj'.
+{-# INLINE impurePrj #-}
+impurePrj :: Member t r
+          => (Arrs r v a -> t v -> b)
+          -> (Arrs r v a -> Union r v -> b)
+          -> Arrs r v a -> Union r v -> b
+impurePrj h def q u = maybe (def q u) (h q) (prj u)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
-qComp :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arr r' a c
+qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h $ (g ^$ a)
+{-# INLINABLE qThen #-}
+qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
+qThen = flip qComp
+
+-- | Compose and then apply to function. This is a common pattern when
+-- processing requests. Different options of 'f' allow us to handle or
+-- relay the request and continue on.
+andThen :: ((b -> c) -> t) -> (Eff r w -> c)
+        -> Arrs r b w -> t
+andThen f next = f . (qThen next)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 qComps g h = singleK $ qComp g h
+{-# INLINABLE (^|$^) #-}
+(^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
+(^|$^) = qComps
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
-  fmap f (Val x) = Val (f x)
-  fmap f (E u q) = E u (q ^|> (Val . f)) -- does no mapping yet!
+  fmap f = bind (Val . f)
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
   pure = Val
-  Val f <*> e = f `fmap` e
-  E u q <*> e = E u (q ^|> (`fmap` e))
+  mf <*> e = bind (`fmap` e) mf
 
 instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
-  Val x >>= k = k x
-  E u q >>= k = E u (q ^|> k)          -- just accumulates continuations
+  (>>=) = flip bind
 {-
   Val _ >> m = m
-  E u q >> m = E u (q ^|> const m)
+  E q u >> m = E (q ^|> const m) u
 -}
-
-instance (MonadBase b m, SetMember Lift (Lift m) r) => MonadBase b (Eff r) where
-    liftBase = lift . liftBase
-    {-# INLINE liftBase #-}
-
-instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
-    type StM (Eff '[Lift m]) a = a
-    liftBaseWith f = lift (f runLift)
-    {-# INLINE liftBaseWith #-}
-    restoreM = return
-    {-# INLINE restoreM #-}
-
-instance (MonadIO m, SetMember Lift (Lift m) r) => MonadIO (Eff r) where
-    liftIO = lift . liftIO
-    {-# INLINE liftIO #-}
 
 -- | Send a request and wait for a reply (resulting in an effectful
 -- computation).
 {-# INLINE [2] send #-}
 send :: Member t r => t v -> Eff r v
-send t = E (inj t) (singleK Val)
+send t = E (singleK Val) (inj t)
 -- This seems to be a very beneficial rule! On micro-benchmarks, cuts
 -- the needed memory in half and speeds up almost twice.
 {-# RULES
-  "send/bind" [~3] forall t k. send t >>= k = E (inj t) (singleK k)
+  "send/bind" [~3] forall t k. send t >>= k = E (singleK k) (inj t)
  #-}
 
 
@@ -195,79 +224,154 @@ run (Val x) = x
 -- cannot terminate.
 -- To extract the true error, the evaluation of union is forced.
 -- 'run' is a total function if its argument is different from bottom.
-run (E union _) =
+run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
--- | A convenient pattern: given a request (open union), either
--- handle it or relay it.
-{-# INLINE handle_relay #-}
-handle_relay :: (a -> Eff r w) ->
-                (forall v. t v -> Arr r v w -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay ret h m = loop m
- where
-  loop (Val x)  = ret x
-  loop (E u q)  = case decomp u of
-    Right x -> h x k
-    Left  u0 -> E u0 (singleK k)
-   where k = qComp q loop
+-- | Abstract the recursive 'relay' pattern, i.e., "somebody else's
+-- problem".
+class Relay k r where
+  relay :: (v -> k) -> Union r v -> k
+instance Relay (Eff r w) r where
+  relay q u = E (singleK q) u
+instance Relay k r => Relay (s -> k) r where
+  relay q u s = relay (\x -> q x s) u
 
--- | Parameterized handle_relay
-{-# INLINE handle_relay_s #-}
-handle_relay_s :: s ->
-                (s -> a -> Eff r w) ->
-                (forall v. s -> t v -> (s -> Arr r v w) -> Eff r w) ->
-                Eff (t ': r) a -> Eff r w
-handle_relay_s s ret h m = loop s m
+-- | Respond to requests of type 't'.
+class Handle t k where
+  handle :: (v -> k) -> t v -> k
+
+-- | A convenient pattern: given a request (in an open union), either
+-- handle it (using default Handler) or relay it.
+--
+-- "Handle" implies that all requests of type @t@ are dealt with,
+-- i.e., @k@ (the response type) doesn't have @t@ as part of its
+-- effect list. The @Relay k r@ constraint ensures that @k@ is an
+-- effectful computation (with effectlist @r@).
+--
+-- Note that we can only handle the leftmost effect type (a
+-- consequence of the 'OpenUnion' implementation.
+handle_relay :: forall t k r a. Handle t k => Relay k r
+             => (a -> k) -- ^ return
+             -> Eff (t ': r) a -> k
+handle_relay ret = handle_relay' ret handle
+
+-- | A less commonly needed variant with an explicit handler (instead
+-- of @Handle t k@ constraint).
+handle_relay' :: forall t k r a. Relay k r
+              => (a -> k) -- ^ return
+              -> (forall v. (v -> k) -> t v -> k) -- ^ handler
+              -> Eff (t ': r) a -> k
+handle_relay' ret h = fix step
   where
-    loop s0 (Val x)  = ret s0 x
-    loop s0 (E u q)  = case decomp u of
-      Right x -> h s0 x k
-      Left  u0 -> E u0 (singleK (k s0))
-     where k s1 x = loop s1 $ qApp q x
+    step next = eff ret
+                (impureDecomp
+                  (h `andThen` next)
+                  (relay `andThen` next))
 
--- Add something like Control.Exception.catches? It could be useful
--- for control with cut.
+-- | Intercept the request and possibly respond to it, but leave it
+-- unhandled. The @Relay k r@ constraint ensures that @k@ is an
+-- effectful computation (with effectlist @r@). As such, the effect
+-- type @t@ will show up in the response type @k@.
+respond_relay :: Member t r => Relay k r
+              => (a -> k)
+              -> (forall v. (v -> k) -> t v -> k)
+              -> Eff r a -> k
+respond_relay ret h = fix step
+  where
+    step next = eff ret
+                (impurePrj
+                  (h `andThen` next)
+                  (relay `andThen` next))
 
--- | Intercept the request and possibly reply to it, but leave it unhandled
--- (that's why the same r is used all throuout)
-{-# INLINE interpose #-}
-interpose :: Member t r =>
-             (a -> Eff r w) -> (forall v. t v -> Arr r v w -> Eff r w) ->
-             Eff r a -> Eff r w
-interpose ret h m = loop m
- where
-   loop (Val x)  = ret x
-   loop (E u q)  = case prj u of
-     Just x -> h x k
-     _      -> E u (singleK k)
-    where k = qComp q loop
+-- | A less common variant which uses the default 'handle' from the
+-- @Handle t k@ instance (in general, we may need to define new
+-- datatypes to call respond_relay with the default handler).
+respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
+               => (a -> k)
+               -> Eff r a -> k
+respond_relay' ret = respond_relay ret (handle @t)
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
 raise :: Eff r a -> Eff (e ': r) a
-raise = loop
+raise = fix step
   where
-    loop (Val x) = pure x
-    loop (E u q) = E (weaken u) $ qComps q loop
+    step next = eff pure
+                (\q -> ((E . (~^) . (qThen next)) q) . weaken)
 {-# INLINE raise #-}
 
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers
-newtype Lift m a = Lift (m a)
+newtype Lift m a = Lift { unLift :: m a }
+
+-- |A convenient alias to 'SetMember Lift (Lift m) r', which allows us
+-- to assert that the lifted type occurs ony once in the effect list.
+type Lifted m r = SetMember Lift (Lift m) r
+
+-- |Same as 'Lifted' but with additional 'MonadBaseControl' constraint
+type LiftedBase m r = ( SetMember Lift (Lift m) r
+                      , MonadBaseControl m (Eff r)
+                      )
 
 -- | embed an operation of type `m a` into the `Eff` monad when @Lift m@ is in
 -- a part of the effect-list.
---
--- By using SetMember, it is possible to assert that the lifted type occurs
--- only once in the effect list
-lift :: (SetMember Lift (Lift m) r) => m a -> Eff r a
+lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
--- | The handler of Lift requests. It is meant to be terminal:
--- we only allow a single Lifted Monad.
+-- | Handle lifted requests by running them sequentially
+instance Monad m => Handle (Lift m) (m k) where
+  handle k (Lift x) = x >>= k
+
+-- | The handler of Lift requests. It is meant to be terminal: we only
+-- allow a single Lifted Monad. Note, too, how this is different from
+-- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift (Val x) = return x
-runLift (E u q) = case prj u of
-                  Just (Lift m) -> m >>= runLift . qApp q
-                  Nothing -> error "Impossible: Nothing cannot occur"
+runLift = fix step
+  where
+    step :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
+    step next = eff return
+                (impurePrj
+                 (handle `andThen` next)
+                 (\_ _ -> error "Impossible: Nothing to relay!")
+                )
+
+-- | Catching of dynamic exceptions
+-- See the problem in
+-- http://okmij.org/ftp/Haskell/misc.html#catch-MonadIO
+catchDynE :: forall e a r.
+             (Lifted IO r, Exc.Exception e) =>
+             Eff r a -> (e -> Eff r a) -> Eff r a
+catchDynE m eh = respond_relay return h m
+ where
+   -- Polymorphic local binding: signature is needed
+   h :: Arr r v a -> Lift IO v -> Eff r a
+   h k (Lift em) = lift (Exc.try em) >>= either eh k
+
+-- | You need this when using 'catches'.
+data HandlerDynE r a =
+  forall e. (Exc.Exception e, Lifted IO r) => HandlerDynE (e -> Eff r a)
+
+-- | Catch multiple dynamic exceptions. The implementation follows
+-- that in Control.Exception almost exactly. Not yet tested.
+-- Could this be useful for control with cut?
+catchesDynE :: Lifted IO r => Eff r a -> [HandlerDynE r a] -> Eff r a
+catchesDynE m hs = m `catchDynE` catchesHandler hs where
+  catchesHandler :: Lifted IO r => [HandlerDynE r a] -> Exc.SomeException -> Eff r a
+  catchesHandler handlers e = foldr tryHandler (lift . Exc.throw $ e) handlers
+    where
+      tryHandler (HandlerDynE h) res = maybe res h (Exc.fromException e)
+
+instance (MonadBase b m, Lifted m r) => MonadBase b (Eff r) where
+    liftBase = lift . liftBase
+    {-# INLINE liftBase #-}
+
+instance (MonadBase m m)  => MonadBaseControl m (Eff '[Lift m]) where
+    type StM (Eff '[Lift m]) a = a
+    liftBaseWith f = lift (f runLift)
+    {-# INLINE liftBaseWith #-}
+    restoreM = return
+    {-# INLINE restoreM #-}
+
+instance (MonadIO m, Lifted m r) => MonadIO (Eff r) where
+    liftIO = lift . liftIO
+    {-# INLINE liftIO #-}

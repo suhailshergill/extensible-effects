@@ -8,7 +8,6 @@ import Control.Eff
 import Control.Eff.Example
 import Control.Eff.Example.Test (ex2)
 import Control.Eff.Exception
-import Control.Eff.Lift
 import Control.Eff.Choose
 import Utils
 
@@ -41,14 +40,17 @@ case_Choose_exRec =
   let exRec_1 = run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,1]))
       exRec_2 = run . makeChoice . runErrBig $ exRec (ex2 (choose [5,7,1]))
       exRec_3 = run . runErrBig . makeChoice $ exRec (ex2 (choose [5,7,11,1]))
+      exRec_4 = run . makeChoice . runErrBig $ exRec (ex2 (choose [5,7,11,1]))
   in
     assertEqual "Choose: error recovery: exRec_1" expected1 exRec_1
     >> assertEqual "Choose: error recovery: exRec_2" expected2 exRec_2
-    >> assertEqual "Choose: error recovery: exRec_1" expected3 exRec_3
+    >> assertEqual "Choose: error recovery: exRec_3" expected3 exRec_3
+    >> assertEqual "Choose: error recovery: exRec_4" expected4 exRec_4
   where
     expected1 = Right [5,7,1]
     expected2 = [Right 5,Right 7,Right 1]
     expected3 = Left (TooBig 11)
+    expected4 = [Right 5,Right 7,Left (TooBig 11),Right 1]
     -- Errror recovery part
     -- The code is the same as in transf1.hs. The inferred signatures differ
     -- Was: exRec :: MonadError TooBig m => m Int -> m Int

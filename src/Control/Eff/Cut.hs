@@ -44,11 +44,17 @@ import Control.Eff
 import Control.Eff.Extend
 import Control.Eff.Exception
 import Control.Eff.Choose
+import Control.Monad
 
 data CutFalse = CutFalse
 
 cutfalse :: Member (Exc CutFalse) r => Eff r a
 cutfalse = throwError CutFalse
+
+-- | Prolog 'cut', taken from Hinze 2000 (Deriving backtracking monad
+-- transformers).
+(!) :: (Member (Exc CutFalse) r, MonadPlus (Eff r)) => Eff r ()
+(!) = return () `mplus` cutfalse
 
 -- | The interpreter -- it is like reify . reflect with a twist.  Compare this
 -- implementation with the huge implementation of call in Hinze 2000 (Figure 9).
@@ -66,7 +72,7 @@ call m = loop [] m where
        -> Eff (Exc CutFalse ': r) a
        -> Eff r a
   loop jq (Val x) = return x `mplus'` next jq          -- (C2)
-  loop jq (E u q) = case decomp u of
+  loop jq (E q u) = case decomp u of
     Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
     Left u0 -> check jq u0 q
 
@@ -75,7 +81,7 @@ call m = loop [] m where
   check jq u _ | Just (Choose []) <- prj u  = next jq  -- (C1)
   check jq u q | Just (Choose [x]) <- prj u = loop jq (q ^$ x)  -- (C3), optim
   check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
-  check jq u q = loop jq (E (weaken u) q)     -- (C4)
+  check jq u q = loop jq (E q (weaken u))     -- (C4)
 
   next :: Member Choose r
        => [Eff (Exc CutFalse ': r) a]

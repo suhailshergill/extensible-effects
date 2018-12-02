@@ -9,13 +9,13 @@
 {-# LANGUAGE Safe #-}
 -- | Create unique Enumerable values.
 module Control.Eff.Fresh( Fresh (Fresh)
+                        , withFresh
                         , fresh
                         , runFresh'
                         ) where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -35,14 +35,23 @@ data Fresh v where
   Fresh :: Fresh Int
   Replace :: !Int -> Fresh ()
 
+-- | Embed a pure value. Note that this is a specialized form of
+-- State's and we could have reused it.
+withFresh :: Monad m => a -> Int -> m (a, Int)
+withFresh x s = return (x, s)
+
+-- | Given a continuation and requests, respond to them
+instance Handle Fresh (Int -> r) where
+  handle k Fresh s = k s (s + 1)
+  handle k (Replace i) _ = k () i
+
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (Fresh ': r)) where
     type StM (Eff (Fresh ': r)) a = StM (Eff r) (a, Int)
     liftBaseWith f = do i <- fresh
                         raise $ liftBaseWith $ \runInBase ->
-                          f (\k -> runInBase $ runFreshReturn k i)
+                          f (\k -> runInBase $ runFreshReturn i k)
     restoreM x = do (r,i) <- raise (restoreM x)
                     replace i
                     return r
@@ -56,16 +65,12 @@ replace :: Member Fresh r => Int -> Eff r ()
 replace = send . Replace
 
 -- | Run an effect requiring unique values.
-runFresh' :: Eff (Fresh ': r) w -> Int -> Eff r w
-runFresh' m s = fst `fmap` runFreshReturn m s
+runFresh' :: Int -> Eff (Fresh ': r) w -> Eff r w
+runFresh' s m = fst `fmap` runFreshReturn s m
 
-runFreshReturn :: Eff (Fresh ': r) w -> Int -> Eff r (w,Int)
-runFreshReturn m s =
-  handle_relay_s s (\s' x -> return (x,s'))
-                   (\s' e k -> case e of
-                                 Fresh -> (k $! s' + 1) s'
-                                 Replace i -> k i ())
-                   m
+runFreshReturn :: Int -> Eff (Fresh ': r) w -> Eff r (w,Int)
+runFreshReturn s m = handle_relay withFresh m s
+
 {-
 -- Finally, the worst implementation but the one that answers
 -- reviewer's question: implementing Fresh in terms of State

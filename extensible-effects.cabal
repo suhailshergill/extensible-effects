@@ -6,7 +6,7 @@ name:                extensible-effects
 -- PVP summary:      +-+------- breaking API changes
 --                   | | +----- non-breaking API additions
 --                   | | | +--- code changes with no API change
-version:             3.1.0.2
+version:             4.0.0.0
 
 -- A short (one-line) description of the package.
 synopsis:            An Alternative to Monad Transformers
@@ -41,7 +41,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.4.3, GHC==8.2.2, GHC==8.0.2, GHC==7.10.3, GHC==7.8.4
+tested-with:         GHC==8.6.2, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
 
 build-type:          Simple
 
@@ -56,11 +56,6 @@ flag lib-Werror
   default: False
   manual: True
 
-flag force-openunion-51
-  description:         Force usage of OpenUnion51.hs implementation
-  default:             False
-  manual:              True
-
 library
   ghc-options:         -Wall
   -- Modules exported by the library.
@@ -71,7 +66,7 @@ library
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
-                       Control.Eff.Lift
+                       Control.Eff.Logic
                        Control.Eff.NdetEff
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
@@ -90,8 +85,6 @@ library
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal
                        Data.FTCQueue
-  if flag(force-openunion-51)
-    cpp-options:       -DFORCE_OU51
 
   default-extensions:  NoMonomorphismRestriction
                      , MonoLocalBinds
@@ -128,8 +121,6 @@ library
                        , Trustworthy
                        , TypeOperators
                        , UndecidableInstances
-  if impl(ghc < 7.8.1)
-     other-extensions: OverlappingInstances
   if impl(ghc >= 8.2)
      ghc-options:      -Wno-simplifiable-class-constraints
 
@@ -139,9 +130,6 @@ library
                ,       transformers-base == 0.4.*
                        -- For MonadBaseControl
                ,       monad-control >= 1.0 && < 1.1
-  if impl(ghc < 8.0)
-                       -- For MonadIO
-     build-depends:    transformers >= 0.2.0.0
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -149,8 +137,6 @@ library
   -- Base language which the package is written in.
   default-language:    Haskell2010
 
-  -- TODO: uncomment when https://github.com/haskell/cabal/issues/2527 is
-  -- resolved
   if flag(lib-Werror)
      ghc-options: -Werror
 
@@ -166,7 +152,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Example.Test
                 , Control.Eff.Exception.Test
                 , Control.Eff.Fresh.Test
-                , Control.Eff.Lift.Test
+                , Control.Eff.NdetEff.Bench
                 , Control.Eff.NdetEff.Test
                 , Control.Eff.Operational.Test
                 , Control.Eff.Reader.Lazy.Test
@@ -190,6 +176,7 @@ test-suite extensible-effects-tests
               , QuickCheck
               , HUnit
               , monad-control >= 1.0
+              , mtl
               , silently >= 1.2
               , test-framework == 0.8.*
               , test-framework-hunit == 0.3.*
@@ -225,7 +212,7 @@ benchmark extensible-effects-benchmarks
                        -fno-warn-name-shadowing -fno-warn-unused-matches
 
   build-depends:
-                base >= 4.7 && < 4.12
+                base >= 4.7 && < 5
               , criterion
               , extensible-effects
               , mtl

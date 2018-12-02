@@ -6,6 +6,12 @@ module Control.Eff.Extend
   ( -- * The effect monad
     Eff(..)
   , run
+  , eff, impurePrj, impureDecomp
+    -- * Lifting operations
+  , Lift(..), Lifted, LiftedBase
+  , lift, runLift
+  , catchDynE
+  , HandlerDynE(..), catchesDynE
     -- * Open Unions
   , OpenUnion.Union
   , OpenUnion.Member
@@ -15,9 +21,12 @@ module Control.Eff.Extend
   , SetMember
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
+  , Handle, handle
+  , Relay, relay
   , handle_relay
-  , handle_relay_s
-  , interpose
+  , handle_relay'
+  , respond_relay
+  , respond_relay'
   , raise
   , send
   -- * Arrow types and compositions
@@ -32,7 +41,8 @@ module Control.Eff.Extend
   , comp
   , (^|>)
   , qComp
-  , qComps
+  , qComps, (^|$^)
+  , (~^), qThen, andThen
   )
 where
 

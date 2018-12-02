@@ -7,7 +7,6 @@ module Control.Eff.Reader.Strict.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
-import Control.Eff.Lift
 import Control.Eff.Reader.Strict
 import Utils
 

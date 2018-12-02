@@ -1,5 +1,5 @@
 
-# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg))
+# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg), ![GHC](https://img.shields.io/badge/GHC-8.02%20%7C%208.2.2%20%7C%208.4.4%20%7C%208.6.2-blue.svg))
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)
@@ -310,8 +310,3 @@ Some examples where the cost of extensibility is apparent:
     point of having the grouping in the first place.
   * Code requires a greater number of type annotations. For details see
     [#31](https://github.com/suhailshergill/extensible-effects/issues/31).
-
-### Current implementation only supports GHC version 7.8 and above
-This is not a fundamental limitation of the design or the approach, but there is
-an overhead with making the code compatible across a large number of GHC
-versions. If this is needed, patches are welcome :)

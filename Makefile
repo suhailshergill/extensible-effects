@@ -1,7 +1,7 @@
-GHCS = 7.8.4 7.10.3 8.0.2 8.2.2 8.4.3 8.6.1
+GHCS = 8.0.2 8.2.2 8.4.4 8.6.2
 
 # default ghc-version for targets, can be overwritten by make-
-GHC = 8.4.3
+GHC = 8.4.4
 STACK_YAML_ARG = --stack-yaml=stack/stack-$(GHC).yaml
 STACK_CMD = stack $(STACK_YAML_ARG)
 

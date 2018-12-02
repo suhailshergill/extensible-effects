@@ -7,8 +7,10 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Safe #-}
+{-# LANGUAGE TypeApplications #-}
 -- | Lazy read-only state
 module Control.Eff.Reader.Lazy ( Reader (..)
+                              , withReader
                               , ask
                               , local
                               , reader
@@ -17,7 +19,6 @@ module Control.Eff.Reader.Lazy ( Reader (..)
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -46,6 +47,13 @@ data Reader e v where
 -- ^ In the latter case, when we make the request, we make it as Reader id.
 -- So, strictly speaking, GADTs are not really necessary.
 
+-- | How to interpret a pure value in a reader context
+withReader :: Monad m => a -> e -> m a
+withReader x _ = return x
+-- | Given a value to read, and a callback, how to respond to
+-- requests.
+instance Handle (Reader e) (e -> r) where
+  handle k Ask e = k e e
 
 -- | Get the current value from a Reader.
 -- The signature is inferred (when using NoMonomorphismRestriction).
@@ -54,10 +62,8 @@ ask = send Ask
 
 -- | The handler of Reader requests. The return type shows that all Reader
 -- requests are fully handled.
-runReader :: e -> Eff (Reader e ': r) w -> Eff r w
-runReader e = handle_relay
-  return
-  (\Ask -> ($ e))
+runReader :: forall e r w. e -> Eff (Reader e ': r) w -> Eff r w
+runReader e m = handle_relay withReader m e
 
 -- | Locally rebind the value in the dynamic environment This function is like a
 -- relay; it is both an admin for Reader requests, and a requestor of them.
@@ -65,18 +71,15 @@ local :: forall e a r. Member (Reader e) r =>
          (e -> e) -> Eff r a -> Eff r a
 local f m = do
   e <- reader f
-  let
-    h :: Reader e t -> (t -> Eff r b) -> Eff r b
-    h Ask = ($ e)
-  interpose return h m
+  respond_relay' @(Reader e) withReader m e
+  -- or we could redefine handle and pass it to respond_relay
 
 -- | Request the environment value using a transformation function.
 reader :: (Member (Reader e) r) => (e -> a) -> Eff r a
 reader f = f `fmap` ask
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) s
-         , MonadBaseControl m (Eff s)
+         , LiftedBase m s
          ) => MonadBaseControl m (Eff (Reader e ': s)) where
     type StM (Eff (Reader e ': s)) a = StM (Eff s) a
     liftBaseWith f = do e <- ask

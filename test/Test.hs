@@ -7,7 +7,6 @@ import qualified Control.Eff.Cut.Test
 import qualified Control.Eff.Example.Test
 import qualified Control.Eff.Exception.Test
 import qualified Control.Eff.Fresh.Test
-import qualified Control.Eff.Lift.Test
 import qualified Control.Eff.NdetEff.Test
 import qualified Control.Eff.Operational.Test
 import qualified Control.Eff.Reader.Lazy.Test
@@ -34,7 +33,6 @@ testGroups = []
              ++ Control.Eff.Example.Test.testGroups
              ++ Control.Eff.Exception.Test.testGroups
              ++ Control.Eff.Fresh.Test.testGroups
-             ++ Control.Eff.Lift.Test.testGroups
              ++ Control.Eff.NdetEff.Test.testGroups
              ++ Control.Eff.Operational.Test.testGroups
              ++ Control.Eff.Reader.Lazy.Test.testGroups

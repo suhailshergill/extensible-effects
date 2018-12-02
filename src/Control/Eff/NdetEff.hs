@@ -13,11 +13,20 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Another implementation of nondeterministic choice effect
-module Control.Eff.NdetEff where
+module Control.Eff.NdetEff (
+  NdetEff
+  , withNdetEff
+  , left, right
+  , makeChoiceA
+  , makeChoiceA0
+  , makeChoiceLst
+  , msplit1
+  , module Control.Eff.Logic
+  ) where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
+import Control.Eff.Logic
 
 import Control.Applicative
 import Control.Monad
@@ -31,6 +40,20 @@ data NdetEff a where
   MZero :: NdetEff a
   MPlus :: NdetEff Bool
 
+-- | How to embed a pure value in non-deterministic context
+withNdetEff :: Alternative f => Monad m => a -> m (f a)
+withNdetEff = return . pure
+-- | The left branch
+left :: (Bool -> k) -> k
+left k = k True
+-- | The right branch
+right :: (Bool -> k) -> k
+right k = k False
+-- | Given a callback and NdetEff requests respond to them
+instance (Alternative f, Monad m) => Handle NdetEff (m (f a)) where
+  handle _ MZero = return empty
+  handle k MPlus = liftM2 (<|>) (left k) (right k)
+
 instance Member NdetEff r => Alternative (Eff r) where
   empty = mzero
   (<|>) = mplus
@@ -40,8 +63,7 @@ instance Member NdetEff r => MonadPlus (Eff r) where
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
 
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (NdetEff ': r)) where
     type StM (Eff (NdetEff ': r)) a = StM (Eff r) [a]
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
@@ -54,66 +76,53 @@ instance ( MonadBase m m
 -- The cause probably is mapping every failure to empty
 -- It takes then a lot of timne and space to store those empty
 makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0 = handle_relay (return . pure) $ \m k -> case m of
-    MZero -> return empty
-    MPlus -> liftM2 (<|>) (k True) (k False)
+makeChoiceA0 = handle_relay withNdetEff
 
 -- | A different implementation, more involved but faster and taking
 -- much less (100 times) less memory.
 -- The benefit of the effect framework is that we can have many
 -- interpreters.
 makeChoiceA :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA m = loop [] m
- where
-   loop [] (Val x)    = return (pure x)
-   loop (h:t) (Val x) = loop t h >>= \r -> return (pure x <|> r)
-   loop jq (E u q) = case  decomp u of
-     Right MZero     -> case jq of
-       []    -> return empty
-       (h:t) -> loop t h
-     Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
-     Left  u0 -> E u0 (singleK (\x -> loop jq (q ^$ x)))
+makeChoiceA m = loop [] m where
+  loop [] (Val x)    = withNdetEff x
+  loop (h:t) (Val x) = liftM2 (<|>) (withNdetEff x) (loop t h)
+  loop jq (E q u) = case  decomp u of
+    Right MZero     -> case jq of
+      []    -> return empty
+      (h:t) -> loop t h
+    Right MPlus -> loop (q ^$ False : jq) (q ^$ True)
+    Left  u0 -> E (q ^|$^ (loop jq)) u0
 
 -- | Same as makeChoiceA, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
 makeChoiceLst :: Eff (NdetEff ': r) a -> Eff r [a]
 makeChoiceLst = makeChoiceA
--- ------------------------------------------------------------------------
--- Soft-cut: non-deterministic if-then-else, aka Prolog's *->
--- Declaratively,
---    ifte t th el = (t >>= th) `mplus` ((not t) >> el)
--- However, t is evaluated only once. In other words, ifte t th el
--- is equivalent to t >>= th if t has at least one solution.
--- If t fails, ifte t th el is the same as el.
 
--- We actually implement LogicT, the non-determinism reflection,
--- of which soft-cut is one instance.
--- See the LogicT paper for an explanation
-msplit :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit = loop []
+-- | We actually implement LogicT, the non-determinism reflection, of
+-- which soft-cut is one instance. Straightforward implementation
+-- using 'respond_relay'. See the LogicT paper for an explanation.
+instance Member NdetEff r => MSplit (Eff r) where
+  msplit = respond_relay (flip withMSplit empty) $ \k x -> case x of
+    MZero -> return Nothing              -- definite failure
+    MPlus -> left k >>= \r -> case r of  -- check left first
+      Nothing -> right k                 -- failure, continue exploring
+      Just(a, m) -> withMSplit a (m <|> (right k >>= reflect)) -- definite success
+
+-- | A different implementation, more involved. Unclear whether this
+-- is faster or not.
+msplit1 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit1 = loop []
  where
- -- singleK result
- loop [] (Val x)  = return (Just (x,mzero))
+ -- single result
+ loop [] (Val x)  = withMSplit x mzero
  -- definite result and perhaps some others
- loop jq (Val x)  = return (Just (x, msum jq))
+ loop jq (Val x)  = withMSplit x (msum jq)
  -- not yet definite answer
- loop jq (E u q)  = case prj u of
+ loop jq (E q u)  = case prj u of
   Just MZero -> case jq of
                    -- no futher choices
                    []     -> return Nothing
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
   Just MPlus -> loop ((q ^$ False):jq) (q ^$ True)
-  _          -> E u (qComps q (loop jq))
-
--- Other committed choice primitives can be implemented in terms of msplit
--- The following implementations are directly from the LogicT paper
-ifte :: Member NdetEff r => Eff r a -> (a -> Eff r b) -> Eff r b -> Eff r b
-ifte t th el = msplit t >>= check
- where check Nothing          = el
-       check (Just (sg1,sg2)) = (th sg1) `mplus` (sg2 >>= th)
-
-once :: Member NdetEff r => Eff r a -> Eff r a
-once m = msplit m >>= check
- where check Nothing        = mzero
-       check (Just (sg1,_)) = return sg1
+  _          -> E (q ^|$^ (loop jq)) u

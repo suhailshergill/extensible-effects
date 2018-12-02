@@ -8,12 +8,12 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TypeOperators #-}
 {-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE TypeApplications #-}
 -- | Lazy state effect
 module Control.Eff.State.Lazy where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
@@ -42,9 +42,20 @@ data State s v where
   Get :: State s s
   Put :: s -> State s ()
 
+-- | Embed a pure value in a stateful computation, i.e., given an
+-- initial state, how to interpret a pure value in a stateful
+-- computation.
+withState :: Monad m => a -> s -> m (a, s)
+withState x s = return (x, s)
+
+-- | Handle 'State s' requests
+instance Handle (State s) (s -> r) where
+  handle k sreq s = case sreq of
+    Get    -> k s s
+    Put s' -> k () s'
+
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (State s ': r)) where
     type StM (Eff (State s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get
@@ -81,11 +92,7 @@ put s = send (Put s)
 -- | Run a state effect. compared to the @runState@ function, this is
 --   implemented naively and is expected to perform slower.
 runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
-runState' s =
-  handle_relay_s s (\s0 x -> return (x,s0))
-                   (\s0 sreq k -> case sreq of
-                       Get    -> k s0 s0
-                       Put s1 -> k s1 ())
+runState' s m = handle_relay withState m s
 
 -- | Run a State effect. This variant is a bit optimized compared to
 --   @runState'@.
@@ -93,10 +100,10 @@ runState :: s                     -- ^ Initial state
          -> Eff (State s ': r) a  -- ^ Effect incorporating State
          -> Eff r (a, s)          -- ^ Effect containing final state and a return value
 runState s (Val x) = return (x,s)
-runState s (E u q) = case decomp u of
+runState s (E q u) = case decomp u of
   Right Get     -> runState s (q ^$ s)
   Right (Put s1) -> runState s1 (q ^$ ())
-  Left  u1 -> E u1 (singleK (\x -> runState s (q ^$ x)))
+  Left  u1 -> E (singleK (\x -> runState s (q ^$ x))) u1
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -113,29 +120,33 @@ execState s = fmap snd . runState s
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished
 -- successfully
-data TxState s = TxState
-transactionState :: forall s r a. Member (State s) r =>
-                    TxState s -> Eff r a -> Eff r a
-transactionState _ m = do s <- get; loop s m
- where
-   loop :: s -> Eff r a -> Eff r a
-   loop s (Val x) = put s >> return x
-   loop s (E (u::Union r b) q) = case prj u :: Maybe (State s b) of
-     Just Get      -> loop s (q ^$ s)
-     Just (Put s') -> loop s'(q ^$ ())
-     _             -> E u (qComps q (loop s))
+data TxState s v where
+  TxState :: TxState s s
+type TxStateT s = TxState s s
+
+-- | Embed Transactional semantics to a stateful computation.
+withTxState :: Member (State s) r => a -> s -> Eff r a
+withTxState x s = put s >> return x
+
+-- | Confer transactional semantics on a stateful computation.
+transactionState :: forall s r a. Member (State s) r
+                 => TxStateT s -> Eff r a -> Eff r a
+transactionState _ m = do
+  s <- get
+  (respond_relay' @(State s) (withTxState @s)) m s
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
-runStateR s m = loop s m
+runStateR = loop
  where
    loop :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
-   loop s0 (Val x) = return (x,s0)
-   loop s0 (E u q) = case decomp u of
-     Right (Tell w) -> k w ()
+   loop s (Val x) = x `withState` s
+   loop s (E q u) = case decomp u of
+     Right (Tell w) -> handle k (Put w) s
      Left  u1  -> case decomp u1 of
-       Right Ask -> k s0 s0
-       Left u2 -> E u2 (singleK (k s0))
-    where k x = qComp q (loop x)
+       Right Ask -> handle k Get s
+       Left u2 -> relay k u2 s
+    where k = connect loop q
+   connect nxt q = \s x -> qComp q (nxt x) s

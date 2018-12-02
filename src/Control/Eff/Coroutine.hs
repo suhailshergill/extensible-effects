@@ -5,6 +5,7 @@
 {-# LANGUAGE Safe #-}
 -- | Coroutines implemented with extensible effects
 module Control.Eff.Coroutine( Yield (..)
+                            , withCoroutine
                             , yield
                             , runC
                             , Y (..)
@@ -35,13 +36,16 @@ yield x = send (Yield x)
 --
 --   Type parameter @w@ is the type of the value returned from the
 --   coroutine when it has completed.
-data Y r a w = Y a (w -> Eff r (Y r a w))
+data Y r w a = Y (w -> Eff r (Y r w a)) a
              | Done
 
+-- | Return a pure value
+withCoroutine :: Monad m => b -> m (Y r w a)
+withCoroutine = const $ return Done
+-- | Given a continuation and a request, respond to it
+instance Handle (Yield a b) (Eff r (Y r b a)) where
+  handle k (Yield a) = return $ Y k a
 
 -- | Launch a thread and report its status
-runC :: Eff (Yield a b ': r) w -> Eff r (Y r a b)
-runC m = handle_relay
-  (const $ return Done)
-  (\(Yield a) k -> return $ Y a k)
-   m
+runC :: Eff (Yield a b ': r) w -> Eff r (Y r b a)
+runC = handle_relay withCoroutine

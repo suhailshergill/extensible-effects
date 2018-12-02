@@ -13,10 +13,10 @@ module Control.Eff.State.OnDemand where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Lift
 
 import Control.Eff.Writer.Lazy
 import Control.Eff.Reader.Lazy
+import qualified Control.Eff.State.Lazy as S
 
 import Control.Monad.Base
 import Control.Monad.Trans.Control
@@ -33,9 +33,15 @@ data OnDemandState s v where
   Put  :: s -> OnDemandState s ()
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
 
+-- | Given a continuation, respond to requests
+instance Handle (OnDemandState s) (s -> r) where
+  handle k Get s = k s s
+  handle k (Put s) _ = k () s
+  handle k (Delay m) s = let ~(x, s') = run $ handle_relay S.withState m s
+                         in k x s'
+
 instance ( MonadBase m m
-         , SetMember Lift (Lift m) r
-         , MonadBaseControl m (Eff r)
+         , LiftedBase m r
          ) => MonadBaseControl m (Eff (OnDemandState s ': r)) where
     type StM (Eff (OnDemandState s ': r)) a = StM (Eff r) (a,s)
     liftBaseWith f = do s <- get
@@ -74,27 +80,20 @@ onDemand :: Member (OnDemandState s) r => Eff '[OnDemandState s] v -> Eff r v
 onDemand = send . Delay
 
 runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
-runState' s =
-  handle_relay_s s
-  (\s0 x -> return (x,s0))
-  (\s0 sreq k -> case sreq of
-      Get    -> k s0 s0
-      Put s1 -> k s1 ()
-      Delay m1 -> let ~(x,s1) = run $ runState' s0 m1
-                  in k s1 x)
+runState' s m = handle_relay S.withState m s
 
 -- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
 runState :: s                            -- ^ Initial state
          -> Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
          -> Eff r (w,s)                  -- ^ Effect containing final state and a return value
-runState s (Val x) = return (x,s)
-runState s0 (E u0 q) = case decomp u0 of
+runState s (Val x) = S.withState x s
+runState s0 (E q u0) = case decomp u0 of
   Right Get     -> runState s0 (q ^$ s0)
   Right (Put s1) -> runState s1 (q ^$ ())
   Right (Delay m1) -> let ~(x,s1) = run $ runState s0 m1
                       in runState s1 (q ^$ x)
-  Left  u -> E u (singleK (\x -> runState s0 (q ^$ x)))
+  Left  u -> E (singleK (\x -> runState s0 (q ^$ x))) u
 
 -- | Transform the state with a function.
 modify :: (Member (OnDemandState s) r) => (s -> s) -> Eff r ()
@@ -112,16 +111,13 @@ execState s = fmap snd . runState s
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-runStateR s0 m0 = loop s0 m0
- where
-   loop :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
-   loop s (Val x) = return (x,s)
-   loop s (E u0 q) = case decomp u0 of
-     Right (Tell w) -> k w ()
-     Left  u  -> case decomp u of
-       Right Ask -> k s s
-       Left u1 -> E u1 (singleK (k s))
-    where k x = qComp q (loop x)
+runStateR s (Val x) = S.withState x s
+runStateR s (E q u) = case decomp u of
+  Right (Tell w) -> handle k (S.Put w) s
+  Left  u1  -> case decomp u1 of
+    Right Ask -> handle k S.Get s
+    Left u2 -> relay k u2 s
+  where k s' x = qComp q (runStateR x) s'
 
 -- | Backwards state
 -- The overall state is represented with two attributes: the inherited
@@ -136,7 +132,7 @@ runStateBack0 m =
  where
    go :: s -> Eff '[OnDemandState s] a -> (a,s)
    go s (Val x) = (x,s)
-   go s0 (E u q) = case decomp u of
+   go s0 (E q u) = case decomp u of
          Right Get      -> go s0 $ (q ^$ s0)
          Right (Put s1)  -> let ~(x,sp) = go sp $ (q ^$ ()) in (x,s1)
          Right (Delay m1) -> let ~(x,s1) = go s0 m1 in go s1 $ (q ^$ x)
@@ -152,12 +148,13 @@ runStateBack m =
   (x,head sp)
  where
    go :: ([s],[s]) -> Eff '[OnDemandState s] a -> Eff '[] (a,([s],[s]))
-   go ss = handle_relay_s ss (\ss0 x -> return (x,ss0))
-                   (\ss0@(sg,sp) req k -> case req of
-                       Get    -> k ss0 (head sg)
-                       Put s1  -> k (tail sg,sp++[s1]) ()
-                       Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
-                                   in k ss1 x)
+   go s m' = handle_relay' S.withState
+             (\k req ss0@(sg,sp) -> case req of
+                 Get    -> k (head sg) ss0
+                 Put s1  -> k () (tail sg,sp++[s1])
+                 Delay m1 -> let ~(x,ss1) = run $ go ss0 m1
+                             in k x ss1)
+             m' s
 
 -- ^ A different notion of `backwards' is realized if we change the Put
 -- handler slightly. How?

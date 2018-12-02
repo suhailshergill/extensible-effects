@@ -24,6 +24,11 @@ module Control.Eff
   ( -- * Effect type
     Internal.run
   , Internal.Eff
+    -- * Lift IO computations
+  , Internal.lift, Internal.runLift
+  , Internal.catchDynE
+  , Internal.HandlerDynE(..), Internal.catchesDynE
+  , Internal.Lift(..), Internal.Lifted, Internal.LiftedBase
     -- * Effect list
   , OpenUnion.Member
   , OpenUnion.SetMember

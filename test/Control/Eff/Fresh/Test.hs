@@ -6,8 +6,8 @@
 module Control.Eff.Fresh.Test (testGroups) where
 
 import Test.HUnit hiding (State)
+import Control.Eff
 import Control.Eff.Fresh
-import Control.Eff.Lift
 import Control.Eff.Trace
 import Utils
 
@@ -22,13 +22,13 @@ case_Fresh_tfresh' = do
   assertEqual "Fresh: test"
     (unlines ["Fresh 0", "Fresh 1"]) actual
   where
-    tfresh' = runTrace $ flip runFresh' 0 $ do
+    tfresh' = runTrace $ runFresh' 0 $ do
       n <- fresh
       trace $ "Fresh " ++ show n
       n <- fresh
       trace $ "Fresh " ++ show n
 
 case_Fresh_monadBaseControl :: Assertion
-case_Fresh_monadBaseControl = runLift (runFresh' (doThing $ fresh >> fresh) i) @=? Just (i + 1)
+case_Fresh_monadBaseControl = runLift (runFresh' i (doThing $ fresh >> fresh)) @=? Just (i + 1)
   where
     i = 0
