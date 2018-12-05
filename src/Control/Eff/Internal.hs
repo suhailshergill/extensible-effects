@@ -269,9 +269,22 @@ handle_relay' ret h = fix step
                   (relay `andThen` next))
 
 -- | Intercept the request and possibly respond to it, but leave it
--- unhandled. The @Relay k r@ constraint ensures that @k@ is an
--- effectful computation (with effectlist @r@). As such, the effect
--- type @t@ will show up in the response type @k@.
+-- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
+-- computation (with effectlist @r@). As such, the effect type @t@ will show up
+-- in the response type @k@. There are two natural / commmon options for @k@:
+-- the implicit effect domain (i.e., Eff r (f a)), or the explicit effect domain
+-- (i.e., s1 -> s2 -> ... -> sn -> Eff r (f a s1 s2 ... sn)).
+--
+-- There are three different ways in which we may want to alter behaviour:
+-- 1] __Before__: This work should be done before 'respond_relay' is called.
+-- 2] __During__: This work should be done by altering the handler being passed
+-- to 'respond_relay'. This allows us to modify the requests "in flight".
+-- 3] __After__: This work should be done be altering the 'ret' being passed to
+-- 'respond_relay'. This allows us to overwrite changes or discard them
+-- altogether. If this seems magical, note that we have the flexibility of
+-- altering the target domain 'k'. Specifically, the explicit domain
+-- representation gives us access to the "effect" realm allowing us to
+-- manipulate it directly.
 respond_relay :: Member t r => Relay k r
               => (a -> k)
               -> (forall v. (v -> k) -> t v -> k)
@@ -283,9 +296,10 @@ respond_relay ret h = fix step
                   (h `andThen` next)
                   (relay `andThen` next))
 
--- | A less common variant which uses the default 'handle' from the
--- @Handle t k@ instance (in general, we may need to define new
--- datatypes to call respond_relay with the default handler).
+-- | A less common variant which uses the default 'handle' from the @Handle t k@
+-- instance (in general, we may need to define new datatypes to call
+-- respond_relay with the default handler). Note this variant doesn't allow us
+-- to alter effects "during" their execution.
 respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
                => (a -> k)
                -> Eff r a -> k
