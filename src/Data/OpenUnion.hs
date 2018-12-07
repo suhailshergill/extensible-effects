@@ -1,5 +1,6 @@
 {-# OPTIONS_HADDOCK show-extensions #-}
 {-# OPTIONS_GHC -Wwarn #-}
+{-# OPTIONS_GHC -Wno-missing-pattern-synonym-signatures #-}
 
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE DataKinds #-}
@@ -8,6 +9,7 @@
 {-# LANGUAGE GADTs #-}
 {-# LANGUAGE MultiParamTypeClasses #-}
 {-# LANGUAGE PolyKinds #-}
+{-# LANGUAGE PatternSynonyms, ViewPatterns #-}
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE TypeFamilies #-}
@@ -51,8 +53,8 @@
 -- The interface is the same as of other OpenUnion*.hs
 module Data.OpenUnion ( Union
                       , inj
-                      , prj
-                      , decomp
+                      , prj, pattern U0'
+                      , decomp, pattern U0, pattern U1
                       , Member
                       , SetMember
                       , type(<::)
@@ -93,6 +95,11 @@ class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)
 
+-- | Pattern synonym to project the union onto the effect 't'.
+pattern U0' :: Member t r => t v -> Union r v
+pattern U0' h <- (prj -> Just h) where
+  U0' h = inj h
+
 -- | Explicit type-level equality condition is a dirty
 -- hack to eliminate the type annotation in the trivial case,
 -- such as @run (runReader () get)@.
@@ -131,9 +138,20 @@ type family (<::) (ms :: [* -> *]) r where
   (<::) (m ': ms) r = (Member m r, (<::) ms r)
 
 {-# INLINE [2] decomp #-}
+-- | Orthogonal decomposition of the union: head and the rest.
 decomp :: Union (t ': r) v -> Either (Union r v) (t v)
 decomp (Union 0 v) = Right $ unsafeCoerce v
 decomp (Union n v) = Left  $ Union (n-1) v
+
+-- | Some helpful pattern synonyms.
+-- U0 : the first element of the union
+pattern U0 :: t v -> Union (t ': r) v
+pattern U0 h <- (decomp -> Right h) where
+  U0 h = inj h
+-- | U1 : everything excluding the first element of the union.
+pattern U1 t <- (decomp -> Left t) where
+  U1 t = weaken t
+{-# COMPLETE U0, U1 #-}
 
 -- Specialized version
 {-# RULES "decomp/singleton"  decomp = decomp0 #-}
