@@ -66,25 +66,18 @@ cutfalse = throwError CutFalse
 -- discards the remaining choicepoints.  It completely handles CutFalse effects
 -- but not non-determinism
 call :: forall a r. Member Choose r => Eff (Exc CutFalse ': r) a -> Eff r a
-call m = loop [] m where
+call m = loop m [] where
   loop :: Member Choose r
-       => [Eff (Exc CutFalse ': r) a]
-       -> Eff (Exc CutFalse ': r) a
+       => Eff (Exc CutFalse ': r) a
+       -> [Eff (Exc CutFalse ': r) a]
        -> Eff r a
-  loop jq (Val x) = return x `mplus'` next jq          -- (C2)
-  loop jq (E q u) = case decomp u of
-    Right (Exc CutFalse) -> mzero'  -- drop jq (F2)
-    Left u0 -> check jq u0 q
+  loop (Val x) jq = return x `mplus` next jq             -- (C2)
+  loop (E q u) jq = case u of
+    U0 (Exc CutFalse)     -> next []                     -- drop jq (F2)
+    U1 (U0' (Choose []))  -> next jq                     -- (C1)
+    U1 (U0' (Choose [x])) -> loop (q ^$ x) jq            -- (C3), optim
+    U1 (U0' (Choose lst)) -> next $ map (q ^$) lst ++ jq -- (C3)
+    U1 u'                 -> loop (E q (U1 u')) jq       -- (C4)
 
-  check :: forall b. [Eff (Exc CutFalse ': r) a]
-        -> Union r b -> Arrs (Exc CutFalse ': r) b a -> Eff r a
-  check jq u _ | Just (Choose []) <- prj u  = next jq  -- (C1)
-  check jq u q | Just (Choose [x]) <- prj u = loop jq (q ^$ x)  -- (C3), optim
-  check jq u q | Just (Choose lst) <- prj u = next $ map (q ^$) lst ++ jq -- (C3)
-  check jq u q = loop jq (E q (weaken u))     -- (C4)
-
-  next :: Member Choose r
-       => [Eff (Exc CutFalse ': r) a]
-       -> Eff r a
-  next []    = mzero'
-  next (h:t) = loop t h
+  next []    = mzero
+  next (h:t) = loop h t
