@@ -139,13 +139,12 @@ transactionState _ m = do
 -- (Writer) and Reading. We don't define any new effects: we just handle the
 -- existing ones.  Thus we define a handler for two effects together.
 runStateR :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
-runStateR !s m = loop s m
+runStateR !s m = loop m s
  where
-   loop :: s -> Eff (Writer s ': Reader s ': r) a -> Eff r (a, s)
-   loop s0 (Val x) = x `withState` s0
-   loop s0 (E q u) = case decomp u of
-     Right (Tell w) -> handle k (Put w) s0
-     Left  u1  -> case decomp u1 of
-       Right Ask -> handle k Get s0
-       Left u2 -> relay k u2 s0
-    where k s' x = qComp q (loop x) s'
+   loop :: Eff (Writer s ': Reader s ': r) a -> s -> Eff r (a, s)
+   loop (Val x) = withState x
+   loop (E q u) = case u of
+     U0 (Tell w) -> handle k (Put w)
+     U1 (U0 Ask) -> handle k Get
+     U1 (U1 u') -> relay k u'
+    where k = qComp q loop
