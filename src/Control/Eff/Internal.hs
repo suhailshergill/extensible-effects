@@ -232,8 +232,10 @@ run (E _ union) =
 class Relay k r where
   relay :: (v -> k) -> Union r v -> k
 instance Relay (Eff r w) r where
+  {-# INLINABLE relay #-}
   relay q u = E (singleK q) u
 instance Relay k r => Relay (s -> k) r where
+  {-# INLINABLE relay #-}
   relay q u s = relay (\x -> q x s) u
 
 -- | Respond to requests of type 't'.
