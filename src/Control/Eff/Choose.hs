@@ -15,8 +15,6 @@ module Control.Eff.Choose ( Choose (..)
                           , withChoose
                           , choose
                           , makeChoice
-                          , mzero'
-                          , mplus'
                           , module Control.Eff.Logic
                           ) where
 
@@ -63,21 +61,13 @@ choose :: Member Choose r => [a] -> Eff r a
 choose lst = send $ Choose lst
 
 -- | MonadPlus-like operators are expressible via choose
-mzero' :: Member Choose r => Eff r a
-mzero' = choose []
-
--- | MonadPlus-like operators are expressible via choose
-mplus' :: Member Choose r => Eff r a -> Eff r a -> Eff r a
-mplus' m1 m2 = join $ choose [m1,m2]
-
--- | MonadPlus-like operators are expressible via choose
 instance Member Choose r => Alternative (Eff r) where
-  empty = mzero'
-  (<|>) = mplus'
+  empty = mzero
+  (<|>) = mplus
 
 instance Member Choose r => MonadPlus (Eff r) where
-  mzero = empty
-  mplus = (<|>)
+  mzero = choose []
+  mplus m1 m2 = join $ choose [m1,m2]
 
 -- | Run a nondeterministic effect, returning all values.
 makeChoice :: forall a r. Eff (Choose ': r) a -> Eff r [a]
