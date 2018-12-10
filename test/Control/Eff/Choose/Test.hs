@@ -9,6 +9,7 @@ import Control.Eff.Example
 import Control.Eff.Example.Test (ex2)
 import Control.Eff.Exception
 import Control.Eff.Choose
+import Control.Eff.Logic.Test
 import Utils
 
 import Test.Framework.TH
@@ -61,3 +62,6 @@ case_Choose_exRec =
 
 case_Choose_monadBaseControl :: Assertion
 case_Choose_monadBaseControl = runLift (makeChoice $ doThing $ choose [1,2,3]) @=? Just [1,2,3]
+
+case_Choose_cut :: Assertion
+case_Choose_cut = testCut makeChoice

@@ -10,6 +10,7 @@ import Control.Eff
 import Control.Eff.NdetEff
 import Control.Eff.Writer.Strict
 import Control.Monad (msum, guard, mzero, mplus)
+import Control.Eff.Logic.Test
 import Utils
 
 import Test.Framework.TH
@@ -78,3 +79,6 @@ case_NdetEff_reflect =
 
 case_NdetEff_monadBaseControl :: Assertion
 case_NdetEff_monadBaseControl = runLift (makeChoiceA $ doThing (return 1 <|> return 2)) @=? Just [1,2]
+
+case_NdetEff_cut :: Assertion
+case_NdetEff_cut = testCut makeChoiceA

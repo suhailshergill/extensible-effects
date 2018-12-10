@@ -62,7 +62,6 @@ library
   exposed-modules:     Control.Eff
                        Control.Eff.Choose
                        Control.Eff.Coroutine
-                       Control.Eff.Cut
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
@@ -148,10 +147,10 @@ test-suite extensible-effects-tests
                 , Control.Eff.Test
                 , Control.Eff.Choose.Test
                 , Control.Eff.Coroutine.Test
-                , Control.Eff.Cut.Test
                 , Control.Eff.Example.Test
                 , Control.Eff.Exception.Test
                 , Control.Eff.Fresh.Test
+                , Control.Eff.Logic.Test
                 , Control.Eff.NdetEff.Bench
                 , Control.Eff.NdetEff.Test
                 , Control.Eff.Operational.Test

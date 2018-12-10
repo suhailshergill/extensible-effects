@@ -3,7 +3,6 @@ import Test.Framework (defaultMain, Test)
 import qualified Control.Eff.Test
 import qualified Control.Eff.Choose.Test
 import qualified Control.Eff.Coroutine.Test
-import qualified Control.Eff.Cut.Test
 import qualified Control.Eff.Example.Test
 import qualified Control.Eff.Exception.Test
 import qualified Control.Eff.Fresh.Test
@@ -29,7 +28,6 @@ testGroups = []
              ++ Control.Eff.Test.testGroups
              ++ Control.Eff.Choose.Test.testGroups
              ++ Control.Eff.Coroutine.Test.testGroups
-             ++ Control.Eff.Cut.Test.testGroups
              ++ Control.Eff.Example.Test.testGroups
              ++ Control.Eff.Exception.Test.testGroups
              ++ Control.Eff.Fresh.Test.testGroups
