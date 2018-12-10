@@ -10,17 +10,17 @@
 -- (there is no recursion!), but GHC cannot see that.
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Nondeterministic choice effect
-module Control.Eff.Choose ( Choose (..)
-                          , withChoose
-                          , choose
-                          , makeChoice
-                          , module Control.Eff.Logic
-                          ) where
+-- | Nondeterministic choice effect via List interface
+module Control.Eff.Logic.Choose ( Choose (..)
+                                , withChoose
+                                , choose
+                                , makeChoice
+                                , module Control.Eff.Logic.Core
+                                ) where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Logic
+import Control.Eff.Logic.Core
       
 import Control.Applicative
 import Control.Monad

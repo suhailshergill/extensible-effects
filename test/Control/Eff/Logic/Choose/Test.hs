@@ -1,14 +1,14 @@
 {-# LANGUAGE FlexibleContexts, AllowAmbiguousTypes #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Control.Eff.Choose.Test (testGroups) where
+module Control.Eff.Logic.Choose.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Example
 import Control.Eff.Example.Test (ex2)
 import Control.Eff.Exception
-import Control.Eff.Choose
+import Control.Eff.Logic.Choose
 import Control.Eff.Logic.Test
 import Utils
 

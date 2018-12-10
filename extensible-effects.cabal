@@ -60,13 +60,13 @@ library
   ghc-options:         -Wall
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
-                       Control.Eff.Choose
                        Control.Eff.Coroutine
                        Control.Eff.Example
                        Control.Eff.Exception
                        Control.Eff.Fresh
-                       Control.Eff.Logic
-                       Control.Eff.NdetEff
+                       Control.Eff.Logic.Core
+                       Control.Eff.Logic.Choose
+                       Control.Eff.Logic.NdetEff
                        Control.Eff.Operational
                        Control.Eff.Operational.Example
                        Control.Eff.Reader.Lazy
@@ -145,14 +145,14 @@ test-suite extensible-effects-tests
   hs-source-dirs: test/
   other-modules:  Utils
                 , Control.Eff.Test
-                , Control.Eff.Choose.Test
                 , Control.Eff.Coroutine.Test
                 , Control.Eff.Example.Test
                 , Control.Eff.Exception.Test
                 , Control.Eff.Fresh.Test
+                , Control.Eff.Logic.Choose.Test
+                , Control.Eff.Logic.NdetEff.Bench
+                , Control.Eff.Logic.NdetEff.Test
                 , Control.Eff.Logic.Test
-                , Control.Eff.NdetEff.Bench
-                , Control.Eff.NdetEff.Test
                 , Control.Eff.Operational.Test
                 , Control.Eff.Reader.Lazy.Test
                 , Control.Eff.Reader.Strict.Test

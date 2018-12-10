@@ -2,7 +2,7 @@
 {-# LANGUAGE ViewPatterns #-}
 
 -- | Logic primitives. See LogicT paper for details.
-module Control.Eff.Logic where
+module Control.Eff.Logic.Core where
 
 import Control.Monad
 import Data.Function (fix)

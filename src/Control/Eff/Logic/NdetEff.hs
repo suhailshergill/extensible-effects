@@ -12,8 +12,8 @@
 -- (there is no recursion!), but GHC cannot see that.
 {-# LANGUAGE UndecidableInstances #-}
 
--- | Another implementation of nondeterministic choice effect
-module Control.Eff.NdetEff (
+-- | Nondeterministic choice effect via MPlus interface directly
+module Control.Eff.Logic.NdetEff (
   NdetEff
   , withNdetEff
   , left, right
@@ -21,12 +21,12 @@ module Control.Eff.NdetEff (
   , makeChoiceA0
   , makeChoiceLst
   , msplit1
-  , module Control.Eff.Logic
+  , module Control.Eff.Logic.Core
   ) where
 
 import Control.Eff
 import Control.Eff.Extend
-import Control.Eff.Logic
+import Control.Eff.Logic.Core
 
 import Control.Applicative
 import Control.Monad

@@ -31,10 +31,10 @@
 -- To run this code
 -- GHCRTS="-tstderr" /usr/bin/time ./Bench_nondet
 
-module Control.Eff.NdetEff.Bench where
+module Control.Eff.Logic.NdetEff.Bench where
 
 import Control.Eff
-import qualified Control.Eff.NdetEff as E
+import qualified Control.Eff.Logic.NdetEff as E
 
 import Data.List (sort)
 -- import Control.Monad.Identity

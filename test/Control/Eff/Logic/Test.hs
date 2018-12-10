@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -Wmissing-signatures #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE TemplateHaskell #-}
@@ -7,7 +6,7 @@ module Control.Eff.Logic.Test where
 
 import Test.HUnit hiding (State)
 import Control.Eff
-import Control.Eff.Logic
+import Control.Eff.Logic.Core
 import Control.Monad
 
 import Test.Framework.TH
