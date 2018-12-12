@@ -3,6 +3,8 @@
 *.ignore
 *.ignore.*
 
+TAGS
+
 dist
 scripts
 .cabal-sandbox

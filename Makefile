@@ -27,7 +27,8 @@ doc:
 
 .PHONY: tags
 tags:
-	haskdogs --hasktags-args=-ex
+	$(STACK_CMD) install hasktags
+	hasktags -ex .
 
 .PHONY: devel
 devel: test
