@@ -1,9 +1,12 @@
 GHCS = 8.0.2 8.2.2 8.4.4 8.6.2
 
 # default ghc-version for targets, can be overwritten by make-
-GHC = 8.4.4
+GHC = 8.6.2
 STACK_YAML_ARG = --stack-yaml=stack/stack-$(GHC).yaml
+STACK_PERF_DIR = --work-dir=.stack-work-profile
+
 STACK_CMD = stack $(STACK_YAML_ARG)
+STACK_PERF_CMD = $(STACK_CMD) $(STACK_PERF_DIR)
 
 .PHONY: all
 all: build test package doc tags
@@ -20,6 +23,26 @@ test: build
 .PHONY: bench
 bench:
 	$(STACK_CMD) bench --benchmark-arguments="-o docs/benchmarks.html"
+
+.PHONY: perf
+perf:
+	$(STACK_PERF_CMD) build --profile --executable-profiling --library-profiling
+
+.PHONY: perf_all
+perf_all: perf
+	$(STACK_PERF_CMD) exec -- Choose +RTS -p -h
+	$(STACK_PERF_CMD) exec -- NdetEff +RTS -p -h
+
+.PHONY: perf_devel
+perf_devel: perf_all
+	{ \
+	DIRS="*.hs *.cabal ./src ./test ./perf"; \
+	EVENTS="-e modify -e move -e delete"; \
+	EXCLUDE="\.#"; \
+	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
+		make perf_all; \
+	done; \
+	}
 
 .PHONY: doc
 doc:

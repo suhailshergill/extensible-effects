@@ -9,11 +9,9 @@ import Control.Eff
 import Control.Eff.Logic.Core
 import Control.Monad
 
-import Test.Framework.TH
-import Test.Framework.Providers.HUnit
-
 testCut choose =
-  let cases = [tcut1, tcut2, tcut3, tcut4, tcut5, tcut6, tcut7, tcut8]
+  let cases = [tcut1, tcut2, tcut3, tcut4, tcut5, tcut6, tcut7, tcut8
+              , tcut9]
       runCall = run . choose . call
   in
     forM_ cases $ \(test, result) ->
@@ -45,3 +43,11 @@ testCut choose =
             , rc1)
     tcut8 = ((call tc1 `mplus` call (cutfalse `mplus` tc2) `mplus` tc2)
             , rc1 ++ rc2)
+    incrOrDecr = \x -> (return $! x + 1)
+                       `mplus` cutfalse
+                       `mplus` (return $! x - 1)
+    tc9 = tc1 >>= incrOrDecr
+    rc9 = [2]
+    tcut9 = (tc9, rc9)
+    -- tcut10 = ((return rc1 >>= incrOrDecr)
+    --          , rc9)

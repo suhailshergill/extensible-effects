@@ -7,7 +7,7 @@
 import Criterion.Main
 import Control.Eff as E
 import Control.Eff.Exception as E.Er
-import Control.Eff.NdetEff as E.ND
+import Control.Eff.Logic.NdetEff as E.ND
 import Control.Eff.State.Strict as E.S
 import Control.Monad
 

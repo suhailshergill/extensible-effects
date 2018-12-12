@@ -38,14 +38,15 @@ import Data.Function (fix)
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
-type Arr r a b = a -> Eff r b
+newtype Arr r a b = Arr { unArr :: a -> Eff r b }
+type ArrT r a b = a -> Eff r b
 
 -- | An effectful function from 'a' to 'b' that is a composition of one or more
 -- effectful functions. The paremeter r describes the overall effect.
 --
 -- The composition members are accumulated in a type-aligned queue.
 -- Using a newtype here enables us to define `Category' and `Arrow' instances.
-newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
+newtype Arrs r a b = Arrs (FTCQueue (Arr r) a b)
 
 -- | 'Arrs' can be composed and have a natural identity.
 instance C.Category (Arrs r) where
@@ -57,26 +58,26 @@ instance A.Arrow (Arrs r) where
   arr = arr
   first = singleK . first . (^$)
 
-first :: Arr r a b -> Arr r (a, c) (b, c)
+first :: ArrT r a b -> ArrT r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
 -- | convert single effectful arrow into composable type. i.e., convert 'Arr' to
 -- 'Arrs'
 {-# INLINE singleK #-}
-singleK :: Arr r a b -> Arrs r a b
-singleK = Arrs . tsingleton
+singleK :: ArrT r a b -> Arrs r a b
+singleK k = Arrs (tsingleton (Arr k))
 {-# INLINE (~^) #-}
-(~^) :: Arr r a b -> Arrs r a b
-(~^) = singleK
+(~^) :: ArrT r a b -> Arrs r a b
+(~^) k = singleK k
 
 -- | Application to the `generalized effectful function' Arrs r b w, i.e.,
 -- convert 'Arrs' to 'Arr'
 {-# INLINABLE qApp #-}
-qApp :: forall r b w. Arrs r b w -> Arr r b w
-qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
+qApp :: forall r b w. Arrs r b w -> ArrT r b w
+qApp (Arrs q) x = viewlMap (inline tviewl q) (\(Arr f) -> f x) cons
   where
-    cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
-    cons = \k t -> case k x of
+    cons :: forall x. Arr r b x -> FTCQueue (Arr r) x w -> Eff r w
+    cons = \(Arr k) t -> case k x of
       Val y -> qApp (Arrs t) y
       E (Arrs q0) u -> E (Arrs (q0 >< t)) u
 {-
@@ -93,7 +94,7 @@ qApp q x = case tviewl q of
 
 -- | Syntactic sugar for 'qApp'
 {-# INLINABLE (^$) #-}
-(^$) :: forall r b w. Arrs r b w -> Arr r b w
+(^$) :: forall r b w. Arrs r b w -> b -> Eff r w
 q ^$ x = q `qApp` x
 
 -- | Lift a function to an arrow
@@ -105,6 +106,7 @@ ident :: Arrs r a a
 ident = arr id
 
 -- | Arrow composition
+{-# INLINE comp #-}
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
@@ -138,8 +140,8 @@ eff _ g (E q u) = g q u
 -- | The usual 'bind' fnuction with arguments flipped. This is a
 -- common pattern for Eff.
 {-# INLINE bind #-}
-bind :: Arr r a b -> Eff r a -> Eff r b
-bind k = eff k (E . (^|> k))         -- just accumulates continuations
+bind :: ArrT r a b -> Eff r a -> Eff r b
+bind k e = eff k (E . (^|> Arr k)) e       -- just accumulates continuations
 
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'decomp'.
@@ -161,7 +163,7 @@ impurePrj h def q u = maybe (def q u) (h q) (prj u)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
-qComp g h = \a -> h $ (g ^$ a)
+qComp g h = \a -> h (g ^$ a)
 {-# INLINABLE qThen #-}
 qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
 qThen = flip qComp
@@ -169,6 +171,7 @@ qThen = flip qComp
 -- | Compose and then apply to function. This is a common pattern when
 -- processing requests. Different options of 'f' allow us to handle or
 -- relay the request and continue on.
+{-# INLINE andThen #-}
 andThen :: ((b -> c) -> t) -> (Eff r w -> c)
         -> Arrs r b w -> t
 andThen f next = f . (qThen next)
@@ -176,14 +179,14 @@ andThen f next = f . (qThen next)
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
-qComps g h = singleK $ qComp g h
+qComps g h = singleK $! qComp g h
 {-# INLINABLE (^|$^) #-}
 (^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 (^|$^) = qComps
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
-  fmap f = bind (Val . f)
+  fmap f x = bind (Val . f) x
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
@@ -194,7 +197,7 @@ instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
-  (>>=) = flip bind
+  m >>= f = bind f m
 {-
   Val _ >> m = m
   E q u >> m = E (q ^|> const m) u
@@ -242,6 +245,9 @@ instance Relay k r => Relay (s -> k) r where
 class Handle t k where
   handle :: (v -> k) -> t v -> k
 
+class Handle' t b k where
+  handle' :: (v -> b) -> t v -> k
+
 -- | A convenient pattern: given a request (in an open union), either
 -- handle it (using default Handler) or relay it.
 --
@@ -252,6 +258,7 @@ class Handle t k where
 --
 -- Note that we can only handle the leftmost effect type (a
 -- consequence of the 'OpenUnion' implementation.
+{-# INLINE handle_relay #-}
 handle_relay :: forall t k r a. Handle t k => Relay k r
              => (a -> k) -- ^ return
              -> Eff (t ': r) a -> k
@@ -259,16 +266,47 @@ handle_relay ret = handle_relay' ret handle
 
 -- | A less commonly needed variant with an explicit handler (instead
 -- of @Handle t k@ constraint).
+{-# INLINE handle_relay' #-}
 handle_relay' :: forall t k r a. Relay k r
               => (a -> k) -- ^ return
               -> (forall v. (v -> k) -> t v -> k) -- ^ handler
               -> Eff (t ': r) a -> k
-handle_relay' ret h = fix step
+handle_relay' ret h = loop
   where
-    step next = eff ret
-                (impureDecomp
-                  (h `andThen` next)
-                  (relay `andThen` next))
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0 x      -> h k x
+      U1 u'     -> relay k u'
+      where
+        k = qComp q loop
+
+{-# INLINE handle_relay'' #-}
+handle_relay'' :: forall t k r a. Relay k r
+              => (a -> k) -- ^ return
+              -> (forall v. (v -> Eff (t ': r) a) -> t v -> k) -- ^ handler
+              -> Eff (t ': r) a -> k
+handle_relay'' ret h = loop
+  where
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0 x      -> h (q ^$) x
+      U1 u'     -> relay k u'
+      where
+        k = qComp q loop
+
+{-# INLINE respond_relay'' #-}
+respond_relay'' :: Member t r => Relay k r
+                => (a -> k)
+                -> (forall v. (v -> Eff r a) -> t v -> k)
+                -> Eff r a -> k
+respond_relay'' ret h = loop
+  where
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0' x -> h (q ^$) x
+      _     -> relay k u
+      where
+        k = qComp q loop
 
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
@@ -287,21 +325,25 @@ handle_relay' ret h = fix step
 -- altering the target domain 'k'. Specifically, the explicit domain
 -- representation gives us access to the "effect" realm allowing us to
 -- manipulate it directly.
+{-# INLINE respond_relay #-}
 respond_relay :: Member t r => Relay k r
               => (a -> k)
               -> (forall v. (v -> k) -> t v -> k)
               -> Eff r a -> k
-respond_relay ret h = fix step
+respond_relay ret h = loop
   where
-    step next = eff ret
-                (impurePrj
-                  (h `andThen` next)
-                  (relay `andThen` next))
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0' x -> h k x
+      _     -> relay k u
+      where
+        k = qComp q loop
 
 -- | A less common variant which uses the default 'handle' from the @Handle t k@
 -- instance (in general, we may need to define new datatypes to call
 -- respond_relay with the default handler). Note this variant doesn't allow us
 -- to alter effects "during" their execution.
+{-# INLINE respond_relay' #-}
 respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
                => (a -> k)
                -> Eff r a -> k
@@ -310,10 +352,9 @@ respond_relay' ret = respond_relay ret (handle @t)
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
 raise :: Eff r a -> Eff (e ': r) a
-raise = fix step
-  where
-    step next = eff pure
-                (\q -> ((E . (~^) . (qThen next)) q) . weaken)
+raise (Val x) = pure x
+raise (E q u) = E k (U1 u)
+  where k = qComps q raise
 {-# INLINE raise #-}
 
 -- ------------------------------------------------------------------------
@@ -360,7 +401,7 @@ catchDynE :: forall e a r.
 catchDynE m eh = respond_relay return h m
  where
    -- Polymorphic local binding: signature is needed
-   h :: Arr r v a -> Lift IO v -> Eff r a
+   h :: ArrT r v a -> Lift IO v -> Eff r a
    h k (Lift em) = lift (Exc.try em) >>= either eh k
 
 -- | You need this when using 'catches'.

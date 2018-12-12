@@ -23,16 +23,19 @@ module Control.Eff.Extend
   , SetMember
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
-  , Handle, handle
-  , Relay, relay
+  , Handle(..)
+  , Relay(..)
   , handle_relay
   , handle_relay'
+  , handle_relay''
   , respond_relay
   , respond_relay'
+  , respond_relay''
+  , Handle'(..)
   , raise
   , send
   -- * Arrow types and compositions
-  , Arr
+  , ArrT, Arr(..)
   , Arrs
   , first
   , singleK

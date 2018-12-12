@@ -3,7 +3,9 @@ resolver: nightly-2018-11-30
 packages:
 - '..'
 
-extra-deps: []
+extra-deps: [
+  json-0.9.2
+  , type-aligned-0.9.6]
 
 flags:
   extensible-effects:

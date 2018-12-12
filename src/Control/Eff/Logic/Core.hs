@@ -1,11 +1,12 @@
 {-# LANGUAGE Safe #-}
 {-# LANGUAGE ViewPatterns #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- | Logic primitives. See LogicT paper for details.
 module Control.Eff.Logic.Core where
 
 import Control.Monad
-import Data.Function (fix)
+-- import Data.Function (fix)
 
 import Control.Eff
 import Control.Eff.Exception
@@ -20,6 +21,7 @@ class MSplit m where
   msplit :: m a -> m (Maybe (a, m a))
 
 -- | Embed a pure value into MSplit
+{-# INLINE withMSplit #-}
 withMSplit :: MonadPlus m => a -> m a -> m (Maybe (a, m a))
 withMSplit a rest = return (Just (a, rest))
 -- The handlers are defined in terms of the specific non-determinism
@@ -91,9 +93,14 @@ sg >>- g =
 -- | Collect all solutions. This is from Hinze's 'Backtr' monad
 -- class. Unsurprisingly, this can be implemented in terms of msplit.
 sols :: (Monad m, MSplit m) => m a -> m [a]
-sols m = msplit m >>= (fix step) where
-  step _ Nothing         = return []
-  step next (Just(a, x)) = liftM2 (:) (return a) (msplit x >>= next)
+sols m = msplit m >>= \case
+  Nothing     -> return []
+  Just (a,m') -> fmap (a:) (sols m')
+
+sols2 :: (MonadPlus m, MSplit m) => m a -> m [a]
+sols2 m = (msplit m) >>= loop [] where
+  loop jq Nothing = return jq
+  loop jq (Just(a, ma)) = (msplit ma) >>= loop (a:jq)
 
 -- | Non-determinism with control (cut)
 -- For the explanation of cut, see Section 5 of Hinze ICFP 2000 paper.

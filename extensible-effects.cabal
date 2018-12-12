@@ -57,7 +57,7 @@ flag lib-Werror
   manual: True
 
 library
-  ghc-options:         -Wall
+  ghc-options:         -Wall -O2 -ddump-simpl-stats
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Coroutine
@@ -126,9 +126,11 @@ library
   -- Other library packages from which modules are imported.
   build-depends:       base >= 4.7 && < 5
                        -- For MonadBase
-               ,       transformers-base == 0.4.*
+                     , transformers-base == 0.4.*
                        -- For MonadBaseControl
-               ,       monad-control >= 1.0 && < 1.1
+                     , monad-control >= 1.0 && < 1.1
+                     , type-aligned
+                     , logict
 
   -- Directories containing source files.
   hs-source-dirs:      src
@@ -138,6 +140,25 @@ library
 
   if flag(lib-Werror)
      ghc-options: -Werror
+
+executable             Choose
+    main-is:           Choose.hs
+    hs-source-dirs:    perf/
+    ghc-options:       -O2 -ddump-simpl-stats -ddump-rule-firings
+    default-language:  Haskell2010
+    build-depends:
+                  base >= 4.7 && < 5
+                , criterion
+                , extensible-effects
+executable             NdetEff
+    main-is:           NdetEff.hs
+    hs-source-dirs:    perf/
+    ghc-options:       -O2 -ddump-simpl-stats
+    default-language:  Haskell2010
+    build-depends:
+                  base >= 4.7 && < 5
+                , criterion
+                , extensible-effects
 
 test-suite extensible-effects-tests
   type: exitcode-stdio-1.0
@@ -202,7 +223,7 @@ benchmark extensible-effects-benchmarks
   type: exitcode-stdio-1.0
   main-is: Benchmarks.hs
   hs-source-dirs: benchmark/
-  ghc-options: -Wall -O2 -threaded -fdicts-cheap -funbox-strict-fields
+  ghc-options: -Wall -O2 -threaded -rtsopts
   if impl(ghc >= 8.0)
      ghc-options:      -Wno-type-defaults -Wno-missing-signatures
                        -Wno-name-shadowing -Wno-unused-matches

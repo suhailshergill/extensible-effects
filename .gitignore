@@ -11,3 +11,6 @@ scripts
 cabal.sandbox.config
 .stack-work/
 
+*.hp.*
+*.prof.*
+.stack-work-profile/
