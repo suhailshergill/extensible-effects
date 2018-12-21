@@ -174,8 +174,12 @@ msplit1 = loop []
                    []     -> return Nothing
                    -- other choices remain, try them
                    (j:jqT) -> loop jqT j
-  Just MPlus -> loop (q ^$ False : jq) (q ^$ True)
-  _          -> E (q ^|$^ (loop jq)) u
+  -- *HMM*: so it seems k is evaluated 2x here
+  Just MPlus -> loop (k False : jq) (k True)
+  _          -> E (singleK $ (loop jq) . k) u
+  where
+    -- k  is being called 3n-1 times
+    k = (q ^$)
 
 -- | A less involved implementation utilizing Handle' instance. Algorithmic
 -- complexity is similar to 'msplit1', but slightly less performant.
@@ -192,6 +196,10 @@ msplit2 m' = loop m' [] where
 
 -- | Direct implementation of sols. This currently is about 3x faster than the
 -- implementation based on 'msplit'.
+--
+-- __NOTES__: This traverses choices twice; once to build job queue, then to
+-- process it.
+--
 -- __TODO__: investigate reason and fix
 sols' :: Member NdetEff r => Eff r a -> Eff r [a]
 sols' m = loop [] m where

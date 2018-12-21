@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE ExplicitNamespaces #-}
 
 -- | A monadic library for implementing effectful computation in a modular way.

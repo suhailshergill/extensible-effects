@@ -10,6 +10,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- ------------------------------------------------------------------------
 -- | A monadic library for communication between a handler and
@@ -179,7 +180,7 @@ andThen f next = f . (qThen next)
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
-qComps g h = singleK $! qComp g h
+qComps g h = singleK $ qComp g h
 {-# INLINABLE (^|$^) #-}
 (^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 (^|$^) = qComps
@@ -248,6 +249,38 @@ class Handle t k where
 class Handle' t b k where
   handle' :: (v -> b) -> t v -> k
 
+--newtype Handler t b k = Handler { hdl :: forall v. (v -> b) -> t v -> k }
+newtype Handler t r k a = Handler { hdl :: forall v. Arrs r v a -> t v -> k }
+newtype Ret k a = Ret { unRet :: a -> k }
+
+{-# INLINE hdl_relay #-}
+hdl_relay :: Relay k r
+          => Ret k a -> Handler t (t : r) k a
+          -> Eff (t : r) a -> k
+-- hdl_relay (Ret ret) _ (Val x) = ret x
+-- hdl_relay _ (Handler h)
+hdl_relay (Ret ret) (Handler h) = loop
+  where
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0 x      -> h q x
+      U1 u'     -> relay k u'
+      where
+        k = qComp q loop
+{-# INLINE resp_relay #-}
+resp_relay :: Relay k r => Member t r
+           => Ret k a -> Handler t r k a
+           -> Eff r a -> k
+resp_relay (Ret ret) (Handler h) = loop
+  where
+    loop (Val x) = ret x
+    loop (E q u) = case u of
+      U0' x -> h q x
+      _     -> relay k u
+      where
+        k = qComp q loop
+
+
 -- | A convenient pattern: given a request (in an open union), either
 -- handle it (using default Handler) or relay it.
 --
@@ -285,28 +318,24 @@ handle_relay'' :: forall t k r a. Relay k r
               => (a -> k) -- ^ return
               -> (forall v. (v -> Eff (t ': r) a) -> t v -> k) -- ^ handler
               -> Eff (t ': r) a -> k
-handle_relay'' ret h = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0 x      -> h (q ^$) x
-      U1 u'     -> relay k u'
-      where
-        k = qComp q loop
+handle_relay'' ret _ (Val x) = ret x
+handle_relay'' ret h (E q u) = case u of
+  U0 x      -> h (q ^$) x
+  U1 u'     -> relay k u'
+    where
+      k = qComp q (handle_relay'' ret h)
 
-{-# INLINE respond_relay'' #-}
+--{-# INLINE respond_relay'' #-}
 respond_relay'' :: Member t r => Relay k r
                 => (a -> k)
                 -> (forall v. (v -> Eff r a) -> t v -> k)
                 -> Eff r a -> k
-respond_relay'' ret h = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0' x -> h (q ^$) x
-      _     -> relay k u
-      where
-        k = qComp q loop
+respond_relay'' ret _ (Val x) = ret x
+respond_relay'' ret h (E q u) = case u of
+  U0' x -> h (q ^$) x
+  _     -> relay k u
+    where
+      k = qComp q (respond_relay'' ret h)
 
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful

@@ -96,6 +96,10 @@ sols :: (Monad m, MSplit m) => m a -> m [a]
 sols m = msplit m >>= \case
   Nothing     -> return []
   Just (a,m') -> fmap (a:) (sols m')
+-- msplit :: m a -> m (Maybe (a, m a))
+-- unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
+-- b ~ m a
+-- we need a monadic unfoldr
 
 sols2 :: (MonadPlus m, MSplit m) => m a -> m [a]
 sols2 m = (msplit m) >>= loop [] where

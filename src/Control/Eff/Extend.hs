@@ -1,3 +1,4 @@
+{-# LANGUAGE Trustworthy #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 -- | This module exports functions, types, and typeclasses necessary for
@@ -31,6 +32,7 @@ module Control.Eff.Extend
   , respond_relay
   , respond_relay'
   , respond_relay''
+  , Handler(..), Ret(..), hdl_relay, resp_relay
   , Handle'(..)
   , raise
   , send

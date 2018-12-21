@@ -45,7 +45,7 @@ perf_devel: perf_all
 
 .PHONY: doc
 doc:
-	$(STACK_CMD) haddock --haddock-internal
+	$(STACK_CMD) haddock --haddock-internal --flag extensible-effects:-dump-core --ghc-options -Wno-trustworthy-safe
 
 .PHONY: tags
 tags:
