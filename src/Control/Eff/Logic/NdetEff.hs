@@ -15,10 +15,13 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Nondeterministic choice effect via MPlus interface directly
+-- __TODO__: move over tests from Choose.Test (regd choose)
+-- __TODO__: export as Control.Eff.Logic
 module Control.Eff.Logic.NdetEff (
   NdetEff
   , withNdetEff
   , left, right
+  , choose
   , makeChoiceA
   , makeChoiceA0
   , makeChoiceA1
@@ -77,6 +80,11 @@ instance ( MonadBase m m
                        f (runInBase . makeChoiceLst)
     restoreM x = do lst :: [a] <- raise (restoreM x)
                     foldl' (\r a -> r <|> pure a) mzero lst
+
+-- | choose lst non-deterministically chooses one value from the lst
+-- choose [] thus corresponds to failure
+choose :: Member NdetEff r => [a] -> Eff r a
+choose lst = foldl' (\m x -> return x `mplus` m) mzero lst
 
 -- | An interpreter: The following is very simple, but leaks a lot of memory The
 -- cause probably is mapping every failure to empty It takes then a lot of timne

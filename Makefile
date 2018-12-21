@@ -30,7 +30,6 @@ perf:
 
 .PHONY: perf_all
 perf_all: perf
-	$(STACK_PERF_CMD) exec -- Choose +RTS -p -h
 	$(STACK_PERF_CMD) exec -- NdetEff +RTS -p -h
 
 .PHONY: perf_devel
