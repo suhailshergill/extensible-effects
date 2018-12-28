@@ -14,12 +14,6 @@ import Test.HUnit hiding (State)
 catchOutput :: IO a -> IO (a, String)
 catchOutput f = swap `fmap` capture f
 
-showLn :: Show a => a -> String
-showLn x = unlines $ [show x]
-
-showLines :: Show a => [a] -> String
-showLines xs = unlines $ map show xs
-
 withError :: a -> ErrorCall -> a
 withError a _ = a
 
@@ -28,6 +22,9 @@ assertUndefined a = catch (seq a $ assertFailure "") (withError $ return ())
 
 assertNoUndefined :: a -> Assertion
 assertNoUndefined a = catch (seq a $ return ()) (withError $ assertFailure "")
+
+assertOutput :: String -> [String] -> String -> Assertion
+assertOutput msg expected actual = assertEqual msg expected (lines actual)
 
 allEqual :: Eq a => [a] -> Bool
 allEqual = all (uncurry (==)) . pairs

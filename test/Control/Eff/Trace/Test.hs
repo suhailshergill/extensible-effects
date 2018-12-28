@@ -20,7 +20,7 @@ case_Trace_tdup :: Assertion
 case_Trace_tdup = do
   ((), actual) <- catchOutput tdup
   assertEqual "Trace: duplicate layers"
-    (unlines ["Asked: 20", "Asked: 10"]) actual
+    ["Asked: 20", "Asked: 10"] (lines actual)
   where
     tdup = runTrace $ runReader (10::Int) m
      where

@@ -47,7 +47,7 @@ case_Lift_building = runLift possiblyAmbiguous
 case_Lift_tl1r :: Assertion
 case_Lift_tl1r = do
   ((), output) <- catchOutput tl1r
-  assertEqual "Test tl1r" (showLn input) output
+  assertOutput "Test tl1r" [show input] output
   where
     input = (5::Int)
     -- tl1r :: IO ()
@@ -57,9 +57,9 @@ case_Lift_tl1r = do
 
 case_Lift_tMd' :: Assertion
 case_Lift_tMd' = do
-  actual <- catchOutput tMd'
-  let expected = (output, (showLines input))
-  assertEqual "Test mapMdebug using Lift" expected actual
+  (actualResult, actualOutput) <- catchOutput tMd'
+  let expected = (output, map show input)
+  assertEqual "Test mapMdebug using Lift" expected (actualResult, lines actualOutput)
   where
     input = [1..5]
     val = (10::Int)
@@ -96,9 +96,9 @@ runErrorStr = runError @String
 case_catchDynE_test1 :: Assertion
 case_catchDynE_test1 = do
   ((), actual) <- catchOutput $ test1 (testc m)
-  let expected = unlines [ "(\"thrown\",[\"begin\"])"
-                         , "(\"True\",[\"end\",\"begin\"])"]
-  assertEqual "catchDynE: test1: exception shouldn't drop Writer's state"
+  let expected = [ "(\"thrown\",[\"begin\"])"
+                 , "(\"True\",[\"end\",\"begin\"])"]
+  assertOutput "catchDynE: test1: exception shouldn't drop Writer's state"
     expected actual
   where
     -- In CatchMonadIO, the result of tf True is ("thrown",[]) --
@@ -116,9 +116,9 @@ case_catchDynE_test1 = do
 case_catchDynE_test1' :: Assertion
 case_catchDynE_test1' = do
   ((), actual') <- catchOutput $ test1 (runErrorStr (testc m))
-  let expected' = unlines [ "(Left \"thrown\",[\"begin\"])"
-                         , "(Right \"True\",[\"end\",\"begin\"])"]
-  assertEqual "catchDynE: test1': Error shouldn't drop Writer's state"
+  let expected' = [ "(Left \"thrown\",[\"begin\"])"
+                  , "(Right \"True\",[\"end\",\"begin\"])"]
+  assertOutput "catchDynE: test1': Error shouldn't drop Writer's state"
     expected' actual'
   where
     -- In CatchMonadIO, the result of tf True is ("thrown",[]) --
@@ -140,9 +140,9 @@ case_catchDynE_test1' = do
 case_catchDynE_test2 :: Assertion
 case_catchDynE_test2 = do
   ((), actual) <- catchOutput $ test1 (runErrorStr (testc m))
-  let expected = unlines [ "(Left \"thrown\",[\"begin\"])"
-                         , "(Right \"True\",[\"end\",\"begin\"])"]
-  assertEqual "catchDynE: test2: Error shouldn't drop Writer's state"
+  let expected = [ "(Left \"thrown\",[\"begin\"])"
+                 , "(Right \"True\",[\"end\",\"begin\"])"]
+  assertOutput "catchDynE: test2: Error shouldn't drop Writer's state"
     expected actual
   where
     m = do
@@ -156,9 +156,9 @@ case_catchDynE_test2 = do
 case_catchDynE_test2' :: Assertion
 case_catchDynE_test2' = do
   ((), actual) <- catchOutput $ test1 (runErrorStr (testc m))
-  let expected = unlines [ "(Right \"False\",[\"end\",\"begin\"])"
-                         , "(Right \"True\",[\"end\",\"begin\"])"]
-  assertEqual "catchDynE: test2': Fully recover from errors"
+  let expected = [ "(Right \"False\",[\"end\",\"begin\"])"
+                 , "(Right \"True\",[\"end\",\"begin\"])"]
+  assertOutput "catchDynE: test2': Fully recover from errors"
     expected actual
   where
     m = do
@@ -172,9 +172,9 @@ case_catchDynE_test2' = do
 case_catchDynE_test3 :: Assertion
 case_catchDynE_test3 = do
   ((), actual) <- catchOutput $ test1 (runErrorStr (testc m))
-  let expected = unlines [ "(Right \"rethrow:thrown\",[\"begin\"])"
-                         , "(Right \"True\",[\"end\",\"begin\"])"]
-  assertEqual "catchDynE: test3: Throwing within a handler"
+  let expected = [ "(Right \"rethrow:thrown\",[\"begin\"])"
+                 , "(Right \"True\",[\"end\",\"begin\"])"]
+  assertOutput "catchDynE: test3: Throwing within a handler"
     expected actual
   where
     m = do
@@ -194,12 +194,12 @@ case_catchDynE_tran :: Assertion
 case_catchDynE_tran = do
   ((), actual1) <- catchOutput $ test1 m1
   ((), actual2) <- catchOutput $ test1 m2
-  let expected1 = unlines ["(\"thrown\",[\"init\"])"
-                          ,"(\"True\",[\"end\",\"begin\",\"init\"])"]
-  let expected2 = unlines ["(\"thrown\",[\"begin\",\"init\"])"
-                          ,"(\"True\",[\"end\",\"begin\",\"init\"])"]
-  assertEqual "catchDynE: tran: Transactional behaviour" expected1 actual1
-    >> assertEqual "catchDynE: tran: usual behaviour" expected2 actual2
+  let expected1 = ["(\"thrown\",[\"init\"])"
+                  ,"(\"True\",[\"end\",\"begin\",\"init\"])"]
+  let expected2 = ["(\"thrown\",[\"begin\",\"init\"])"
+                  ,"(\"True\",[\"end\",\"begin\",\"init\"])"]
+  assertOutput "catchDynE: tran: Transactional behaviour" expected1 actual1
+    >> assertOutput "catchDynE: tran: usual behaviour" expected2 actual2
   where
     m1 = do
       modify ("init":)
