@@ -6,11 +6,9 @@
 module Control.Eff.Logic.Core where
 
 import Control.Monad
--- import Data.Function (fix)
 
 import Control.Eff
 import Control.Eff.Exception
-import Control.Eff.Extend
 
 -- | The MSplit primitive from LogicT paper.
 class MSplit m where
@@ -27,6 +25,10 @@ withMSplit a rest = return (Just (a, rest))
 -- The handlers are defined in terms of the specific non-determinism
 -- effects (instead of by way of a distinct MSplit handler
 
+-- | TODO: utilize laws below for:
+-- 1] msplit (lift m >> mzero) >>= reflect == lift m >> mzero
+-- 2] msplit (lift m `mplus` ma) >>= reflect == lift m `mplus` (msplit ma >>= reflect)
+{-# INLINE reflect #-}
 reflect :: MonadPlus m => Maybe (a, m a) -> m a
 reflect Nothing      = mzero
 reflect (Just (a,m)) = return a `mplus` m
@@ -93,16 +95,7 @@ sg >>- g =
 -- | Collect all solutions. This is from Hinze's 'Backtr' monad
 -- class. Unsurprisingly, this can be implemented in terms of msplit.
 sols :: (Monad m, MSplit m) => m a -> m [a]
-sols m = msplit m >>= \case
-  Nothing     -> return []
-  Just (a,m') -> fmap (a:) (sols m')
--- msplit :: m a -> m (Maybe (a, m a))
--- unfoldr :: (b -> Maybe (a, b)) -> b -> [a]
--- b ~ m a
--- we need a monadic unfoldr
-
-sols2 :: (MonadPlus m, MSplit m) => m a -> m [a]
-sols2 m = (msplit m) >>= loop [] where
+sols m = (msplit m) >>= loop [] where
   loop jq Nothing = return jq
   loop jq (Just(a, ma)) = (msplit ma) >>= loop (a:jq)
 
@@ -138,6 +131,15 @@ sols2 m = (msplit m) >>= loop [] where
 -- Hinze noted a problem with the \"mechanical\" derivation of backtracing
 -- monad transformer with cut: no axiom specifying the interaction of
 -- call with bind; no way to simplify nested invocations of call.
+class Call r where
+  -- | Every instance should ensure that the following laws hold:
+  -- >  cutfalse | m    = cutfalse                  (F2)
+  -- >  call false = false                          (C1)
+  -- >  call (return a | m) = return a | call m     (C2)
+  -- >  call (m | cutfalse) = call m                (C3)
+  -- >  call (lift m >>= k) = lift m >>= (call . k) (C4)
+  call :: MonadPlus (Eff r) => Eff (Exc CutFalse : r) a -> Eff r a
+
 data CutFalse = CutFalse
 
 -- | We use exceptions for cutfalse
@@ -151,23 +153,10 @@ cutfalse = throwError CutFalse
 (!) :: (Member (Exc CutFalse) r, MonadPlus (Eff r)) => Eff r ()
 (!) = return () `mplus` cutfalse
 
--- | The interpreter -- it is like reify . reflect with a twist.  Compare this
--- implementation with the huge implementation of call in Hinze 2000 (Figure 9).
--- Each clause corresponds to the axiom of call or cutfalse.  All axioms are
--- covered.
---
--- The code clearly expresses the intuition that call watches the choice points
--- of its argument computation. When it encounteres a cutfalse request, it
--- discards the remaining choicepoints.  It completely handles CutFalse effects
--- but not non-determinism
-call :: MonadPlus (Eff r) => MSplit (Eff (Exc CutFalse : r))
-     => Eff (Exc CutFalse : r) a -> Eff r a
-call m = loop [] (msplit m) where
-  loop jq (Val Nothing)       = next jq                        -- (C1)
-  loop jq (Val (Just (x, q))) = return x `mplus` next (q : jq) -- (C2)
-  loop jq (E q u)             = case u of
-    U0 (Exc CutFalse)        -> next []                        -- drop jq (F2)
-    U1 u'                    -> loop jq (E q (U1 u'))          -- (C4)
-
-  next []    = mzero
-  next (h:t) = loop t (msplit h)                               -- (C3)
+-- | Case analysis for lists
+-- TODO: convert to using explicit Step datatype
+{-# INLINE list #-}
+list :: b -> (a -> [a] -> b)
+     -> [a] -> b
+list z _ [] = z
+list _ k (h:t) = k h t

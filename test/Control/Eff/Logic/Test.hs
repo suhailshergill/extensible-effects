@@ -5,14 +5,14 @@
 module Control.Eff.Logic.Test where
 
 import Test.HUnit hiding (State)
-import Control.Eff
 import Control.Eff.Logic.Core
 import Control.Monad
 
-testCut choose =
+-- the inferred signature of testCut is insightful
+testCut runChoice =
   let cases = [tcut1, tcut2, tcut3, tcut4, tcut5, tcut6, tcut7, tcut8
               , tcut9]
-      runCall = run . choose . call
+      runCall = runChoice . call
   in
     forM_ cases $ \(test, result) ->
                     assertEqual "Cut: tcut" result (runCall test)

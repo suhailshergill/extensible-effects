@@ -134,7 +134,7 @@ case_Choose_monadBaseControl :: Assertion
 case_Choose_monadBaseControl = runLift (makeChoice $ doThing $ choose [1,2,3]) @=? Just [1,2,3]
 
 case_NdetEff_cut :: Assertion
-case_NdetEff_cut = testCut makeChoiceA
+case_NdetEff_cut = testCut (run . makeChoice)
 
 case_NdetEff_monadplus :: Assertion
 case_NdetEff_monadplus =

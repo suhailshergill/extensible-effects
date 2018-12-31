@@ -247,9 +247,6 @@ instance Relay k r => Relay (s -> k) r where
 class Handle t k where
   handle :: (v -> k) -> t v -> k
 
-class Handle' t b k where
-  handle' :: (v -> b) -> t v -> k
-
 -- | Open-recursive version of Handle. This style is more flexible and allows us
 -- to express handlers which may need to operate on reified state for
 -- performance reasons (see NdetEff).
@@ -306,30 +303,6 @@ handle_relay' ret h = loop
       U1 u'     -> relay k u'
       where
         k = qComp q loop
-
-{-# INLINE handle_relay'' #-}
-handle_relay'' :: forall t k r a. Relay k r
-              => (a -> k) -- ^ return
-              -> (forall v. (v -> Eff (t ': r) a) -> t v -> k) -- ^ handler
-              -> Eff (t ': r) a -> k
-handle_relay'' ret _ (Val x) = ret x
-handle_relay'' ret h (E q u) = case u of
-  U0 x      -> h (q ^$) x
-  U1 u'     -> relay k u'
-    where
-      k = qComp q (handle_relay'' ret h)
-
---{-# INLINE respond_relay'' #-}
-respond_relay'' :: Member t r => Relay k r
-                => (a -> k)
-                -> (forall v. (v -> Eff r a) -> t v -> k)
-                -> Eff r a -> k
-respond_relay'' ret _ (Val x) = ret x
-respond_relay'' ret h (E q u) = case u of
-  U0' x -> h (q ^$) x
-  _     -> relay k u
-    where
-      k = qComp q (respond_relay'' ret h)
 
 -- | Intercept the request and possibly respond to it, but leave it
 -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful

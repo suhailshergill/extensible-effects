@@ -69,6 +69,7 @@ library
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Logic.Core
+                       Control.Eff.Logic.Experimental
                        Control.Eff.Logic.NdetEff
                        Control.Eff.Logic.Perf
                        Control.Eff.Operational

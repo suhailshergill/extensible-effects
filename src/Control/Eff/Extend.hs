@@ -29,11 +29,8 @@ module Control.Eff.Extend
   , Relay(..)
   , handle_relay
   , handle_relay'
-  , handle_relay''
   , respond_relay
   , respond_relay'
-  , respond_relay''
-  , Handle'(..)
   , raise
   , send
   -- * Arrow types and compositions
