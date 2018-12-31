@@ -63,16 +63,20 @@ first x = \(a,c) -> (, c) `fmap` x a
 
 -- | convert single effectful arrow into composable type. i.e., convert 'Arr' to
 -- 'Arrs'
-{-# INLINE singleK #-}
+{-# INLINE [2] singleK #-}
 singleK :: Arr r a b -> Arrs r a b
 singleK k = Arrs (tsingleton k)
+{-# RULES
+"singleK/qApp" [~2] forall q. singleK (qApp q) = q
+"singleK/^$" [~2] forall q. singleK (q ^$) = q
+ #-}
 {-# INLINE (~^) #-}
 (~^) :: Arr r a b -> Arrs r a b
 (~^) k = singleK k
 
 -- | Application to the `generalized effectful function' Arrs r b w, i.e.,
 -- convert 'Arrs' to 'Arr'
-{-# INLINABLE qApp #-}
+{-# INLINABLE [2] qApp #-}
 qApp :: forall r b w. Arrs r b w -> Arr r b w
 qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
   where
@@ -93,7 +97,7 @@ qApp q x = case tviewl q of
 -}
 
 -- | Syntactic sugar for 'qApp'
-{-# INLINABLE (^$) #-}
+{-# INLINE [2] (^$) #-}
 (^$) :: forall r b w. Arrs r b w -> b -> Eff r w
 q ^$ x = q `qApp` x
 
