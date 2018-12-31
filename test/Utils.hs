@@ -26,6 +26,9 @@ assertNoUndefined a = catch (seq a $ return ()) (withError $ assertFailure "")
 assertOutput :: String -> [String] -> String -> Assertion
 assertOutput msg expected actual = assertEqual msg expected (lines actual)
 
+runAsserts :: (String -> a -> e -> Assertion) -> [(String, e, a)] -> Assertion
+runAsserts run cases = forM_ cases $ \(prop, test, res) -> run prop res test
+
 allEqual :: Eq a => [a] -> Bool
 allEqual = all (uncurry (==)) . pairs
   where

@@ -1,5 +1,6 @@
 {-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeOperators, DataKinds #-}
+{-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE TemplateHaskell #-}
 
 module Control.Eff.Logic.NdetEff.Test (testGroups, gen_testCA, gen_ifte_test)
@@ -134,3 +135,65 @@ case_Choose_monadBaseControl = runLift (makeChoice $ doThing $ choose [1,2,3]) @
 
 case_NdetEff_cut :: Assertion
 case_NdetEff_cut = testCut makeChoiceA
+
+case_NdetEff_monadplus :: Assertion
+case_NdetEff_monadplus =
+  let evalnw = run . (runListWriter @Int) . makeChoice
+      evalwn = run . makeChoice . (runListWriter @Int)
+      casesnw = [
+        -- mplus laws
+          ("0             | NdetEff, Writer", evalnw t0, nw0)
+        , ("zm0     = 0   | NdetEff, Writer", evalnw tzm0, nw0)
+        , ("0m1           | NdetEff, Writer", evalnw t0m1, nw0m1)
+        , ("zm0mzm1 = 0m1 | NdetEff, Writer", evalnw tzm0mzm1, nw0m1)
+        -- mzero laws
+        , ("z         | NdetEff, Writer", evalnw tz, nwz)
+        , ("z0    = z | NdetEff, Writer", evalnw tz0, nwz)
+        , ("0z   /= z | NdetEff, Writer", evalnw t0z, nw0z)
+        , ("z0m1  = 1 | NdetEff, Writer", evalnw tz0m1, nw1)
+        , ("0zm1 /= 1 | NdetEff, Writer", evalnw t0zm1, nw0zm1)
+        ]
+      caseswn = [
+        -- mplus laws
+          ("0             | Writer, NdetEff", evalwn t0, wn0)
+        , ("zm0     = 0   | Writer, NdetEff", evalwn tzm0, wn0)
+        , ("0m1           | Writer, NdetEff", evalwn t0m1, wn0m1)
+        , ("zm0mzm1 = 0m1 | Writer, NdetEff", evalwn tzm0mzm1, wn0m1)
+        -- mzero laws
+        , ("z        | Writer, NdetEff", evalwn tz, wnz)
+        , ("z0   = z | Writer, NdetEff", evalwn tz0, wnz)
+        , ("0z   = z | Writer, NdetEff", evalwn t0z, wnz)
+        , ("z0m1 = 1 | Writer, NdetEff", evalwn tz0m1, wn1)
+        , ("0zm1 = 1 | Writer, NdetEff", evalwn t0zm1, wn1)
+        ]
+  in runAsserts assertEqual casesnw
+  >> runAsserts assertEqual caseswn
+  where
+    nwz = ([] @Int,[])
+    wnz = [] @(Int, [Int])
+    nw0z = ([] @Int,[0])
+    nw0 = ([0],[0])
+    nw1 = ([1],[1])
+    nw0zm1 = ([1],[0,1])
+    wn0 = [(0,[0])]
+    wn1 = [(1,[1])]
+
+    nw0m1 = ([0::Int,1],[0,1])
+    wn0m1 = [(0,[0]), (1,[1])]
+
+    t0 = wr @Int 0
+    t1 = wr @Int 1
+
+    tz = mzero
+    tz0 = tz >> t0
+    t0z = t0 >> tz
+    tz0m1 = tz0 `mplus` t1
+    t0zm1 = t0z `mplus` t1
+
+    t0m1 = t0 `mplus` t1
+    tzm0 = tz `mplus` t0
+    tzm1 = tz `mplus` t1
+    tzm0mzm1 = tzm0 `mplus` tzm1
+
+    wr :: forall a r. [Writer a, NdetEff] <:: r => a -> Eff r a
+    wr i = tell i >> return i

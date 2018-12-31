@@ -68,7 +68,20 @@ instance Member NdetEff r => Alternative (Eff r) where
   (<|>) = mplus
 
 instance Member NdetEff r => MonadPlus (Eff r) where
+  -- | Laws (per Control.Monad)
+  -- [x] mzero >>= f = mzero (CM1)
+  -- [ ] m >> mzero  = mzero (CM2)
+  -- We obey CM1, but not CM2. This is consistent with Backtr and LogicT papers.
   mzero = send MZero
+  -- | Monoid laws (from Haskellwiki, Backtr/LogicT paper)
+  -- [x] mzero `mplus` m = m
+  -- [x] m `mplus` mzero = m
+  -- [x] m `mplus` (n `mplus` o) = (m `mplus` n) `mplus` o
+  -- In addition, from Backtr/LogicT we have the following law:
+  -- [x] (m `mplus` n) >>= k = (m >>= k) `mplus` (n >>= k)
+  mplus (E _ (U0' MZero)) m2 = m2
+  mplus m1 (E _ (U0' MZero)) = m1
+  -- TODO: verify correctness of above two rules
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
 
 instance ( MonadBase m m
