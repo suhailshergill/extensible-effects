@@ -61,7 +61,8 @@ flag dump-core
   default:     False
 
 library
-  ghc-options:         -Wall -O2 -ddump-simpl-stats
+  ghc-options:         -Wall -O2 -ddump-simpl-stats -ddump-rule-firings
+                       -- -fforce-recomp
   -- Modules exported by the library.
   exposed-modules:     Control.Eff
                        Control.Eff.Coroutine
@@ -154,6 +155,7 @@ executable             NdetEff
     main-is:           NdetEff.hs
     hs-source-dirs:    perf/
     ghc-options:       -O2 -ddump-simpl-stats -ddump-rule-firings
+                       -- -fforce-recomp
     default-language:  Haskell2010
     build-depends:
                   base >= 4.7 && < 5

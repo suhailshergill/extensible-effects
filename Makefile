@@ -59,7 +59,7 @@ devel: test
 	EVENTS="-e modify -e move -e delete"; \
 	EXCLUDE="\.#"; \
 	while inotifywait -qq $$EVENTS -r $$DIRS --exclude $$EXCLUDE; do \
-		make test && make doc; \
+		make test; \
 	done; \
 	}
 
