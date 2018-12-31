@@ -141,6 +141,7 @@ eff _ g (E q u) = g q u
 -- | The usual 'bind' fnuction with arguments flipped. This is a
 -- common pattern for Eff.
 {-# INLINE bind #-}
+-- TODO: verify this doesn't interfere with rewrite rules
 bind :: ArrT r a b -> Eff r a -> Eff r b
 bind k e = eff k (E . (^|> Arr k)) e       -- just accumulates continuations
 
@@ -249,37 +250,30 @@ class Handle t k where
 class Handle' t b k where
   handle' :: (v -> b) -> t v -> k
 
---newtype Handler t b k = Handler { hdl :: forall v. (v -> b) -> t v -> k }
-newtype Handler t r k a = Handler { hdl :: forall v. Arrs r v a -> t v -> k }
-newtype Ret k a = Ret { unRet :: a -> k }
+-- | Open-recursive version of Handle. This style is more flexible and allows us
+-- to express handlers which may need to operate on reified state for
+-- performance reasons (see NdetEff).
+class HandleOpen t r a k where
+  handle_open :: (Eff r a -> k) -> Arrs r v a -> t v -> k
 
-{-# INLINE hdl_relay #-}
-hdl_relay :: Relay k r
-          => Ret k a -> Handler t (t : r) k a
-          -> Eff (t : r) a -> k
--- hdl_relay (Ret ret) _ (Val x) = ret x
--- hdl_relay _ (Handler h)
-hdl_relay (Ret ret) (Handler h) = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0 x      -> h q x
-      U1 u'     -> relay k u'
-      where
-        k = qComp q loop
-{-# INLINE resp_relay #-}
-resp_relay :: Relay k r => Member t r
-           => Ret k a -> Handler t r k a
-           -> Eff r a -> k
-resp_relay (Ret ret) (Handler h) = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0' x -> h q x
-      _     -> relay k u
-      where
-        k = qComp q loop
-
+  handle_relay_open :: r ~ (t ': r') => Relay k r'
+                    => (a -> k)
+                    -> (Eff r a -> k)
+                    -> Eff r a -> k
+  handle_relay_open ret step m = eff ret
+                                 (\q u -> case u of
+                                     U0 x -> handle_open step q x
+                                     U1 u' -> relay (qComp q step) u')
+                                 m
+  respond_relay_open :: Member t r => Relay k r
+                     => (a -> k)
+                     -> (Eff r a -> k)
+                     -> Eff r a -> k
+  respond_relay_open ret step m = eff ret
+                                  (\q u -> case u of
+                                      U0' x -> handle_open @t step q x
+                                      _     -> relay (qComp q step) u)
+                                  m
 
 -- | A convenient pattern: given a request (in an open union), either
 -- handle it (using default Handler) or relay it.

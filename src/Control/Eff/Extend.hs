@@ -25,6 +25,7 @@ module Control.Eff.Extend
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
   , Handle(..)
+  , HandleOpen(..)
   , Relay(..)
   , handle_relay
   , handle_relay'
@@ -32,7 +33,6 @@ module Control.Eff.Extend
   , respond_relay
   , respond_relay'
   , respond_relay''
-  , Handler(..), Ret(..), hdl_relay, resp_relay
   , Handle'(..)
   , raise
   , send
