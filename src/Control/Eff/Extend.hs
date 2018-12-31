@@ -1,4 +1,4 @@
-{-# LANGUAGE Trustworthy #-}
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 -- | This module exports functions, types, and typeclasses necessary for

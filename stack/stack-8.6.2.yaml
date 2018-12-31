@@ -12,7 +12,7 @@ extra-deps: [
 flags:
   extensible-effects:
     lib-werror: true
-    dump-core: true
+    dump-core: false
 
 extra-package-dbs: []
 
