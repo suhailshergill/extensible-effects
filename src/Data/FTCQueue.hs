@@ -12,16 +12,16 @@ module Data.FTCQueue (
   tsingleton,
   (|>), -- snoc
   (><), -- append
-  ViewL(..),
+  ViewL,
   viewlMap,
   tviewl
   )
   where
 
 -- | Non-empty tree. Deconstruction operations make it more and more
--- left-leaning. Common values of 'm' are 'Arr (Eff r)' and 'AsUnitLoop a'.
+-- left-leaning.
 data FTCQueue m a b where
-  Leaf :: m a b -> FTCQueue m a b
+  Leaf :: (a -> m b) -> FTCQueue m a b
   Node :: FTCQueue m a x -> FTCQueue m x b -> FTCQueue m a b
 
 
@@ -30,12 +30,12 @@ data FTCQueue m a b where
 -- | There is no tempty: use (tsingleton return), which works just the same.
 -- The names are chosen for compatibility with FastTCQueue
 {-# INLINE tsingleton #-}
-tsingleton :: m a b -> FTCQueue m a b
+tsingleton :: (a -> m b) -> FTCQueue m a b
 tsingleton r = Leaf r
 
 -- | snoc: clearly constant-time
 {-# INLINE (|>) #-}
-(|>) :: FTCQueue m a x -> m x b -> FTCQueue m a b
+(|>) :: FTCQueue m a x -> (x -> m b) -> FTCQueue m a b
 t |> r = Node t (Leaf r)
 
 -- | append: clearly constant-time
@@ -46,14 +46,14 @@ t1 >< t2 = Node t1 t2
 
 -- | Left-edge deconstruction
 data ViewL m a b where
-  TOne  :: m a b -> ViewL m a b
-  (:|)  :: m a x -> (FTCQueue m x b) -> ViewL m a b
+  TOne  :: (a -> m b) -> ViewL m a b
+  (:|)  :: (a -> m x) -> (FTCQueue m x b) -> ViewL m a b
 
 -- | Process the Left-edge deconstruction
 {-# INLINE viewlMap #-}
 viewlMap :: ViewL m a b
-         -> (m a b -> c)
-         -> (forall x. m a x -> (FTCQueue m x b) -> c)
+         -> ((a -> m b) -> c)
+         -> (forall x. (a -> m x) -> (FTCQueue m x b) -> c)
          -> c
 viewlMap view tone cons = case view of
   TOne k -> tone k

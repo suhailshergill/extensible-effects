@@ -39,15 +39,14 @@ import Data.Function (fix)
 
 -- | Effectful arrow type: a function from a to b that also does effects
 -- denoted by r
-newtype Arr r a b = Arr { unArr :: a -> Eff r b }
-type ArrT r a b = a -> Eff r b
+type Arr r a b = a -> Eff r b
 
 -- | An effectful function from 'a' to 'b' that is a composition of one or more
 -- effectful functions. The paremeter r describes the overall effect.
 --
 -- The composition members are accumulated in a type-aligned queue.
 -- Using a newtype here enables us to define `Category' and `Arrow' instances.
-newtype Arrs r a b = Arrs (FTCQueue (Arr r) a b)
+newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
 
 -- | 'Arrs' can be composed and have a natural identity.
 instance C.Category (Arrs r) where
@@ -59,26 +58,26 @@ instance A.Arrow (Arrs r) where
   arr = arr
   first = singleK . first . (^$)
 
-first :: ArrT r a b -> ArrT r (a, c) (b, c)
+first :: Arr r a b -> Arr r (a, c) (b, c)
 first x = \(a,c) -> (, c) `fmap` x a
 
 -- | convert single effectful arrow into composable type. i.e., convert 'Arr' to
 -- 'Arrs'
 {-# INLINE singleK #-}
-singleK :: ArrT r a b -> Arrs r a b
-singleK k = Arrs (tsingleton (Arr k))
+singleK :: Arr r a b -> Arrs r a b
+singleK k = Arrs (tsingleton k)
 {-# INLINE (~^) #-}
-(~^) :: ArrT r a b -> Arrs r a b
+(~^) :: Arr r a b -> Arrs r a b
 (~^) k = singleK k
 
 -- | Application to the `generalized effectful function' Arrs r b w, i.e.,
 -- convert 'Arrs' to 'Arr'
 {-# INLINABLE qApp #-}
-qApp :: forall r b w. Arrs r b w -> ArrT r b w
-qApp (Arrs q) x = viewlMap (inline tviewl q) (\(Arr f) -> f x) cons
+qApp :: forall r b w. Arrs r b w -> Arr r b w
+qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
   where
-    cons :: forall x. Arr r b x -> FTCQueue (Arr r) x w -> Eff r w
-    cons = \(Arr k) t -> case k x of
+    cons :: forall x. Arr r b x -> FTCQueue (Eff r) x w -> Eff r w
+    cons = \k t -> case k x of
       Val y -> qApp (Arrs t) y
       E (Arrs q0) u -> E (Arrs (q0 >< t)) u
 {-
@@ -142,8 +141,8 @@ eff _ g (E q u) = g q u
 -- common pattern for Eff.
 {-# INLINE bind #-}
 -- TODO: verify this doesn't interfere with rewrite rules
-bind :: ArrT r a b -> Eff r a -> Eff r b
-bind k e = eff k (E . (^|> Arr k)) e       -- just accumulates continuations
+bind :: Arr r a b -> Eff r a -> Eff r b
+bind k e = eff k (E . (^|> k)) e       -- just accumulates continuations
 
 -- | Case analysis for impure computations for 'Eff' datatype. This
 -- uses 'decomp'.
@@ -397,7 +396,7 @@ catchDynE :: forall e a r.
 catchDynE m eh = respond_relay return h m
  where
    -- Polymorphic local binding: signature is needed
-   h :: ArrT r v a -> Lift IO v -> Eff r a
+   h :: Arr r v a -> Lift IO v -> Eff r a
    h k (Lift em) = lift (Exc.try em) >>= either eh k
 
 -- | You need this when using 'catches'.

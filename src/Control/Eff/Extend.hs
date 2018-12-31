@@ -34,7 +34,7 @@ module Control.Eff.Extend
   , raise
   , send
   -- * Arrow types and compositions
-  , ArrT, Arr(..)
+  , Arr
   , Arrs
   , first
   , singleK
