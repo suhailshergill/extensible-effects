@@ -24,7 +24,7 @@ module Control.Eff.Logic.NdetEff (
   , choose
   , makeChoiceA, makeChoiceA_open
   , makeChoiceA0
-  , makeChoiceLst
+  , makeChoice
   , msplit', msplit'_open
   , sols'
   , module Control.Eff.Logic.Core
@@ -91,7 +91,7 @@ instance ( MonadBase m m
          ) => MonadBaseControl m (Eff (NdetEff ': r)) where
     type StM (Eff (NdetEff ': r)) a = StM (Eff r) [a]
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
-                       f (runInBase . makeChoiceLst)
+                       f (runInBase . makeChoice)
     restoreM x = do lst :: [a] <- raise (restoreM x)
                     choose lst
 
@@ -125,8 +125,8 @@ makeChoiceA m = loop [] m where
 
 -- | Same as makeChoice, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
-makeChoiceLst :: Eff (NdetEff ': r) a -> Eff r [a]
-makeChoiceLst = makeChoiceA_open
+makeChoice :: Eff (NdetEff ': r) a -> Eff r [a]
+makeChoice = makeChoiceA_open
 
 -- | We implement LogicT, the non-determinism reflection, of which soft-cut is
 -- one instance. See the LogicT paper for an explanation.
@@ -150,13 +150,6 @@ msplit' m' = loop m' [] where
     where
       k x = q ^$ x
 
-{-# INLINE next #-}
--- | Progressing the cursor in a reified job queue.
-next :: Alternative f => Monad m
-     => (t -> [t] -> m (f a))
-     -> [t] -> m (f a)
-next k jq = list (return empty) k jq
-
 -- instance Handle NdetEff r a (k -> [Eff r a] -> k) where
 --   handle step _ MZero z jq = list z (flip step z) jq
 --   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
@@ -164,6 +157,13 @@ next k jq = list (return empty) k jq
 instance Alternative f => Handle NdetEff r a ([Eff r a] -> Eff r' (f w)) where
   handle step _ MZero jq = next step jq
   handle step q MPlus jq = next step (left q : right q : jq)
+
+{-# INLINE next #-}
+-- | Progressing the cursor in a reified job queue.
+next :: Alternative f => Monad m
+     => (t -> [t] -> m (f a))
+     -> [t] -> m (f a)
+next k jq = list (return empty) k jq
 
 -- | Alternate implementation of makeChoiceA. Slightly faster than makeChoiceA.
 makeChoiceA_open :: Alternative f
@@ -207,8 +207,8 @@ instance Member NdetEff r => Call r where
 
     nxt jq = list mzero loop jq
 
--- | Direct implementation of sols. This currently takes about 6.7% less
--- memory. Fusion techniques would likely help here.
+-- | Direct implementation of sols. This currently takes slightly less
+-- memory. Fusion techniques would obviate this.
 --
 -- __NOTES__: This traverses choices twice; once to build job queue, then to
 -- process it.

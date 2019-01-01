@@ -160,7 +160,7 @@ pyth20 =
 case_pythr_ndet :: HU.Assertion
 case_pythr_ndet =
   HU.assertEqual "pythr_MTL" pyth20 ((runCont (pyth1 20) (\x -> [x])) :: [(Int,Int,Int)])
-  >> HU.assertEqual "pythr_EFF" pyth20 ((run . E.ND.makeChoiceLst $ pyth1 20) :: [(Int,Int,Int)])
+  >> HU.assertEqual "pythr_EFF" pyth20 ((run . E.ND.makeChoice $ pyth1 20) :: [(Int,Int,Int)])
 
 
 -- There is no instance of MonadPlus for ContT
@@ -177,7 +177,7 @@ instance Monad m => Alternative (ContT [r] m) where
 
 mainN_MTL n = ((runCont (pyth1 n) (\x -> [x])) :: [(Int,Int,Int)])
 
-mainN_Eff n = ((run . E.ND.makeChoiceLst $ pyth1 n) :: [(Int,Int,Int)])
+mainN_Eff n = ((run . E.ND.makeChoice $ pyth1 n) :: [(Int,Int,Int)])
 
 -- Adding state: counting the number of choices
 
@@ -213,4 +213,4 @@ mainNS_Eff n =
   in ((l::[(Int,Int,Int)]), (cnt::Int))
   where
     pyth2Er :: Int -> ([(Int,Int,Int)],Int)
-    pyth2Er n = run . E.S.runState 0 . E.ND.makeChoiceLst $ pyth2E n
+    pyth2Er n = run . E.S.runState 0 . E.ND.makeChoice $ pyth2E n

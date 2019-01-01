@@ -38,8 +38,6 @@ gen_testCA x = do
 case_NdetEff_testCA :: Assertion
 case_NdetEff_testCA = [2, 4..10] @=? (run $ makeChoiceA (gen_testCA 10))
 
-makeChoice = makeChoiceLst
-
 case_Choose1_exc11 :: Assertion
 case_Choose1_exc11 = [2,3] @=? (run exc11)
   where
