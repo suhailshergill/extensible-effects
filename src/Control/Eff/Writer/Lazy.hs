@@ -37,6 +37,8 @@ import Control.Monad.Trans.Control
 import Data.Monoid
 #endif
 
+import Data.Function (fix)
+
 -- ------------------------------------------------------------------------
 -- | The Writer monad
 --
@@ -53,8 +55,8 @@ withWriter :: Monad m => a -> b -> (w -> b -> b) -> m (a, b)
 withWriter x empty _append = return (x, empty)
 -- | Given a value to write, and a callback (which includes empty and
 -- append), respond to requests.
-instance Monad m => Handle (Writer w) (b -> (w -> b -> b) -> m (a, b)) where
-  handle k (Tell w) e append = k () e append >>=
+instance Monad m => Handle (Writer w) r a (b -> (w -> b -> b) -> m (a, b)) where
+  handle step q (Tell w) e append = step (q ^$ ()) e append >>=
     \(x, l) -> return (x, w `append` l)
 
 instance ( MonadBase m m
@@ -73,16 +75,16 @@ tell w = send $ Tell w
 
 -- | Transform the state being produced.
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
-censor f = respond_relay return h
+censor f = fix (respond_relay' h return)
   where
-    h :: (v -> Eff r b) -> Writer w v -> Eff r b
-    h k (Tell w) = tell (f w) >>= k
+    h :: (Eff r b -> Eff r b) -> Arrs r v b -> Writer w v -> Eff r b
+    h step q (Tell w) = tell (f w) >>= \x -> step (q ^$ x)
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate
 -- values, hence no Monoid constraints.
 runWriter :: (w -> b -> b) -> b -> Eff (Writer w ': r) a -> Eff r (a, b)
-runWriter accum b m = handle_relay withWriter m b accum
+runWriter accum b m = fix (handle_relay withWriter) m b accum
 
 -- | Handle Writer requests, using a List to accumulate values.
 runListWriter :: Eff (Writer w ': r) a -> Eff r (a,[w])

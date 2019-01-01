@@ -4,6 +4,7 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE FlexibleContexts #-}
 {-# LANGUAGE GADTs #-}
+{-# LANGUAGE LambdaCase #-}
 {-# LANGUAGE NoMonomorphismRestriction #-}
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE StandaloneDeriving #-}
@@ -22,9 +23,8 @@ module Control.Eff.Logic.NdetEff (
   , left, right
   , choose
   , makeChoiceA, makeChoiceA_open
-  , makeChoiceA0, makeChoiceA0_open
+  , makeChoiceA0
   , makeChoiceLst
-  , msplit0, msplit0_open
   , msplit', msplit'_open
   , sols'
   , module Control.Eff.Logic.Core
@@ -59,15 +59,11 @@ left q = q ^$ True
 {-# INLINE right #-}
 right :: Arrs r Bool a -> Eff r a
 right q = q ^$ False
--- | Given a callback and NdetEff requests respond to them
-instance (Alternative f, Monad m) => Handle NdetEff (m (f a)) where
-  handle _ MZero = return empty
-  handle k MPlus = liftM2 (<|>) (k True) (k False)
--- | Open handler; note that this makes explicit that we rely on @f@ to have
--- enough room to store all possibilities.
-instance Alternative f => HandleOpen NdetEff r a (Eff r' (f w)) where
-  handle_open _ _ MZero = return empty
-  handle_open step q MPlus = liftM2 (<|>) (step $ left q) (step $ right q)
+-- | Given a callback and NdetEff requests respond to them. Note that this makes
+-- explicit that we rely on @f@ to have enough room to store all possibilities.
+instance Alternative f => Handle NdetEff r a (Eff r' (f w)) where
+  handle _ _ MZero = return empty
+  handle step q MPlus = liftM2 (<|>) (step $ left q) (step $ right q)
 
 instance Member NdetEff r => Alternative (Eff r) where
   empty = mzero
@@ -109,10 +105,7 @@ choose lst = msum $ map return lst
 -- and space to store those empty. When there aren't a lot of failures, this is
 -- comparable to 'makeChoiceA'.
 makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0 = handle_relay withNdetEff
--- | Naive implementation in open-style
-makeChoiceA0_open :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0_open = fix (handle_relay_open withNdetEff)
+makeChoiceA0 = fix (handle_relay withNdetEff)
 
 -- | A different implementation, more involved but faster and taking much less
 -- (100 times) less memory. The benefit of the effect framework is that we can
@@ -140,19 +133,6 @@ makeChoiceLst = makeChoiceA_open
 instance Member NdetEff r => MSplit (Eff r) where
   msplit = msplit'_open
 
--- | Naive implementation
-{-# INLINE msplit0 #-}
-msplit0 :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit0 = respond_relay (flip withMSplit empty) $ \k x -> case x of
-  MZero -> return Nothing              -- definite failure
-  MPlus -> k True >>= \r -> case r of  -- check left first
-    Nothing -> k False                 -- failure, continue exploring
-    Just(a, m) -> withMSplit a (m <|> (k False >>= reflect)) -- definite success
--- | Naive open implementation. Note this forgets everything but the first result
-{-# INLINE msplit0_open #-}
-msplit0_open :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit0_open = fix (respond_relay_open @NdetEff (flip withMSplit empty))
-
 -- | A different implementation, more involved. This is much faster than naive
 -- implementation (which takes quadratic time and space when used with sols).
 {-# INLINE msplit' #-}
@@ -177,19 +157,19 @@ next :: Alternative f => Monad m
      -> [t] -> m (f a)
 next k jq = list (return empty) k jq
 
--- instance HandleOpen NdetEff r a (k -> [Eff r a] -> k) where
---   handle_open step _ MZero z jq = list z (flip step z) jq
---   handle_open step q MPlus z jq = list z (flip step z) (left q : right q : jq)
+-- instance Handle NdetEff r a (k -> [Eff r a] -> k) where
+--   handle step _ MZero z jq = list z (flip step z) jq
+--   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
 
-instance Alternative f => HandleOpen NdetEff r a ([Eff r a] -> Eff r' (f w)) where
-  handle_open step _ MZero jq = next step jq
-  handle_open step q MPlus jq = next step (left q : right q : jq)
+instance Alternative f => Handle NdetEff r a ([Eff r a] -> Eff r' (f w)) where
+  handle step _ MZero jq = next step jq
+  handle step q MPlus jq = next step (left q : right q : jq)
 
 -- | Alternate implementation of makeChoiceA. Slightly faster than makeChoiceA.
 makeChoiceA_open :: Alternative f
                  => Eff (NdetEff ': r) a -> Eff r (f a)
 makeChoiceA_open m' = loop m' [] where
-  loop m = handle_relay_open @NdetEff
+  loop m = handle_relay @NdetEff
            ret loop m
   -- single result; optimization: drop spurious empty
   ret x [] = withNdetEff x
@@ -202,7 +182,7 @@ makeChoiceA_open m' = loop m' [] where
 msplit'_open :: Member NdetEff r
     => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit'_open m' = loop m' [] where
-  loop m = respond_relay_open @NdetEff
+  loop m = respond_relay @NdetEff
            (\x jq -> withMSplit x (msum jq))
            loop m
 

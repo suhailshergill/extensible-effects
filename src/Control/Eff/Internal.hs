@@ -246,107 +246,91 @@ instance Relay k r => Relay (s -> k) r where
   {-# INLINABLE relay #-}
   relay q u s = relay (\x -> q x s) u
 
--- | Respond to requests of type 't'.
-class Handle t k where
-  handle :: (v -> k) -> t v -> k
+-- | Respond to requests of type 't'. The handlers themselves are expressed in
+-- open-recursion style.
+class Handle t r a k where
+  handle :: (Eff r a -> k) -- ^ recursive knot
+         -> Arrs r v a -- ^ coroutine awaiting response
+         -> t v -- ^ request
+         -> k
 
--- | Open-recursive version of Handle. This style is more flexible and allows us
--- to express handlers which may need to operate on reified state for
--- performance reasons (see NdetEff).
-class HandleOpen t r a k where
-  handle_open :: (Eff r a -> k) -> Arrs r v a -> t v -> k
-
-  handle_relay_open :: r ~ (t ': r') => Relay k r'
-                    => (a -> k)
-                    -> (Eff r a -> k)
-                    -> Eff r a -> k
-  handle_relay_open ret step m = eff ret
-                                 (\q u -> case u of
-                                     U0 x -> handle_open step q x
-                                     U1 u' -> relay (qComp q step) u')
-                                 m
-  respond_relay_open :: Member t r => Relay k r
-                     => (a -> k)
-                     -> (Eff r a -> k)
-                     -> Eff r a -> k
-  respond_relay_open ret step m = eff ret
-                                  (\q u -> case u of
-                                      U0' x -> handle_open @t step q x
-                                      _     -> relay (qComp q step) u)
-                                  m
-
--- | A convenient pattern: given a request (in an open union), either
--- handle it (using default Handler) or relay it.
---
--- "Handle" implies that all requests of type @t@ are dealt with,
--- i.e., @k@ (the response type) doesn't have @t@ as part of its
--- effect list. The @Relay k r@ constraint ensures that @k@ is an
--- effectful computation (with effectlist @r@).
---
--- Note that we can only handle the leftmost effect type (a
--- consequence of the 'OpenUnion' implementation.
-{-# INLINE handle_relay #-}
-handle_relay :: forall t k r a. Handle t k => Relay k r
-             => (a -> k) -- ^ return
-             -> Eff (t ': r) a -> k
-handle_relay ret = handle_relay' ret handle
+  -- | A convenient pattern: given a request (in an open union), either handle
+  -- it (using default Handler) or relay it.
+  --
+  -- "Handle" implies that all requests of type @t@ are dealt with, i.e., @k@
+  -- (the response type) doesn't have @t@ as part of its effect list. The @Relay
+  -- k r@ constraint ensures that @k@ is an effectful computation (with
+  -- effectlist @r@).
+  --
+  -- Note that we can only handle the leftmost effect type (a consequence of the
+  -- 'OpenUnion' implementation.
+  handle_relay :: r ~ (t ': r') => Relay k r'
+               => (a -> k) -- ^ return
+               -> (Eff r a -> k) -- ^ recursive knot
+               -> Eff r a -> k
+  handle_relay ret step m = eff ret
+                            (\q u -> case u of
+                                U0 x -> handle step q x
+                                U1 u' -> relay (qComp q step) u')
+                            m
+  -- | Intercept the request and possibly respond to it, but leave it
+  -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
+  -- computation (with effectlist @r@). As such, the effect type @t@ will show
+  -- up in the response type @k@. There are two natural / commmon options for
+  -- @k@: the implicit effect domain (i.e., Eff r (f a)), or the explicit effect
+  -- domain (i.e., s1 -> s2 -> ... -> sn -> Eff r (f a s1 s2 ... sn)).
+  --
+  -- There are three different ways in which we may want to alter behaviour:
+  --
+  -- 1] __Before__: This work should be done before 'respond_relay' is called.
+  --
+  -- 2] __During__: This work should be done by altering the handler being
+  -- passed to 'respond_relay'. This allows us to modify the requests "in
+  -- flight".
+  --
+  -- 3] __After__: This work should be done be altering the 'ret' being passed
+  -- to 'respond_relay'. This allows us to overwrite changes or discard them
+  -- altogether. If this seems magical, note that we have the flexibility of
+  -- altering the target domain 'k'. Specifically, the explicit domain
+  -- representation gives us access to the "effect" realm allowing us to
+  -- manipulate it directly.
+  respond_relay :: Member t r => Relay k r
+                => (a -> k) -- ^ return
+                -> (Eff r a -> k) -- ^ recursive knot
+                -> Eff r a -> k
+  respond_relay ret step m = eff ret
+                             (\q u -> case u of
+                                 U0' x -> handle @t step q x
+                                 _     -> relay (qComp q step) u)
+                             m
 
 -- | A less commonly needed variant with an explicit handler (instead
--- of @Handle t k@ constraint).
+-- of @Handle t r a k@ constraint).
 {-# INLINE handle_relay' #-}
-handle_relay' :: forall t k r a. Relay k r
-              => (a -> k) -- ^ return
-              -> (forall v. (v -> k) -> t v -> k) -- ^ handler
-              -> Eff (t ': r) a -> k
-handle_relay' ret h = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0 x      -> h k x
-      U1 u'     -> relay k u'
-      where
-        k = qComp q loop
-
--- | Intercept the request and possibly respond to it, but leave it
--- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
--- computation (with effectlist @r@). As such, the effect type @t@ will show up
--- in the response type @k@. There are two natural / commmon options for @k@:
--- the implicit effect domain (i.e., Eff r (f a)), or the explicit effect domain
--- (i.e., s1 -> s2 -> ... -> sn -> Eff r (f a s1 s2 ... sn)).
---
--- There are three different ways in which we may want to alter behaviour:
--- 1] __Before__: This work should be done before 'respond_relay' is called.
--- 2] __During__: This work should be done by altering the handler being passed
--- to 'respond_relay'. This allows us to modify the requests "in flight".
--- 3] __After__: This work should be done be altering the 'ret' being passed to
--- 'respond_relay'. This allows us to overwrite changes or discard them
--- altogether. If this seems magical, note that we have the flexibility of
--- altering the target domain 'k'. Specifically, the explicit domain
--- representation gives us access to the "effect" realm allowing us to
--- manipulate it directly.
-{-# INLINE respond_relay #-}
-respond_relay :: Member t r => Relay k r
-              => (a -> k)
-              -> (forall v. (v -> k) -> t v -> k)
+handle_relay' :: r ~ (t ': r') => Relay k r'
+              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+              -> (a -> k) -- ^ return
+              -> (Eff r a -> k) -- ^ recursive knot
               -> Eff r a -> k
-respond_relay ret h = loop
-  where
-    loop (Val x) = ret x
-    loop (E q u) = case u of
-      U0' x -> h k x
-      _     -> relay k u
-      where
-        k = qComp q loop
+handle_relay' hdl ret step m = eff ret
+                                    (\q u -> case u of
+                                        U0 x -> hdl step q x
+                                        U1 u' -> relay (qComp q step) u')
+                                    m
 
--- | A less common variant which uses the default 'handle' from the @Handle t k@
--- instance (in general, we may need to define new datatypes to call
--- respond_relay with the default handler). Note this variant doesn't allow us
--- to alter effects "during" their execution.
+-- | Variant with an explicit handler (instead of @Handle t r a k@
+-- constraint).
 {-# INLINE respond_relay' #-}
-respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
-               => (a -> k)
+respond_relay' :: Member t r => Relay k r
+               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+               -> (a -> k) -- ^ return
+               -> (Eff r a -> k) -- ^ recursive knot
                -> Eff r a -> k
-respond_relay' ret = respond_relay ret (handle @t)
+respond_relay' hdl ret step m = eff ret
+                                (\q u -> case u of
+                                    U0' x -> hdl step q x
+                                    _     -> relay (qComp q step) u)
+                                m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
@@ -375,21 +359,21 @@ lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
 -- | Handle lifted requests by running them sequentially
-instance Monad m => Handle (Lift m) (m k) where
-  handle k (Lift x) = x >>= k
+instance Monad m => Handle (Lift m) r a (m k) where
+  handle step q (Lift x) = x >>= (step . (q ^$))
 
 -- | The handler of Lift requests. It is meant to be terminal: we only
 -- allow a single Lifted Monad. Note, too, how this is different from
 -- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift = fix step
+runLift m = fix step m
   where
     step :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
-    step next = eff return
-                (impurePrj
-                 (handle `andThen` next)
-                 (\_ _ -> error "Impossible: Nothing to relay!")
-                )
+    step next m' = eff return
+                   (\q u -> case u of
+                       U0' x -> handle next q x
+                       _     -> error "Impossible: Nothing to relay!")
+                   m'
 
 -- | Catching of dynamic exceptions
 -- See the problem in
@@ -397,11 +381,12 @@ runLift = fix step
 catchDynE :: forall e a r.
              (Lifted IO r, Exc.Exception e) =>
              Eff r a -> (e -> Eff r a) -> Eff r a
-catchDynE m eh = respond_relay return h m
+catchDynE m eh = fix (respond_relay' h return) m
  where
    -- Polymorphic local binding: signature is needed
-   h :: Arr r v a -> Lift IO v -> Eff r a
-   h k (Lift em) = lift (Exc.try em) >>= either eh k
+   h :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
+   h step q (Lift em) = lift (Exc.try em) >>= either eh k
+     where k = step . (q ^$)
 
 -- | You need this when using 'catches'.
 data HandlerDynE r a =

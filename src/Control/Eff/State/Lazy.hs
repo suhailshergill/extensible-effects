@@ -21,6 +21,8 @@ import Control.Eff.Reader.Lazy
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 
+import Data.Function (fix)
+
 -- ------------------------------------------------------------------------
 -- | State, lazy
 --
@@ -49,10 +51,10 @@ withState :: Monad m => a -> s -> m (a, s)
 withState x s = return (x, s)
 
 -- | Handle 'State s' requests
-instance Handle (State s) (s -> r) where
-  handle k sreq s = case sreq of
-    Get    -> k s s
-    Put s' -> k () s'
+instance Handle (State s) r a (s -> k) where
+  handle step q sreq s = case sreq of
+    Get    -> step (q ^$ s) s
+    Put s' -> step (q ^$ ()) s'
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -89,21 +91,11 @@ put s = send (Put s)
 -- inline get/put, even if I put the INLINE directives and play with phases.
 -- (Inlining works if I use 'inline' explicitly).
 
--- | Run a state effect. compared to the @runState@ function, this is
---   implemented naively and is expected to perform slower.
-runState' :: s -> Eff (State s ': r) a -> Eff r (a, s)
-runState' s m = handle_relay withState m s
-
--- | Run a State effect. This variant is a bit optimized compared to
---   @runState'@.
+-- | Run a State effect
 runState :: s                     -- ^ Initial state
          -> Eff (State s ': r) a  -- ^ Effect incorporating State
          -> Eff r (a, s)          -- ^ Effect containing final state and a return value
-runState s (Val x) = return (x,s)
-runState s (E q u) = case decomp u of
-  Right Get     -> runState s (q ^$ s)
-  Right (Put s1) -> runState s1 (q ^$ ())
-  Left  u1 -> E (singleK (\x -> runState s (q ^$ x))) u1
+runState s m = fix (handle_relay withState) m s
 
 -- | Transform the state with a function.
 modify :: (Member (State s) r) => (s -> s) -> Eff r ()
@@ -133,7 +125,7 @@ transactionState :: forall s r a. Member (State s) r
                  => TxStateT s -> Eff r a -> Eff r a
 transactionState _ m = do
   s <- get
-  (respond_relay' @(State s) (withTxState @s)) m s
+  (fix $ respond_relay @(State s) (withTxState @s)) m s
 
 -- | A different representation of State: decomposing State into mutation
 -- (Writer) and Reading. We don't define any new effects: we just handle the
@@ -144,7 +136,6 @@ runStateR = flip loop
    loop :: Eff (Writer s ': Reader s ': r) a -> s -> Eff r (a, s)
    loop (Val x) = withState x
    loop (E q u) = case u of
-     U0 (Tell w) -> handle k (Put w)
-     U1 (U0 Ask) -> handle k Get
-     U1 (U1 u') -> relay k u'
-    where k = qComp q loop
+     U0 (Tell w) -> handle loop q (Put w)
+     U1 (U0 Ask) -> handle loop q Get
+     U1 (U1 u') -> relay (qComp q loop) u'

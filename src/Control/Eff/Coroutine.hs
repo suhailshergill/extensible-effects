@@ -14,6 +14,8 @@ module Control.Eff.Coroutine( Yield (..)
 import Control.Eff
 import Control.Eff.Extend
 
+import Data.Function (fix)
+
 -- ------------------------------------------------------------------------
 -- | Co-routines
 -- The interface is intentionally chosen to be the same as in transf.hs
@@ -43,9 +45,9 @@ data Y r w a = Y (w -> Eff r (Y r w a)) a
 withCoroutine :: Monad m => b -> m (Y r w a)
 withCoroutine = const $ return Done
 -- | Given a continuation and a request, respond to it
-instance Handle (Yield a b) (Eff r (Y r b a)) where
-  handle k (Yield a) = return $ Y k a
+instance Handle (Yield a b) (Yield a b : r) w (Eff r (Y r b a)) where
+  handle step q (Yield a) = return $ Y (step . (q ^$)) a
 
 -- | Launch a thread and report its status
 runC :: Eff (Yield a b ': r) w -> Eff r (Y r b a)
-runC = handle_relay withCoroutine
+runC = fix (handle_relay withCoroutine)

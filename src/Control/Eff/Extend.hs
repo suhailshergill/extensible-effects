@@ -25,12 +25,8 @@ module Control.Eff.Extend
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
   , Handle(..)
-  , HandleOpen(..)
   , Relay(..)
-  , handle_relay
-  , handle_relay'
-  , respond_relay
-  , respond_relay'
+  , handle_relay', respond_relay'
   , raise
   , send
   -- * Arrow types and compositions
