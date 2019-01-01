@@ -52,6 +52,10 @@ tags:
 	$(STACK_CMD) install hasktags
 	hasktags -ex .
 
+.PHONY: repl
+repl:
+	$(STACK_CMD) repl
+
 .PHONY: devel
 devel: test
 	{ \
