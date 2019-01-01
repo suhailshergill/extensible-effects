@@ -16,18 +16,21 @@
 {-# LANGUAGE UndecidableInstances #-}
 
 -- | Nondeterministic choice effect via MPlus interface directly
--- __TODO__: export as Control.Eff.Logic
+-- __TODO__: investigate Fusion regd msplit and associated functions.
 module Control.Eff.Logic.NdetEff (
+  -- * Main interface
   NdetEff
   , withNdetEff
   , left, right
   , choose
-  , makeChoiceA, makeChoiceA_open
-  , makeChoiceA0
   , makeChoice
-  , msplit', msplit'_open
-  , sols'
+  , makeChoiceA
   , module Control.Eff.Logic.Core
+    -- * Additional functions for comparison
+  , msplit'
+  , msplit'_manual
+  , makeChoiceA_manual
+  , makeChoiceA0
   ) where
 
 import Control.Eff
@@ -41,8 +44,14 @@ import Control.Monad.Base
 import Control.Monad.Trans.Control
 import Data.Function (fix)
 
--- | A different implementation, more directly mapping to MonadPlus
--- interface
+-- | An implementation of non-deterministic choice aka backtracking. The two
+-- requests we need to support are: @false@, @(|)@. We map this to the
+-- 'MonadPlus' (or 'Alternative') interface: @MZero@ stands for @false@, and
+-- @MPlus@ stands for @(|)@.
+--
+-- This creates a branching structure with a fanout of @2@, resulting in @mplus@
+-- node being visited approximately @2x@ (in general, for a fanout of @f@ we'll
+-- have the type of internal node being invoked @f/(f-1)@ times).
 data NdetEff a where
   MZero :: NdetEff a
   MPlus :: NdetEff Bool
@@ -70,7 +79,7 @@ instance Member NdetEff r => Alternative (Eff r) where
   (<|>) = mplus
 
 instance Member NdetEff r => MonadPlus (Eff r) where
-  -- | Laws (per Control.Monad)
+  -- | __NOTE__: the deviation from laws in Control.Monad
   -- [x] mzero >>= f = mzero (CM1)
   -- [ ] m >> mzero  = mzero (CM2)
   -- We obey CM1, but not CM2. This is consistent with Backtr and LogicT papers.
@@ -95,8 +104,8 @@ instance ( MonadBase m m
     restoreM x = do lst :: [a] <- raise (restoreM x)
                     choose lst
 
--- | choose lst non-deterministically chooses one value from the lst
--- choose [] thus corresponds to failure
+-- | 'choose' lst non-deterministically chooses one value from the lst choose []
+-- thus corresponds to failure.
 choose :: Member NdetEff r => [a] -> Eff r a
 choose lst = msum $ map return lst
 
@@ -107,11 +116,35 @@ choose lst = msum $ map return lst
 makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
 makeChoiceA0 = fix (handle_relay withNdetEff)
 
--- | A different implementation, more involved but faster and taking much less
--- (100 times) less memory. The benefit of the effect framework is that we can
--- have many interpreters.
+-- | More performant handler; uses reified job queue
+instance Alternative f => Handle NdetEff r a ([Eff r a] -> Eff r' (f w)) where
+  handle step _ MZero jq = next step jq
+  handle step q MPlus jq = next step (left q : right q : jq)
+-- instance Handle NdetEff r a (k -> [Eff r a] -> k) where
+--   handle step _ MZero z jq = list z (flip step z) jq
+--   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
+
+{-# INLINE next #-}
+-- | Progressing the cursor in a reified job queue.
+next :: Alternative f => Monad m
+     => (t -> [t] -> m (f a))
+     -> [t] -> m (f a)
+next k jq = list (return empty) k jq
+
+-- | Optimized version of makeChoiceA, faster and taking less memory. The
+-- benefit of the effect framework is that we can have many interpreters.
 makeChoiceA :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA m = loop [] m where
+makeChoiceA m' = loop m' [] where
+  loop m = fix (handle_relay @NdetEff ret) m
+  -- single result; optimization: drop spurious empty
+  ret x [] = withNdetEff x
+  -- definite result and perhaps some others
+  ret x (h:t) = liftM2 (<|>) (withNdetEff x) (loop h t)
+
+-- | A different implementation, more involved, but similar complexity to
+-- makeChoiceA.
+makeChoiceA_manual :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
+makeChoiceA_manual m = loop [] m where
   -- single result; optimization: drop spurious empty
   loop [] (Val x)    = withNdetEff x
   -- definite result and perhaps some others
@@ -126,18 +159,24 @@ makeChoiceA m = loop [] m where
 -- | Same as makeChoice, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
 makeChoice :: Eff (NdetEff ': r) a -> Eff r [a]
-makeChoice = makeChoiceA_open
+makeChoice = makeChoiceA
 
 -- | We implement LogicT, the non-determinism reflection, of which soft-cut is
 -- one instance. See the LogicT paper for an explanation.
 instance Member NdetEff r => MSplit (Eff r) where
-  msplit = msplit'_open
+  msplit = msplit'
 
--- | A different implementation, more involved. This is much faster than naive
--- implementation (which takes quadratic time and space when used with sols).
+-- | Optimized version of msplit'. This is much faster than naive implementation
+-- (which takes quadratic time and space when used with sols).
 {-# INLINE msplit' #-}
 msplit' :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit' m' = loop m' [] where
+msplit' m = fix (respond_relay @NdetEff (\x jq -> withMSplit x (msum jq))) m []
+
+-- | A different implementation, more involved, but similar complexity to
+-- msplit'.
+{-# INLINE msplit'_manual #-}
+msplit'_manual :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit'_manual m' = loop m' [] where
   -- definite result and perhaps some others
   loop (Val x) jq = withMSplit x (msum jq)
   -- not yet definite answer
@@ -149,42 +188,6 @@ msplit' m' = loop m' [] where
     _         -> relay (\x -> loop (k x) jq) u
     where
       k x = q ^$ x
-
--- instance Handle NdetEff r a (k -> [Eff r a] -> k) where
---   handle step _ MZero z jq = list z (flip step z) jq
---   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
-
-instance Alternative f => Handle NdetEff r a ([Eff r a] -> Eff r' (f w)) where
-  handle step _ MZero jq = next step jq
-  handle step q MPlus jq = next step (left q : right q : jq)
-
-{-# INLINE next #-}
--- | Progressing the cursor in a reified job queue.
-next :: Alternative f => Monad m
-     => (t -> [t] -> m (f a))
-     -> [t] -> m (f a)
-next k jq = list (return empty) k jq
-
--- | Alternate implementation of makeChoiceA. Slightly faster than makeChoiceA.
-makeChoiceA_open :: Alternative f
-                 => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA_open m' = loop m' [] where
-  loop m = handle_relay @NdetEff
-           ret loop m
-  -- single result; optimization: drop spurious empty
-  ret x [] = withNdetEff x
-  -- definite result and perhaps some others
-  ret x (h:t) = liftM2 (<|>) (withNdetEff x) (loop h t)
-
--- | Alternate implementation of msplit'. Just as good as msplit' (allocates an
--- extra 24 bytes ;)).
-{-# INLINE msplit'_open #-}
-msplit'_open :: Member NdetEff r
-    => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit'_open m' = loop m' [] where
-  loop m = respond_relay @NdetEff
-           (\x jq -> withMSplit x (msum jq))
-           loop m
 
 -- | The call interpreter -- it is like reify . reflect with a twist. Compare
 -- this implementation with the huge implementation of call in Hinze 2000
@@ -206,21 +209,3 @@ instance Member NdetEff r => Call r where
         _         -> relay (\x -> loop (q ^$ x) jq) u' -- (C4)
 
     nxt jq = list mzero loop jq
-
--- | Direct implementation of sols. This currently takes slightly less
--- memory. Fusion techniques would obviate this.
---
--- __NOTES__: This traverses choices twice; once to build job queue, then to
--- process it.
---
--- __TODO__: decide whether to retain this or remove
-sols' :: Member NdetEff r => Eff r a -> Eff r [a]
-sols' m = loop [] m where
-  loop [] (Val x)    = withNdetEff x
-  loop (h:t) (Val x) = liftM2 (<|>) (withNdetEff x) (loop t h)
-  loop jq (E q u) = case u of
-    U0' MZero -> next (flip loop) jq
-    U0' MPlus -> loop (k False : jq) (k True)
-    _         -> relay ((loop jq) . k) u
-    where
-      k = (q ^$)

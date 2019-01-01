@@ -10,6 +10,8 @@ import Control.Monad
 import Control.Eff
 import Control.Eff.Exception
 
+import Data.Function (fix)
+
 -- | The MSplit primitive from LogicT paper.
 class MSplit m where
   -- | The laws for 'msplit' are:
@@ -95,9 +97,9 @@ sg >>- g =
 -- | Collect all solutions. This is from Hinze's 'Backtr' monad
 -- class. Unsurprisingly, this can be implemented in terms of msplit.
 sols :: (Monad m, MSplit m) => m a -> m [a]
-sols m = (msplit m) >>= loop [] where
-  loop jq Nothing = return jq
-  loop jq (Just(a, ma)) = (msplit ma) >>= loop (a:jq)
+sols m = (msplit m) >>= (fix step) [] where
+  step _ jq Nothing          = return jq
+  step next jq (Just(a, ma)) = (msplit ma) >>= next (a:jq)
 
 -- | Non-determinism with control (cut)
 -- For the explanation of cut, see Section 5 of Hinze ICFP 2000 paper.

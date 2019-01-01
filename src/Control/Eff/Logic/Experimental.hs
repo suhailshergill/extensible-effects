@@ -1,6 +1,9 @@
+{-# OPTIONS_HADDOCK hide #-}
 {-# OPTIONS_GHC -Wno-orphans #-}
 {-# LANGUAGE UndecidableInstances #-}
 
+-- | This module is for some experimental implementations and tinkering. Not
+-- intended to be exposed or depended on.
 module Control.Eff.Logic.Experimental where
 
 import Control.Eff

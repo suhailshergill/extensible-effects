@@ -70,7 +70,6 @@ library
                        Control.Eff.Exception
                        Control.Eff.Fresh
                        Control.Eff.Logic.Core
-                       Control.Eff.Logic.Experimental
                        Control.Eff.Logic.NdetEff
                        Control.Eff.Logic.Perf
                        Control.Eff.Operational
@@ -90,6 +89,7 @@ library
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal
                        Data.FTCQueue
+                       Control.Eff.Logic.Experimental
 
   default-extensions:  NoMonomorphismRestriction
                      , MonoLocalBinds
