@@ -1,3 +1,4 @@
+{-# LANGUAGE Safe #-}
 {-# LANGUAGE PatternSynonyms #-}
 
 -- | This module exports functions, types, and typeclasses necessary for
@@ -8,7 +9,7 @@ module Control.Eff.Extend
   ( -- * The effect monad
     Eff(..)
   , run
-  , eff, impurePrj, impureDecomp
+  , eff
     -- * Lifting operations
   , Lift(..), Lifted, LiftedBase
   , lift, runLift
@@ -23,12 +24,9 @@ module Control.Eff.Extend
   , SetMember
   , weaken
   -- * Helper functions that are used for implementing effect-handlers
-  , Handle, handle
-  , Relay, relay
-  , handle_relay
-  , handle_relay'
-  , respond_relay
-  , respond_relay'
+  , Handle(..)
+  , Relay(..)
+  , handle_relay', respond_relay'
   , raise
   , send
   -- * Arrow types and compositions
@@ -43,8 +41,7 @@ module Control.Eff.Extend
   , comp
   , (^|>)
   , qComp
-  , qComps, (^|$^)
-  , (~^), qThen, andThen
+  , qComps
   )
 where
 

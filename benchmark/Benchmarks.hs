@@ -7,7 +7,7 @@
 import Criterion.Main
 import Control.Eff as E
 import Control.Eff.Exception as E.Er
-import Control.Eff.NdetEff as E.ND
+import Control.Eff.Logic.NDet as E.ND
 import Control.Eff.State.Strict as E.S
 import Control.Monad
 
@@ -160,7 +160,7 @@ pyth20 =
 case_pythr_ndet :: HU.Assertion
 case_pythr_ndet =
   HU.assertEqual "pythr_MTL" pyth20 ((runCont (pyth1 20) (\x -> [x])) :: [(Int,Int,Int)])
-  >> HU.assertEqual "pythr_EFF" pyth20 ((run . E.ND.makeChoiceA $ pyth1 20) :: [(Int,Int,Int)])
+  >> HU.assertEqual "pythr_EFF" pyth20 ((run . E.ND.makeChoice $ pyth1 20) :: [(Int,Int,Int)])
 
 
 -- There is no instance of MonadPlus for ContT
@@ -177,7 +177,7 @@ instance Monad m => Alternative (ContT [r] m) where
 
 mainN_MTL n = ((runCont (pyth1 n) (\x -> [x])) :: [(Int,Int,Int)])
 
-mainN_Eff n = ((run . E.ND.makeChoiceA $ pyth1 n) :: [(Int,Int,Int)])
+mainN_Eff n = ((run . E.ND.makeChoice $ pyth1 n) :: [(Int,Int,Int)])
 
 -- Adding state: counting the number of choices
 
@@ -190,7 +190,7 @@ pyth2 upbound = do
   S.put $! (cnt + 1)
   if x*x + y*y == z*z then return (x,y,z) else mzero
 
-pyth2E :: (Member (E.S.State Int) r, Member NdetEff r) =>
+pyth2E :: (Member (E.S.State Int) r, Member NDet r) =>
           Int -> Eff r (Int, Int, Int)
 pyth2E upbound = do
   x <- iota 1 upbound
@@ -213,4 +213,4 @@ mainNS_Eff n =
   in ((l::[(Int,Int,Int)]), (cnt::Int))
   where
     pyth2Er :: Int -> ([(Int,Int,Int)],Int)
-    pyth2Er n = run . E.S.runState 0 . E.ND.makeChoiceA $ pyth2E n
+    pyth2Er n = run . E.S.runState 0 . E.ND.makeChoice $ pyth2E n

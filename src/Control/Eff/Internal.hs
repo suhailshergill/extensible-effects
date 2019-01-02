@@ -10,6 +10,7 @@
 {-# LANGUAGE ConstraintKinds #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
 {-# LANGUAGE TypeApplications #-}
+{-# LANGUAGE LambdaCase #-}
 
 -- ------------------------------------------------------------------------
 -- | A monadic library for communication between a handler and
@@ -40,11 +41,11 @@ import Data.Function (fix)
 -- denoted by r
 type Arr r a b = a -> Eff r b
 
--- | An effectful function from 'a' to 'b' that is a composition of one or more
+-- | An effectful function from @a@ to @b@ that is a composition of one or more
 -- effectful functions. The paremeter r describes the overall effect.
 --
--- The composition members are accumulated in a type-aligned queue.
--- Using a newtype here enables us to define `Category' and `Arrow' instances.
+-- The composition members are accumulated in a type-aligned queue. Using a
+-- newtype here enables us to define `C.Category' and `A.Arrow' instances.
 newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
 
 -- | 'Arrs' can be composed and have a natural identity.
@@ -52,7 +53,7 @@ instance C.Category (Arrs r) where
   id = ident
   f . g = comp g f
 
--- | As the name suggests, 'Arrs' also has an 'Arrow' instance.
+-- | As the name suggests, 'Arrs' also has an 'A.Arrow' instance.
 instance A.Arrow (Arrs r) where
   arr = arr
   first = singleK . first . (^$)
@@ -62,16 +63,16 @@ first x = \(a,c) -> (, c) `fmap` x a
 
 -- | convert single effectful arrow into composable type. i.e., convert 'Arr' to
 -- 'Arrs'
-{-# INLINE singleK #-}
+{-# INLINE [2] singleK #-}
 singleK :: Arr r a b -> Arrs r a b
-singleK = Arrs . tsingleton
-{-# INLINE (~^) #-}
-(~^) :: Arr r a b -> Arrs r a b
-(~^) = singleK
+singleK k = Arrs (tsingleton k)
+{-# RULES
+"singleK/qApp" [~2] forall q. singleK (qApp q) = q
+ #-}
 
--- | Application to the `generalized effectful function' Arrs r b w, i.e.,
+-- | Application to the `generalized effectful function' @Arrs r b w@, i.e.,
 -- convert 'Arrs' to 'Arr'
-{-# INLINABLE qApp #-}
+{-# INLINABLE [2] qApp #-}
 qApp :: forall r b w. Arrs r b w -> Arr r b w
 qApp (Arrs q) x = viewlMap (inline tviewl q) ($ x) cons
   where
@@ -92,8 +93,8 @@ qApp q x = case tviewl q of
 -}
 
 -- | Syntactic sugar for 'qApp'
-{-# INLINABLE (^$) #-}
-(^$) :: forall r b w. Arrs r b w -> Arr r b w
+{-# INLINE [2] (^$) #-}
+(^$) :: forall r b w. Arrs r b w -> b -> Eff r w
 q ^$ x = q `qApp` x
 
 -- | Lift a function to an arrow
@@ -105,6 +106,7 @@ ident :: Arrs r a a
 ident = arr id
 
 -- | Arrow composition
+{-# INLINE comp #-}
 comp :: Arrs r a b -> Arrs r b c -> Arrs r a c
 comp (Arrs f) (Arrs g) = Arrs (f >< g)
 
@@ -115,9 +117,9 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- | The monad that all effects in this library are based on.
 --
 -- An effectful computation is a value of type `Eff r a`.
--- In this signature, `r` is a type-level list of effects that are being
+-- In this signature, @r@ is a type-level list of effects that are being
 -- requested and need to be handled inside an effectful computation.
---`a` is the computation's result similar to other monads.
+-- @a@ is the computation's result similar to other monads.
 --
 -- A computation's result can be retrieved via the 'run' function.
 -- However, all effects used in the computation need to be handled by the use
@@ -139,51 +141,22 @@ eff _ g (E q u) = g q u
 -- common pattern for Eff.
 {-# INLINE bind #-}
 bind :: Arr r a b -> Eff r a -> Eff r b
-bind k = eff k (E . (^|> k))         -- just accumulates continuations
-
--- | Case analysis for impure computations for 'Eff' datatype. This
--- uses 'decomp'.
-{-# INLINE impureDecomp #-}
-impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
-             -> (Arrs (t ': r) v a -> Union r v -> b)
-             -> Arrs (t ': r) v a -> Union (t ': r) v -> b
-impureDecomp h rest q u = either (rest q) (h q) (decomp u)
--- | Case analysis for impure computations for 'Eff' datatype. This
--- uses 'prj'.
-{-# INLINE impurePrj #-}
-impurePrj :: Member t r
-          => (Arrs r v a -> t v -> b)
-          -> (Arrs r v a -> Union r v -> b)
-          -> Arrs r v a -> Union r v -> b
-impurePrj h def q u = maybe (def q u) (h q) (prj u)
+bind k e = eff k (E . (^|> k)) e       -- just accumulates continuations
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
-qComp g h = \a -> h $ (g ^$ a)
-{-# INLINABLE qThen #-}
-qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
-qThen = flip qComp
-
--- | Compose and then apply to function. This is a common pattern when
--- processing requests. Different options of 'f' allow us to handle or
--- relay the request and continue on.
-andThen :: ((b -> c) -> t) -> (Eff r w -> c)
-        -> Arrs r b w -> t
-andThen f next = f . (qThen next)
+qComp g h = \a -> h (g ^$ a)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 qComps g h = singleK $ qComp g h
-{-# INLINABLE (^|$^) #-}
-(^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
-(^|$^) = qComps
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
-  fmap f = bind (Val . f)
+  fmap f x = bind (Val . f) x
 
 instance Applicative (Eff r) where
   {-# INLINE pure #-}
@@ -194,7 +167,7 @@ instance Monad (Eff r) where
   {-# INLINE return #-}
   {-# INLINE [2] (>>=) #-}
   return = pure
-  (>>=) = flip bind
+  m >>= f = bind f m
 {-
   Val _ >> m = m
   E q u >> m = E (q ^|> const m) u
@@ -227,8 +200,7 @@ run (Val x) = x
 run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
--- | Abstract the recursive 'relay' pattern, i.e., "somebody else's
--- problem".
+-- | Abstract the recursive 'relay' pattern, i.e., "somebody else's problem".
 class Relay k r where
   relay :: (v -> k) -> Union r v -> k
 instance Relay (Eff r w) r where
@@ -238,89 +210,105 @@ instance Relay k r => Relay (s -> k) r where
   {-# INLINABLE relay #-}
   relay q u s = relay (\x -> q x s) u
 
--- | Respond to requests of type 't'.
-class Handle t k where
-  handle :: (v -> k) -> t v -> k
+-- | Respond to requests of type @t@. The handlers themselves are expressed in
+-- open-recursion style.
+class Handle t r a k where
+  handle :: (Eff r a -> k) -- ^ untied recursive knot
+         -> Arrs r v a -- ^ coroutine awaiting response
+         -> t v -- ^ request
+         -> k
 
--- | A convenient pattern: given a request (in an open union), either
--- handle it (using default Handler) or relay it.
---
--- "Handle" implies that all requests of type @t@ are dealt with,
--- i.e., @k@ (the response type) doesn't have @t@ as part of its
--- effect list. The @Relay k r@ constraint ensures that @k@ is an
--- effectful computation (with effectlist @r@).
---
--- Note that we can only handle the leftmost effect type (a
--- consequence of the 'OpenUnion' implementation.
-handle_relay :: forall t k r a. Handle t k => Relay k r
-             => (a -> k) -- ^ return
-             -> Eff (t ': r) a -> k
-handle_relay ret = handle_relay' ret handle
+  -- | A convenient pattern: given a request (in an open union), either handle
+  -- it (using default Handler) or relay it.
+  --
+  -- "Handle" implies that all requests of type @t@ are dealt with, i.e., @k@
+  -- (the response type) doesn't have @t@ as part of its effect list. The @Relay
+  -- k r@ constraint ensures that @k@ is an effectful computation (with
+  -- effectlist @r@).
+  --
+  -- Note that we can only handle the leftmost effect type (a consequence of the
+  -- 'Data.OpenUnion' implementation.
+  handle_relay :: r ~ (t ': r') => Relay k r'
+               => (a -> k) -- ^ return
+               -> (Eff r a -> k) -- ^ untied recursive knot
+               -> Eff r a -> k
+  handle_relay ret step m = eff ret
+                            (\q u -> case u of
+                                U0 x -> handle step q x
+                                U1 u' -> relay (qComp q step) u')
+                            m
+  -- | Intercept the request and possibly respond to it, but leave it
+  -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
+  -- computation (with effectlist @r@). As such, the effect type @t@ will show
+  -- up in the response type @k@. There are two natural / commmon options for
+  -- @k@: the implicit effect domain (i.e., Eff r (f a)), or the explicit effect
+  -- domain (i.e., s1 -> s2 -> ... -> sn -> Eff r (f a s1 s2 ... sn)).
+  --
+  -- There are three different ways in which we may want to alter behaviour:
+  --
+  -- 1. __Before__: This work should be done before 'respond_relay' is called.
+  --
+  -- 2. __During__: This work should be done by altering the handler being
+  -- passed to 'respond_relay'. This allows us to modify the requests "in
+  -- flight".
+  --
+  -- 3. __After__: This work should be done be altering the @ret@ being passed
+  -- to 'respond_relay'. This allows us to overwrite changes or discard them
+  -- altogether. If this seems magical, note that we have the flexibility of
+  -- altering the target domain @k@. Specifically, the explicit domain
+  -- representation gives us access to the "effect" realm allowing us to
+  -- manipulate it directly.
+  respond_relay :: Member t r => Relay k r
+                => (a -> k) -- ^ return
+                -> (Eff r a -> k) -- ^ untied recursive knot
+                -> Eff r a -> k
+  respond_relay ret step m = eff ret
+                             (\q u -> case u of
+                                 U0' x -> handle @t step q x
+                                 _     -> relay (qComp q step) u)
+                             m
 
 -- | A less commonly needed variant with an explicit handler (instead
--- of @Handle t k@ constraint).
-handle_relay' :: forall t k r a. Relay k r
-              => (a -> k) -- ^ return
-              -> (forall v. (v -> k) -> t v -> k) -- ^ handler
-              -> Eff (t ': r) a -> k
-handle_relay' ret h = fix step
-  where
-    step next = eff ret
-                (impureDecomp
-                  (h `andThen` next)
-                  (relay `andThen` next))
-
--- | Intercept the request and possibly respond to it, but leave it
--- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
--- computation (with effectlist @r@). As such, the effect type @t@ will show up
--- in the response type @k@. There are two natural / commmon options for @k@:
--- the implicit effect domain (i.e., Eff r (f a)), or the explicit effect domain
--- (i.e., s1 -> s2 -> ... -> sn -> Eff r (f a s1 s2 ... sn)).
---
--- There are three different ways in which we may want to alter behaviour:
--- 1] __Before__: This work should be done before 'respond_relay' is called.
--- 2] __During__: This work should be done by altering the handler being passed
--- to 'respond_relay'. This allows us to modify the requests "in flight".
--- 3] __After__: This work should be done be altering the 'ret' being passed to
--- 'respond_relay'. This allows us to overwrite changes or discard them
--- altogether. If this seems magical, note that we have the flexibility of
--- altering the target domain 'k'. Specifically, the explicit domain
--- representation gives us access to the "effect" realm allowing us to
--- manipulate it directly.
-respond_relay :: Member t r => Relay k r
-              => (a -> k)
-              -> (forall v. (v -> k) -> t v -> k)
+-- of @Handle t r a k@ constraint).
+{-# INLINE handle_relay' #-}
+handle_relay' :: r ~ (t ': r') => Relay k r'
+              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+              -> (a -> k) -- ^ return
+              -> (Eff r a -> k) -- ^ untied recursive knot
               -> Eff r a -> k
-respond_relay ret h = fix step
-  where
-    step next = eff ret
-                (impurePrj
-                  (h `andThen` next)
-                  (relay `andThen` next))
+handle_relay' hdl ret step m = eff ret
+                                    (\q u -> case u of
+                                        U0 x -> hdl step q x
+                                        U1 u' -> relay (qComp q step) u')
+                                    m
 
--- | A less common variant which uses the default 'handle' from the @Handle t k@
--- instance (in general, we may need to define new datatypes to call
--- respond_relay with the default handler). Note this variant doesn't allow us
--- to alter effects "during" their execution.
-respond_relay' :: forall t k r a. (Member t r, Handle t k, Relay k r)
-               => (a -> k)
+-- | Variant with an explicit handler (instead of @Handle t r a k@
+-- constraint).
+{-# INLINE respond_relay' #-}
+respond_relay' :: Member t r => Relay k r
+               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+               -> (a -> k) -- ^ return
+               -> (Eff r a -> k) -- ^ recursive knot
                -> Eff r a -> k
-respond_relay' ret = respond_relay ret (handle @t)
+respond_relay' hdl ret step m = eff ret
+                                (\q u -> case u of
+                                    U0' x -> hdl step q x
+                                    _     -> relay (qComp q step) u)
+                                m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
 raise :: Eff r a -> Eff (e ': r) a
-raise = fix step
-  where
-    step next = eff pure
-                (\q -> ((E . (~^) . (qThen next)) q) . weaken)
+raise (Val x) = pure x
+raise (E q u) = E k (U1 u)
+  where k = qComps q raise
 {-# INLINE raise #-}
 
 -- ------------------------------------------------------------------------
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift { unLift :: m a }
 
--- |A convenient alias to 'SetMember Lift (Lift m) r', which allows us
+-- |A convenient alias to @SetMember Lift (Lift m) r@, which allows us
 -- to assert that the lifted type occurs ony once in the effect list.
 type Lifted m r = SetMember Lift (Lift m) r
 
@@ -335,21 +323,21 @@ lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
 -- | Handle lifted requests by running them sequentially
-instance Monad m => Handle (Lift m) (m k) where
-  handle k (Lift x) = x >>= k
+instance Monad m => Handle (Lift m) r a (m k) where
+  handle step q (Lift x) = x >>= (step . (q ^$))
 
 -- | The handler of Lift requests. It is meant to be terminal: we only
 -- allow a single Lifted Monad. Note, too, how this is different from
 -- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift = fix step
+runLift m = fix step m
   where
     step :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
-    step next = eff return
-                (impurePrj
-                 (handle `andThen` next)
-                 (\_ _ -> error "Impossible: Nothing to relay!")
-                )
+    step next m' = eff return
+                   (\q u -> case u of
+                       U0' x -> handle next q x
+                       _     -> error "Impossible: Nothing to relay!")
+                   m'
 
 -- | Catching of dynamic exceptions
 -- See the problem in
@@ -357,13 +345,14 @@ runLift = fix step
 catchDynE :: forall e a r.
              (Lifted IO r, Exc.Exception e) =>
              Eff r a -> (e -> Eff r a) -> Eff r a
-catchDynE m eh = respond_relay return h m
+catchDynE m eh = fix (respond_relay' h return) m
  where
    -- Polymorphic local binding: signature is needed
-   h :: Arr r v a -> Lift IO v -> Eff r a
-   h k (Lift em) = lift (Exc.try em) >>= either eh k
+   h :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
+   h step q (Lift em) = lift (Exc.try em) >>= either eh k
+     where k = step . (q ^$)
 
--- | You need this when using 'catches'.
+-- | You need this when using 'catchesDynE'.
 data HandlerDynE r a =
   forall e. (Exc.Exception e, Lifted IO r) => HandlerDynE (e -> Eff r a)
 

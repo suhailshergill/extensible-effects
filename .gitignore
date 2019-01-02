@@ -3,9 +3,14 @@
 *.ignore
 *.ignore.*
 
+TAGS
+
 dist
 scripts
 .cabal-sandbox
 cabal.sandbox.config
 .stack-work/
 
+*.hp.*
+*.prof.*
+.stack-work-profile/

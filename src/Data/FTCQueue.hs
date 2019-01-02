@@ -2,10 +2,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
 
--- | Fast type-aligned queue optimized to effectful functions
--- (a -> m b)
--- (monad continuations have this type).
--- Constant-time append and snoc and
+-- | Fast type-aligned queue optimized to effectful functions @(a -> m b)@
+-- (monad continuations have this type). Constant-time append and snoc and
 -- average constant-time left-edge deconstruction
 module Data.FTCQueue (
   FTCQueue,
@@ -19,7 +17,7 @@ module Data.FTCQueue (
   where
 
 -- | Non-empty tree. Deconstruction operations make it more and more
--- left-leaning
+-- left-leaning.
 data FTCQueue m a b where
   Leaf :: (a -> m b) -> FTCQueue m a b
   Node :: FTCQueue m a x -> FTCQueue m x b -> FTCQueue m a b
@@ -27,7 +25,7 @@ data FTCQueue m a b where
 
 -- Exported operations
 
--- | There is no tempty: use (tsingleton return), which works just the same.
+-- | There is no @tempty@: use (@tsingleton return@), which works just the same.
 -- The names are chosen for compatibility with FastTCQueue
 {-# INLINE tsingleton #-}
 tsingleton :: (a -> m b) -> FTCQueue m a b

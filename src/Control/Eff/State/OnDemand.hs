@@ -21,6 +21,8 @@ import qualified Control.Eff.State.Lazy as S
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 
+import Data.Function (fix)
+
 -- ------------------------------------------------------------------------
 -- | State, lazy (i.e., on-demand)
 --
@@ -34,11 +36,12 @@ data OnDemandState s v where
   Delay :: Eff '[OnDemandState s] a  -> OnDemandState s a --  Eff as a transformer
 
 -- | Given a continuation, respond to requests
-instance Handle (OnDemandState s) (s -> r) where
-  handle k Get s = k s s
-  handle k (Put s) _ = k () s
-  handle k (Delay m) s = let ~(x, s') = run $ handle_relay S.withState m s
-                         in k x s'
+instance Handle (OnDemandState s) r a (s -> k) where
+  handle step q sreq s = case sreq of
+    Get     -> step (q ^$ s) s
+    Put s'  -> step (q ^$ ()) s'
+    Delay m -> let ~(x, s') = run $ (fix (handle_relay S.withState)) m s
+                              in step (q ^$ x) s'
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -79,21 +82,11 @@ put s = send (Put s)
 onDemand :: Member (OnDemandState s) r => Eff '[OnDemandState s] v -> Eff r v
 onDemand = send . Delay
 
-runState' :: s -> Eff (OnDemandState s ': r) w -> Eff r (w,s)
-runState' s m = handle_relay S.withState m s
-
--- Since State is so frequently used, we optimize it a bit
 -- | Run a State effect
 runState :: s                            -- ^ Initial state
          -> Eff (OnDemandState s ': r) w -- ^ Effect incorporating State
          -> Eff r (w,s)                  -- ^ Effect containing final state and a return value
-runState s (Val x) = S.withState x s
-runState s0 (E q u0) = case decomp u0 of
-  Right Get     -> runState s0 (q ^$ s0)
-  Right (Put s1) -> runState s1 (q ^$ ())
-  Right (Delay m1) -> let ~(x,s1) = run $ runState s0 m1
-                      in runState s1 (q ^$ x)
-  Left  u -> E (singleK (\x -> runState s0 (q ^$ x))) u
+runState s m = fix (handle_relay S.withState) m s
 
 -- | Transform the state with a function.
 modify :: (Member (OnDemandState s) r) => (s -> s) -> Eff r ()
@@ -113,16 +106,16 @@ execState s = fmap snd . runState s
 runStateR :: s -> Eff (Writer s ': Reader s ': r) w -> Eff r (w,s)
 runStateR s (Val x) = S.withState x s
 runStateR s (E q u) = case u of
-  U0 (Tell w) -> handle k (S.Put w) s
-  U1 (U0 Ask) -> handle k S.Get s
-  U1 (U1 u') -> relay k u' s
-  where k = qComp q (flip runStateR)
+  U0 (Tell w) -> handle loop q (S.Put w) s
+  U1 (U0 Ask) -> handle loop q S.Get s
+  U1 (U1 u') -> relay (qComp q loop) u' s
+  where loop = flip runStateR
 
 -- | Backwards state
 -- The overall state is represented with two attributes: the inherited
 -- getAttr and the synthesized putAttr.
 -- At the root node, putAttr becomes getAttr, tying the knot.
--- As usual, the inherited attribute is the argument (i.e., the `environment')
+-- As usual, the inherited attribute is the argument (i.e., the @environment@)
 -- and the synthesized is the result of the handler |go| below.
 runStateBack0 :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack0 m =
@@ -142,17 +135,17 @@ runStateBack0 m =
 -- | Another implementation, exploring Haskell's laziness to make putAttr
 -- also technically inherited, to accumulate the sequence of
 -- updates. This implementation is compatible with deep handlers, and
--- lets us play with different notions of `backwardness'
+-- lets us play with different notions of backwardness.
 runStateBack :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack m =
   let (x,(_,sp)) = run $ go m (sp,[]) in
   (x,head sp)
  where
    go :: Eff '[OnDemandState s] a -> ([s],[s]) -> Eff '[] (a,([s],[s]))
-   go = handle_relay' S.withState h
-   h k Get s0@(sg, _) = k (head sg) s0
-   h k (Put s1) (sg, sp) = k () (tail sg,sp++[s1])
-   h k (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in k x s1
+   go = fix (handle_relay' h S.withState)
+   h step q Get s0@(sg, _) = step (q ^$ head sg) s0
+   h step q (Put s1) (sg, sp) = step (q ^$ ()) (tail sg,sp++[s1])
+   h step q (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in step (q ^$ x) s1
 
--- ^ A different notion of `backwards' is realized if we change the Put
--- handler slightly. How?
+-- ^ A different notion of backwards is realized if we change the Put handler
+-- slightly. How?

@@ -18,8 +18,10 @@ module Control.Eff.Operational ( Program (..)
                                -- $usage
                                ) where
 
-import Control.Eff
+import Control.Eff as E
 import Control.Eff.Extend
+
+import Data.Function (fix)
 
 -- | Lift values to an effect.
 -- You can think this is a generalization of @Lift@.
@@ -33,8 +35,10 @@ newtype Intrprtr f r = Intrprtr { runIntrprtr :: forall x. f x -> Eff r x }
 withOperational :: a -> Intrprtr f r -> Eff r a
 withOperational x _ = return x
 -- | Given a continuation and a program, interpret it
-instance Handle (Program f) (Intrprtr f r -> Eff r a) where
-  handle k (Singleton instr) i = (runIntrprtr i) instr >>= (flip k i)
+-- Usually, we have @r ~ [Program f : r']@
+instance Handle (Program f) r a (Intrprtr f r' -> Eff r' a) where
+  handle step q (Singleton instr) i = (runIntrprtr i) instr >>=
+    \x -> step (q ^$ x) i
 
 -- | Lift a value to a monad.
 singleton :: (Member (Program instr) r) => instr a -> Eff r a
@@ -42,7 +46,7 @@ singleton = send . Singleton
 
 -- | Convert values using given interpreter to effects.
 runProgram :: forall f r a. (forall x. f x -> Eff r x) -> Eff (Program f ': r) a -> Eff r a
-runProgram advent m = handle_relay withOperational m (Intrprtr advent)
+runProgram advent m = fix (handle_relay withOperational) m (Intrprtr advent)
 
 -- $usage
 --
@@ -55,6 +59,6 @@ runProgram advent m = handle_relay withOperational m (Intrprtr advent)
 --main :: IO ()
 --main = do
 --    let comp = 'runProgram' adventPure prog
---    putStrLn . fst . 'run' . 'runMonoidWriter' $ 'evalState' comp [\"foo\",\"bar\"]
+--    putStrLn . fst . 'run' . 'E.Writer.Strict.runMonoidWriter' $ 'E.State.Strict.evalState' comp [\"foo\",\"bar\"]
 --    'runLift' $ 'runProgram' adventIO prog
 -- @

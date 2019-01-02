@@ -23,8 +23,8 @@ withTrace :: a -> IO a
 withTrace = return
 
 -- | Given a callback and request, respond to it
-instance Handle Trace (IO k) where
-  handle k (Trace s) = putStrLn s >> k ()
+instance Handle Trace r a (IO k) where
+  handle step q (Trace s) = putStrLn s >> step (q ^$ ())
 
 -- | Print a string as a trace.
 trace :: Member Trace r => String -> Eff r ()
@@ -35,6 +35,6 @@ trace = send . Trace
 runTrace :: Eff '[Trace] w -> IO w
 runTrace = fix step where
   step next = eff return
-              (impureDecomp
-                (handle `andThen` next)
-                (\_ _ -> error "Impossible: Nothing to relay!"))
+              (\q u -> case u of
+                  U0 x -> handle next q x
+                  _    -> error "Impossible: Nothing to relay!")

@@ -95,7 +95,7 @@ class (FindElem t r) => Member (t :: * -> *) r where
   inj :: t v -> Union r v
   prj :: Union r v -> Maybe (t v)
 
--- | Pattern synonym to project the union onto the effect 't'.
+-- | Pattern synonym to project the union onto the effect @t@.
 pattern U0' :: Member t r => t v -> Union r v
 pattern U0' h <- (prj -> Just h) where
   U0' h = inj h
@@ -163,7 +163,7 @@ decomp0 (Union _ v) = Right $ unsafeCoerce v
 weaken :: Union r w -> Union (any ': r) w
 weaken (Union n v) = Union (n+1) v
 
--- | Find an index of an element in a `list'
+-- | Find the index of an element in a type-level list.
 -- The element must exist
 -- This is essentially a compile-time computation.
 -- Using overlapping instances here is OK since this class is private to this
