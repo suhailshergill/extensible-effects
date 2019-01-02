@@ -14,6 +14,8 @@
 -- The following is needed to define MonadPlus instance. It is decidable
 -- (there is no recursion!), but GHC cannot see that.
 {-# LANGUAGE UndecidableInstances #-}
+-- The following is needed for pattern-synonym bug in ghc 8.2
+{-# LANGUAGE CPP #-}
 
 -- | Nondeterministic choice effect via MPlus interface directly
 -- __TODO__: investigate Fusion regd msplit and associated functions.
@@ -90,9 +92,13 @@ instance Member NdetEff r => MonadPlus (Eff r) where
   -- [x] m `mplus` (n `mplus` o) = (m `mplus` n) `mplus` o
   -- In addition, from Backtr/LogicT we have the following law:
   -- [x] (m `mplus` n) >>= k = (m >>= k) `mplus` (n >>= k)
+#if __GLASGOW_HASKELL__ < 804
+  mplus (E _ u) m2 | Just MZero <- prj u = m2
+  mplus m1 (E _ u) | Just MZero <- prj u = m1
+#else
   mplus (E _ (U0' MZero)) m2 = m2
   mplus m1 (E _ (U0' MZero)) = m1
-  -- TODO: verify correctness of above two rules
+#endif
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
 
 instance ( MonadBase m m

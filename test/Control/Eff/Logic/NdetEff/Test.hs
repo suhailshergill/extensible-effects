@@ -167,9 +167,9 @@ case_NdetEff_monadplus =
   in runAsserts assertEqual casesnw
   >> runAsserts assertEqual caseswn
   where
-    nwz = ([] @Int,[])
-    wnz = [] @(Int, [Int])
-    nw0z = ([] @Int,[0])
+    nwz = ([]::[Int],[])
+    wnz = [] ::[(Int, [Int])]
+    nw0z = ([]::[Int],[0])
     nw0 = ([0],[0])
     nw1 = ([1],[1])
     nw0zm1 = ([1],[0,1])
