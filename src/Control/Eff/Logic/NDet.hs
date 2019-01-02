@@ -163,15 +163,15 @@ makeChoiceA m' = loop m' [] where
 -- | A different implementation, more involved, but similar complexity to
 -- 'makeChoiceA'.
 makeChoiceA_manual :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
-makeChoiceA_manual m = loop [] m where
+makeChoiceA_manual m = loop m [] where
   -- single result; optimization: drop spurious empty
-  loop [] (Val x)    = withNDet x
+  loop (Val x) []    = withNDet x
   -- definite result and perhaps some others
-  loop (h:t) (Val x) = liftM2 (<|>) (withNDet x) (loop t h)
-  loop jq (E q u) = case decomp u of
-    Right MZero     -> next (flip loop) jq
-    Right MPlus -> loop (k False : jq) (k True)
-    Left  u0 -> relay ((loop jq) . k) u0
+  loop (Val x) (h:t) = liftM2 (<|>) (withNDet x) (loop h t)
+  loop (E q u) jq    = case decomp u of
+    Right MZero -> next loop jq
+    Right MPlus -> loop (k True) (k False : jq)
+    Left  u0    -> relay (loop . k) u0 jq
     where
       k = (q ^$)
 
@@ -204,7 +204,7 @@ msplit'_manual m' = loop m' [] where
     U0' MZero -> next loop jq
     -- try left options; add right to job queue
     U0' MPlus -> loop (k True) (k False : jq)
-    _         -> relay (\x -> loop (k x) jq) u
+    _         -> relay (loop . k) u jq
     where
       k x = q ^$ x
 
@@ -220,11 +220,10 @@ msplit'_manual m' = loop m' [] where
 instance Member NDet r => Call r where
   call m = loop m [] where
     loop (Val x) jq = return x `mplus` nxt jq          -- (C2)
-    loop (E q u) jq = case u of
-      U0 (Exc CutFalse) -> nxt []                      -- drop jq (F2)
-      U1 u' -> case u' of
+    loop (E _ (U0 (Exc CutFalse))) _ = nxt []          -- drop jq (F2)
+    loop (E q (U1 u)) jq = case u of
         U0' MZero -> nxt jq                            -- (C1)
         U0' MPlus -> nxt (left q : right q : jq)       -- (C3)
-        _         -> relay (\x -> loop (q ^$ x) jq) u' -- (C4)
+        _         -> relay (loop . (q ^$)) u jq        -- (C4)
 
     nxt jq = list mzero loop jq
