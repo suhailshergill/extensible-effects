@@ -94,7 +94,7 @@ sg >>- g =
        Nothing -> mzero
        Just (sg1 ,sg2) -> interleave (g sg1) (sg2 >>- g)
 
--- | Collect all solutions. This is from Hinze's 'Backtr' monad
+-- | Collect all solutions. This is from Hinze's @Backtr@ monad
 -- class. Unsurprisingly, this can be implemented in terms of msplit.
 sols :: (Monad m, MSplit m) => m a -> m [a]
 sols m = (msplit m) >>= (fix step) [] where
@@ -150,7 +150,7 @@ data CutFalse = CutFalse
 cutfalse :: Member (Exc CutFalse) r => Eff r a
 cutfalse = throwError CutFalse
 
--- | Prolog 'cut', taken from Hinze 2000 (Deriving backtracking monad
+-- | Prolog @cut@, taken from Hinze 2000 (Deriving backtracking monad
 -- transformers).
 (!) :: (Member (Exc CutFalse) r, MonadPlus (Eff r)) => Eff r ()
 (!) = return () `mplus` cutfalse

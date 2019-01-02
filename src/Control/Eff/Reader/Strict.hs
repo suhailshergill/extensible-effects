@@ -32,7 +32,7 @@ import Data.Function (fix)
 -- The request for a value of type e from the current environment
 -- This can be expressed as a GADT because the type of values
 -- returned in response to a (Reader e a) request is not any a;
--- we expect in reply the value of type 'e', the value from the
+-- we expect in reply the value of type @e@, the value from the
 -- environment. So, the return type is restricted: 'a ~ e'
 data Reader e v where
   Ask :: Reader e e

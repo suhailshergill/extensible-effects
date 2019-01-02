@@ -41,11 +41,11 @@ import Data.Function (fix)
 -- denoted by r
 type Arr r a b = a -> Eff r b
 
--- | An effectful function from 'a' to 'b' that is a composition of one or more
+-- | An effectful function from @a@ to @b@ that is a composition of one or more
 -- effectful functions. The paremeter r describes the overall effect.
 --
--- The composition members are accumulated in a type-aligned queue.
--- Using a newtype here enables us to define `Category' and `Arrow' instances.
+-- The composition members are accumulated in a type-aligned queue. Using a
+-- newtype here enables us to define `C.Category' and `A.Arrow' instances.
 newtype Arrs r a b = Arrs (FTCQueue (Eff r) a b)
 
 -- | 'Arrs' can be composed and have a natural identity.
@@ -53,7 +53,7 @@ instance C.Category (Arrs r) where
   id = ident
   f . g = comp g f
 
--- | As the name suggests, 'Arrs' also has an 'Arrow' instance.
+-- | As the name suggests, 'Arrs' also has an 'A.Arrow' instance.
 instance A.Arrow (Arrs r) where
   arr = arr
   first = singleK . first . (^$)
@@ -74,7 +74,7 @@ singleK k = Arrs (tsingleton k)
 (~^) :: Arr r a b -> Arrs r a b
 (~^) k = singleK k
 
--- | Application to the `generalized effectful function' Arrs r b w, i.e.,
+-- | Application to the `generalized effectful function' @Arrs r b w@, i.e.,
 -- convert 'Arrs' to 'Arr'
 {-# INLINABLE [2] qApp #-}
 qApp :: forall r b w. Arrs r b w -> Arr r b w
@@ -121,9 +121,9 @@ comp (Arrs f) (Arrs g) = Arrs (f >< g)
 -- | The monad that all effects in this library are based on.
 --
 -- An effectful computation is a value of type `Eff r a`.
--- In this signature, `r` is a type-level list of effects that are being
+-- In this signature, @r@ is a type-level list of effects that are being
 -- requested and need to be handled inside an effectful computation.
---`a` is the computation's result similar to other monads.
+-- @a@ is the computation's result similar to other monads.
 --
 -- A computation's result can be retrieved via the 'run' function.
 -- However, all effects used in the computation need to be handled by the use
@@ -174,7 +174,7 @@ qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
 qThen = flip qComp
 
 -- | Compose and then apply to function. This is a common pattern when
--- processing requests. Different options of 'f' allow us to handle or
+-- processing requests. Different options of @f@ allow us to handle or
 -- relay the request and continue on.
 {-# INLINE andThen #-}
 andThen :: ((b -> c) -> t) -> (Eff r w -> c)
@@ -246,7 +246,7 @@ instance Relay k r => Relay (s -> k) r where
   {-# INLINABLE relay #-}
   relay q u s = relay (\x -> q x s) u
 
--- | Respond to requests of type 't'. The handlers themselves are expressed in
+-- | Respond to requests of type @t@. The handlers themselves are expressed in
 -- open-recursion style.
 class Handle t r a k where
   handle :: (Eff r a -> k) -- ^ recursive knot
@@ -263,7 +263,7 @@ class Handle t r a k where
   -- effectlist @r@).
   --
   -- Note that we can only handle the leftmost effect type (a consequence of the
-  -- 'OpenUnion' implementation.
+  -- 'Data.OpenUnion' implementation.
   handle_relay :: r ~ (t ': r') => Relay k r'
                => (a -> k) -- ^ return
                -> (Eff r a -> k) -- ^ recursive knot
@@ -288,10 +288,10 @@ class Handle t r a k where
   -- passed to 'respond_relay'. This allows us to modify the requests "in
   -- flight".
   --
-  -- 3] __After__: This work should be done be altering the 'ret' being passed
+  -- 3] __After__: This work should be done be altering the @ret@ being passed
   -- to 'respond_relay'. This allows us to overwrite changes or discard them
   -- altogether. If this seems magical, note that we have the flexibility of
-  -- altering the target domain 'k'. Specifically, the explicit domain
+  -- altering the target domain @k@. Specifically, the explicit domain
   -- representation gives us access to the "effect" realm allowing us to
   -- manipulate it directly.
   respond_relay :: Member t r => Relay k r
@@ -344,7 +344,7 @@ raise (E q u) = E k (U1 u)
 -- | Lifting: emulating monad transformers
 newtype Lift m a = Lift { unLift :: m a }
 
--- |A convenient alias to 'SetMember Lift (Lift m) r', which allows us
+-- |A convenient alias to @SetMember Lift (Lift m) r@, which allows us
 -- to assert that the lifted type occurs ony once in the effect list.
 type Lifted m r = SetMember Lift (Lift m) r
 
@@ -388,7 +388,7 @@ catchDynE m eh = fix (respond_relay' h return) m
    h step q (Lift em) = lift (Exc.try em) >>= either eh k
      where k = step . (q ^$)
 
--- | You need this when using 'catches'.
+-- | You need this when using 'catchesDynE'.
 data HandlerDynE r a =
   forall e. (Exc.Exception e, Lifted IO r) => HandlerDynE (e -> Eff r a)
 

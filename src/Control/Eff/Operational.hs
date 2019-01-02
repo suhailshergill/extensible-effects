@@ -18,7 +18,7 @@ module Control.Eff.Operational ( Program (..)
                                -- $usage
                                ) where
 
-import Control.Eff
+import Control.Eff as E
 import Control.Eff.Extend
 
 import Data.Function (fix)
@@ -59,6 +59,6 @@ runProgram advent m = fix (handle_relay withOperational) m (Intrprtr advent)
 --main :: IO ()
 --main = do
 --    let comp = 'runProgram' adventPure prog
---    putStrLn . fst . 'run' . 'runMonoidWriter' $ 'evalState' comp [\"foo\",\"bar\"]
+--    putStrLn . fst . 'run' . 'E.Writer.Strict.runMonoidWriter' $ 'E.State.Strict.evalState' comp [\"foo\",\"bar\"]
 --    'runLift' $ 'runProgram' adventIO prog
 -- @

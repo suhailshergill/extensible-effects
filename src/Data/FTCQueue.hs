@@ -3,7 +3,7 @@
 {-# LANGUAGE Safe #-}
 
 -- | Fast type-aligned queue optimized to effectful functions
--- (a -> m b)
+-- @(a -> m b)@
 -- (monad continuations have this type). TODO: FIXME
 -- Constant-time append and snoc and
 -- average constant-time left-edge deconstruction
@@ -27,7 +27,7 @@ data FTCQueue m a b where
 
 -- Exported operations
 
--- | There is no tempty: use (tsingleton return), which works just the same.
+-- | There is no @tempty@: use (@tsingleton return@), which works just the same.
 -- The names are chosen for compatibility with FastTCQueue
 {-# INLINE tsingleton #-}
 tsingleton :: (a -> m b) -> FTCQueue m a b

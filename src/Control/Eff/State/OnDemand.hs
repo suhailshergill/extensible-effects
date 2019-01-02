@@ -115,7 +115,7 @@ runStateR s (E q u) = case u of
 -- The overall state is represented with two attributes: the inherited
 -- getAttr and the synthesized putAttr.
 -- At the root node, putAttr becomes getAttr, tying the knot.
--- As usual, the inherited attribute is the argument (i.e., the `environment')
+-- As usual, the inherited attribute is the argument (i.e., the @environment@)
 -- and the synthesized is the result of the handler |go| below.
 runStateBack0 :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack0 m =
@@ -135,7 +135,7 @@ runStateBack0 m =
 -- | Another implementation, exploring Haskell's laziness to make putAttr
 -- also technically inherited, to accumulate the sequence of
 -- updates. This implementation is compatible with deep handlers, and
--- lets us play with different notions of `backwardness'
+-- lets us play with different notions of backwardness.
 runStateBack :: Eff '[OnDemandState s] a -> (a,s)
 runStateBack m =
   let (x,(_,sp)) = run $ go m (sp,[]) in
@@ -147,5 +147,5 @@ runStateBack m =
    h step q (Put s1) (sg, sp) = step (q ^$ ()) (tail sg,sp++[s1])
    h step q (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in step (q ^$ x) s1
 
--- ^ A different notion of `backwards' is realized if we change the Put
--- handler slightly. How?
+-- ^ A different notion of backwards is realized if we change the Put handler
+-- slightly. How?
