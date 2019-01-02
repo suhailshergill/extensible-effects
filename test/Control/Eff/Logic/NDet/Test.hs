@@ -23,12 +23,6 @@ import Test.Framework.Providers.HUnit
 
 testGroups = [ $(testGroupGenerator) ]
 
--- TODO: add quickcheck test to test conformance of different
--- implementations of 'makeChoiceA' and 'msplit'.
-
--- TODO: add benchmarks for different implementations of 'makeChoiceA'
--- and 'msplit'.
-
 gen_testCA :: (Integral a) => a -> Eff (NDet ': r) a
 gen_testCA x = do
   i <- msum . fmap return $ [1..x]
