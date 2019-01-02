@@ -1,4 +1,3 @@
-{-# OPTIONS_GHC -O0 #-}
 {-# LANGUAGE FlexibleContexts, NoMonomorphismRestriction #-}
 {-# LANGUAGE TypeOperators, DataKinds #-}
 {-# LANGUAGE ScopedTypeVariables #-}
