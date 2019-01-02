@@ -7,7 +7,7 @@
 import Criterion.Main
 import Control.Eff as E
 import Control.Eff.Exception as E.Er
-import Control.Eff.Logic.NdetEff as E.ND
+import Control.Eff.Logic.NDet as E.ND
 import Control.Eff.State.Strict as E.S
 import Control.Monad
 
@@ -190,7 +190,7 @@ pyth2 upbound = do
   S.put $! (cnt + 1)
   if x*x + y*y == z*z then return (x,y,z) else mzero
 
-pyth2E :: (Member (E.S.State Int) r, Member NdetEff r) =>
+pyth2E :: (Member (E.S.State Int) r, Member NDet r) =>
           Int -> Eff r (Int, Int, Int)
 pyth2E upbound = do
   x <- iota 1 upbound

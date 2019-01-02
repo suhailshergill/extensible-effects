@@ -5,7 +5,7 @@ import qualified Control.Eff.Coroutine.Test
 import qualified Control.Eff.Example.Test
 import qualified Control.Eff.Exception.Test
 import qualified Control.Eff.Fresh.Test
-import qualified Control.Eff.Logic.NdetEff.Test
+import qualified Control.Eff.Logic.NDet.Test
 import qualified Control.Eff.Operational.Test
 import qualified Control.Eff.Reader.Lazy.Test
 import qualified Control.Eff.Reader.Strict.Test
@@ -29,7 +29,7 @@ testGroups = []
              ++ Control.Eff.Example.Test.testGroups
              ++ Control.Eff.Exception.Test.testGroups
              ++ Control.Eff.Fresh.Test.testGroups
-             ++ Control.Eff.Logic.NdetEff.Test.testGroups
+             ++ Control.Eff.Logic.NDet.Test.testGroups
              ++ Control.Eff.Operational.Test.testGroups
              ++ Control.Eff.Reader.Lazy.Test.testGroups
              ++ Control.Eff.Reader.Strict.Test.testGroups

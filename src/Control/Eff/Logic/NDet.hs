@@ -19,10 +19,10 @@
 
 -- | Nondeterministic choice effect via MPlus interface directly
 -- __TODO__: investigate Fusion regd msplit and associated functions.
-module Control.Eff.Logic.NdetEff (
+module Control.Eff.Logic.NDet (
   -- * Main interface
-  NdetEff
-  , withNdetEff
+  NDet
+  , withNDet
   , left, right
   , choose
   , makeChoice
@@ -54,14 +54,14 @@ import Data.Function (fix)
 -- This creates a branching structure with a fanout of @2@, resulting in @mplus@
 -- node being visited approximately @2x@ (in general, for a fanout of @f@ we'll
 -- have the type of internal node being invoked @f/(f-1)@ times).
-data NdetEff a where
-  MZero :: NdetEff a
-  MPlus :: NdetEff Bool
+data NDet a where
+  MZero :: NDet a
+  MPlus :: NDet Bool
 
 -- | How to embed a pure value in non-deterministic context
-{-# INLINE withNdetEff #-}
-withNdetEff :: Alternative f => Monad m => a -> m (f a)
-withNdetEff x = return (pure x)
+{-# INLINE withNDet #-}
+withNDet :: Alternative f => Monad m => a -> m (f a)
+withNDet x = return (pure x)
 -- | The left branch
 {-# INLINE left #-}
 left :: Arrs r Bool a -> Eff r a
@@ -70,17 +70,17 @@ left q = q ^$ True
 {-# INLINE right #-}
 right :: Arrs r Bool a -> Eff r a
 right q = q ^$ False
--- | Given a callback and NdetEff requests respond to them. Note that this makes
+-- | Given a callback and NDet requests respond to them. Note that this makes
 -- explicit that we rely on @f@ to have enough room to store all possibilities.
-instance Alternative f => Handle NdetEff r a (Eff r' (f w)) where
+instance Alternative f => Handle NDet r a (Eff r' (f w)) where
   handle _ _ MZero = return empty
   handle step q MPlus = liftM2 (<|>) (step $ left q) (step $ right q)
 
-instance Member NdetEff r => Alternative (Eff r) where
+instance Member NDet r => Alternative (Eff r) where
   empty = mzero
   (<|>) = mplus
 
-instance Member NdetEff r => MonadPlus (Eff r) where
+instance Member NDet r => MonadPlus (Eff r) where
   -- | __NOTE__: the deviation from laws in Control.Monad
   -- [x] mzero >>= f = mzero (CM1)
   -- [ ] m >> mzero  = mzero (CM2)
@@ -103,8 +103,8 @@ instance Member NdetEff r => MonadPlus (Eff r) where
 
 instance ( MonadBase m m
          , LiftedBase m r
-         ) => MonadBaseControl m (Eff (NdetEff ': r)) where
-    type StM (Eff (NdetEff ': r)) a = StM (Eff r) [a]
+         ) => MonadBaseControl m (Eff (NDet ': r)) where
+    type StM (Eff (NDet ': r)) a = StM (Eff r) [a]
     liftBaseWith f = raise $ liftBaseWith $ \runInBase ->
                        f (runInBase . makeChoice)
     restoreM x = do lst :: [a] <- raise (restoreM x)
@@ -112,21 +112,21 @@ instance ( MonadBase m m
 
 -- | 'choose' lst non-deterministically chooses one value from the lst choose []
 -- thus corresponds to failure.
-choose :: Member NdetEff r => [a] -> Eff r a
+choose :: Member NDet r => [a] -> Eff r a
 choose lst = msum $ map return lst
 
 -- | An interpreter: The following is very simple, but leaks a lot of memory The
 -- cause probably is mapping every failure to empty It takes then a lot of timne
 -- and space to store those empty. When there aren't a lot of failures, this is
 -- comparable to 'makeChoiceA'.
-makeChoiceA0 :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
-makeChoiceA0 = fix (handle_relay withNdetEff)
+makeChoiceA0 :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
+makeChoiceA0 = fix (handle_relay withNDet)
 
 -- | More performant handler; uses reified job queue
-instance Alternative f => Handle NdetEff r a ([Eff r a] -> Eff r' (f w)) where
+instance Alternative f => Handle NDet r a ([Eff r a] -> Eff r' (f w)) where
   handle step _ MZero jq = next step jq
   handle step q MPlus jq = next step (left q : right q : jq)
--- instance Handle NdetEff r a (k -> [Eff r a] -> k) where
+-- instance Handle NDet r a (k -> [Eff r a] -> k) where
 --   handle step _ MZero z jq = list z (flip step z) jq
 --   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
 
@@ -139,22 +139,22 @@ next k jq = list (return empty) k jq
 
 -- | Optimized version of makeChoiceA, faster and taking less memory. The
 -- benefit of the effect framework is that we can have many interpreters.
-makeChoiceA :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
+makeChoiceA :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
 makeChoiceA m' = loop m' [] where
-  loop m = fix (handle_relay @NdetEff ret) m
+  loop m = fix (handle_relay @NDet ret) m
   -- single result; optimization: drop spurious empty
-  ret x [] = withNdetEff x
+  ret x [] = withNDet x
   -- definite result and perhaps some others
-  ret x (h:t) = liftM2 (<|>) (withNdetEff x) (loop h t)
+  ret x (h:t) = liftM2 (<|>) (withNDet x) (loop h t)
 
 -- | A different implementation, more involved, but similar complexity to
 -- makeChoiceA.
-makeChoiceA_manual :: Alternative f => Eff (NdetEff ': r) a -> Eff r (f a)
+makeChoiceA_manual :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
 makeChoiceA_manual m = loop [] m where
   -- single result; optimization: drop spurious empty
-  loop [] (Val x)    = withNdetEff x
+  loop [] (Val x)    = withNDet x
   -- definite result and perhaps some others
-  loop (h:t) (Val x) = liftM2 (<|>) (withNdetEff x) (loop t h)
+  loop (h:t) (Val x) = liftM2 (<|>) (withNDet x) (loop t h)
   loop jq (E q u) = case decomp u of
     Right MZero     -> next (flip loop) jq
     Right MPlus -> loop (k False : jq) (k True)
@@ -164,24 +164,24 @@ makeChoiceA_manual m = loop [] m where
 
 -- | Same as makeChoice, except it has the type hardcoded.
 -- Required for MonadBaseControl instance.
-makeChoice :: Eff (NdetEff ': r) a -> Eff r [a]
+makeChoice :: Eff (NDet ': r) a -> Eff r [a]
 makeChoice = makeChoiceA
 
 -- | We implement LogicT, the non-determinism reflection, of which soft-cut is
 -- one instance. See the LogicT paper for an explanation.
-instance Member NdetEff r => MSplit (Eff r) where
+instance Member NDet r => MSplit (Eff r) where
   msplit = msplit'
 
 -- | Optimized version of msplit'. This is much faster than naive implementation
 -- (which takes quadratic time and space when used with sols).
 {-# INLINE msplit' #-}
-msplit' :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
-msplit' m = fix (respond_relay @NdetEff (\x jq -> withMSplit x (msum jq))) m []
+msplit' :: Member NDet r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit' m = fix (respond_relay @NDet (\x jq -> withMSplit x (msum jq))) m []
 
 -- | A different implementation, more involved, but similar complexity to
 -- msplit'.
 {-# INLINE msplit'_manual #-}
-msplit'_manual :: Member NdetEff r => Eff r a -> Eff r (Maybe (a, Eff r a))
+msplit'_manual :: Member NDet r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit'_manual m' = loop m' [] where
   -- definite result and perhaps some others
   loop (Val x) jq = withMSplit x (msum jq)
@@ -204,7 +204,7 @@ msplit'_manual m' = loop m' [] where
 -- of its argument computation. When it encounteres a cutfalse request, it
 -- discards the remaining choicepoints.  It completely handles CutFalse effects
 -- but not non-determinism
-instance Member NdetEff r => Call r where
+instance Member NDet r => Call r where
   call m = loop m [] where
     loop (Val x) jq = return x `mplus` nxt jq          -- (C2)
     loop (E q u) jq = case u of
