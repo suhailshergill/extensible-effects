@@ -17,7 +17,13 @@
 -- The following is needed for pattern-synonym bug in ghc 8.2
 {-# LANGUAGE CPP #-}
 
--- | Nondeterministic choice effect via MPlus interface directly
+-- | Nondeterministic choice effect via MPlus interface directly. In order to
+-- get an understanding of what nondeterministic choice entails the following
+-- papers are recommended:
+--
+-- * [@LogicT@] [LogicT - backtracking monad transformer with fair operations and pruning](http://okmij.org/ftp/Computation/monads.html#LogicT)
+-- * [@Backtr@] [Deriving Backtracking Monad Transformers](https://dl.acm.org/citation.cfm?id=351240.351258)
+--
 -- __TODO__: investigate Fusion regd msplit and associated functions.
 module Control.Eff.Logic.NDet (
   -- * Main interface
@@ -70,7 +76,7 @@ left q = q ^$ True
 {-# INLINE right #-}
 right :: Arrs r Bool a -> Eff r a
 right q = q ^$ False
--- | Given a callback and NDet requests respond to them. Note that this makes
+-- | Given a callback and 'NDet' requests respond to them. Note that this makes
 -- explicit that we rely on @f@ to have enough room to store all possibilities.
 instance Alternative f => Handle NDet r a (Eff r' (f w)) where
   handle _ _ MZero = return empty
@@ -80,18 +86,25 @@ instance Member NDet r => Alternative (Eff r) where
   empty = mzero
   (<|>) = mplus
 
+-- | Mapping of 'NDet' requests to 'MonadPlus'. We obey the following laws
+-- (taken from the @Backtr@ and @LogicT papers):
+--
+-- > mzero >>= f = mzero                               -- (L1)
+-- > mzero `mplus` m = m                               -- (L2)
+-- > m `mplus` mzero = m                               -- (L3)
+-- > m `mplus` (n `mplus` o) = (m `mplus` n) `mplus` o -- (L4)
+-- > (m `mplus` n) >>= k = (m >>= k) `mplus` (n >>= k) -- (L5)
+--
+-- - @L1@ is the left-zero law for 'mzero'
+-- - @L2, L3, L4@ are the @Monoid@ laws
+--
+-- __NOTE__ that we do __not__ obey the right-zero law for
+-- 'mzero'. Specifically, we do __not__ obey:
+--
+-- > m >> mzero  = mzero
 instance Member NDet r => MonadPlus (Eff r) where
-  -- | __NOTE__: the deviation from laws in Control.Monad
-  -- [x] mzero >>= f = mzero (CM1)
-  -- [ ] m >> mzero  = mzero (CM2)
-  -- We obey CM1, but not CM2. This is consistent with Backtr and LogicT papers.
   mzero = send MZero
-  -- | Monoid laws (from Haskellwiki, Backtr/LogicT paper)
-  -- [x] mzero `mplus` m = m
-  -- [x] m `mplus` mzero = m
-  -- [x] m `mplus` (n `mplus` o) = (m `mplus` n) `mplus` o
-  -- In addition, from Backtr/LogicT we have the following law:
-  -- [x] (m `mplus` n) >>= k = (m >>= k) `mplus` (n >>= k)
+  -- | Applying L2 and L3
 #if __GLASGOW_HASKELL__ < 804
   mplus (E _ u) m2 | Just MZero <- prj u = m2
   mplus m1 (E _ u) | Just MZero <- prj u = m1
@@ -110,8 +123,8 @@ instance ( MonadBase m m
     restoreM x = do lst :: [a] <- raise (restoreM x)
                     choose lst
 
--- | 'choose' lst non-deterministically chooses one value from the lst choose []
--- thus corresponds to failure.
+-- | @'choose' lst@ non-deterministically chooses one value from the
+-- @lst@. @'choose' []@ thus corresponds to failure.
 choose :: Member NDet r => [a] -> Eff r a
 choose lst = msum $ map return lst
 
@@ -137,8 +150,8 @@ next :: Alternative f => Monad m
      -> [t] -> m (f a)
 next k jq = list (return empty) k jq
 
--- | Optimized version of makeChoiceA, faster and taking less memory. The
--- benefit of the effect framework is that we can have many interpreters.
+-- | Optimized implementation, faster and taking less memory. The benefit of the
+-- effect framework is that we can have many interpreters.
 makeChoiceA :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
 makeChoiceA m' = loop m' [] where
   loop m = fix (handle_relay @NDet ret) m
@@ -148,7 +161,7 @@ makeChoiceA m' = loop m' [] where
   ret x (h:t) = liftM2 (<|>) (withNDet x) (loop h t)
 
 -- | A different implementation, more involved, but similar complexity to
--- makeChoiceA.
+-- 'makeChoiceA'.
 makeChoiceA_manual :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
 makeChoiceA_manual m = loop [] m where
   -- single result; optimization: drop spurious empty
@@ -162,8 +175,8 @@ makeChoiceA_manual m = loop [] m where
     where
       k = (q ^$)
 
--- | Same as makeChoice, except it has the type hardcoded.
--- Required for MonadBaseControl instance.
+-- | Same as 'makeChoiceA', except it has the type hardcoded.
+-- Required for 'MonadBaseControl' instance.
 makeChoice :: Eff (NDet ': r) a -> Eff r [a]
 makeChoice = makeChoiceA
 
@@ -172,14 +185,14 @@ makeChoice = makeChoiceA
 instance Member NDet r => MSplit (Eff r) where
   msplit = msplit'
 
--- | Optimized version of msplit'. This is much faster than naive implementation
--- (which takes quadratic time and space when used with sols).
+-- | The implementation of 'MSplit'. Exported as a standalone to make
+-- testing/comparison easier.
 {-# INLINE msplit' #-}
 msplit' :: Member NDet r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit' m = fix (respond_relay @NDet (\x jq -> withMSplit x (msum jq))) m []
 
 -- | A different implementation, more involved, but similar complexity to
--- msplit'.
+-- 'msplit''.
 {-# INLINE msplit'_manual #-}
 msplit'_manual :: Member NDet r => Eff r a -> Eff r (Maybe (a, Eff r a))
 msplit'_manual m' = loop m' [] where
