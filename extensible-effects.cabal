@@ -41,7 +41,7 @@ maintainer:          suhailshergill@gmail.com
 
 category:            Control, Effect
 
-tested-with:         GHC==8.6.2, GHC==8.4.4, GHC==8.2.2, GHC==8.0.2
+tested-with:         GHC==8.6.2, GHC==8.4.4, GHC==8.2.2
 
 build-type:          Simple
 

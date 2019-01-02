@@ -1,4 +1,4 @@
-GHCS = 8.0.2 8.2.2 8.4.4 8.6.2
+GHCS = 8.2.2 8.4.4 8.6.2
 
 # default ghc-version for targets, can be overwritten by make-
 GHC = 8.6.2

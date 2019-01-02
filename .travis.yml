@@ -14,7 +14,6 @@ env:
 - GHC="8.6.2"
 - GHC="8.4.4"
 - GHC="8.2.2"
-- GHC="8.0.2"
 
 before_install:
 - mkdir -p ~/.local/bin
