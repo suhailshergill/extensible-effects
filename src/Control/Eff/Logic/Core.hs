@@ -27,9 +27,9 @@ withMSplit a rest = return (Just (a, rest))
 -- The handlers are defined in terms of the specific non-determinism
 -- effects (instead of by way of a distinct MSplit handler
 
--- | TODO: utilize laws below for:
--- 1] msplit (lift m >> mzero) >>= reflect == lift m >> mzero
--- 2] msplit (lift m `mplus` ma) >>= reflect == lift m `mplus` (msplit ma >>= reflect)
+-- | Laws for 'reflect':
+-- > msplit (lift m >> mzero) >>= reflect == lift m >> mzero
+-- > msplit (lift m `mplus` ma) >>= reflect == lift m `mplus` (msplit ma >>= reflect)
 {-# INLINE reflect #-}
 reflect :: MonadPlus m => Maybe (a, m a) -> m a
 reflect Nothing      = mzero
@@ -156,7 +156,6 @@ cutfalse = throwError CutFalse
 (!) = return () `mplus` cutfalse
 
 -- | Case analysis for lists
--- TODO: convert to using explicit Step datatype
 {-# INLINE list #-}
 list :: b -> (a -> [a] -> b)
      -> [a] -> b

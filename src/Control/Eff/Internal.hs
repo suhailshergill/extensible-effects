@@ -144,7 +144,6 @@ eff _ g (E q u) = g q u
 -- | The usual 'bind' fnuction with arguments flipped. This is a
 -- common pattern for Eff.
 {-# INLINE bind #-}
--- TODO: verify this doesn't interfere with rewrite rules
 bind :: Arr r a b -> Eff r a -> Eff r b
 bind k e = eff k (E . (^|> k)) e       -- just accumulates continuations
 

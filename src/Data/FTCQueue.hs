@@ -2,10 +2,8 @@
 {-# LANGUAGE RankNTypes #-}
 {-# LANGUAGE Safe #-}
 
--- | Fast type-aligned queue optimized to effectful functions
--- @(a -> m b)@
--- (monad continuations have this type). TODO: FIXME
--- Constant-time append and snoc and
+-- | Fast type-aligned queue optimized to effectful functions @(a -> m b)@
+-- (monad continuations have this type). Constant-time append and snoc and
 -- average constant-time left-edge deconstruction
 module Data.FTCQueue (
   FTCQueue,
