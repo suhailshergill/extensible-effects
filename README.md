@@ -1,5 +1,5 @@
 
-# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg), ![GHC](https://img.shields.io/badge/GHC-8.02%20%7C%208.2.2%20%7C%208.4.4%20%7C%208.6.2-blue.svg))
+# Extensible effects (![Hackage](https://img.shields.io/hackage/v/extensible-effects.svg), ![GHC](https://img.shields.io/badge/GHC-8.2.2%20%7C%208.4.4%20%7C%208.6.3-blue.svg))
 
 [![Build Status](https://travis-ci.org/suhailshergill/extensible-effects.svg?branch=master)](https://travis-ci.org/suhailshergill/extensible-effects)
 [![Join the chat at https://gitter.im/suhailshergill/extensible-effects](https://badges.gitter.im/Join%20Chat.svg)](https://gitter.im/suhailshergill/extensible-effects?utm_source=badge&utm_medium=badge&utm_campaign=pr-badge&utm_content=badge)

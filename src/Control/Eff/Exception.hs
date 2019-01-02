@@ -33,6 +33,8 @@ import Control.Monad (void)
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 
+import Data.Function (fix)
+
 -- ------------------------------------------------------------------------
 -- | Exceptions
 --
@@ -46,12 +48,8 @@ withException = return . Right
 exc :: Monad m => e -> m (Either e a)
 exc = return . Left
 -- | Given a callback, and an 'Exc' request, respond to it.
-instance Monad m => Handle (Exc e) (m (Either e a)) where
-  handle _ (Exc e) = exc e
-
--- runError :: (a -> m (Either e a)), (e -> m (Either e a))
--- catchError :: (a -> Eff r a), (e -> Eff r a)
--- exc :: e -> m (Either e a)
+instance Monad m => Handle (Exc e) r a (m (Either e a)) where
+  handle _ _ (Exc e) = exc e
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -83,7 +81,7 @@ die = throwError ()
 
 -- | Run a computation that might produce an exception.
 runError :: Eff (Exc e ': r) a -> Eff r (Either e a)
-runError = handle_relay withException
+runError = fix (handle_relay withException)
 
 -- | Runs a failable effect, such that failed computation return 'Nothing', and
 --   'Just' the return value on success.
@@ -96,7 +94,7 @@ runFail = fmap (either (const Nothing) Just) . runError
 -- exception
 catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
-catchError m h = respond_relay return (\_ (Exc e) -> h e) m
+catchError m h = fix (respond_relay' (\_ _ (Exc e) -> h e) return) m
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.

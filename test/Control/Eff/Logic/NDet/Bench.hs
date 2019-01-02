@@ -31,10 +31,10 @@
 -- To run this code
 -- GHCRTS="-tstderr" /usr/bin/time ./Bench_nondet
 
-module Control.Eff.NdetEff.Bench where
+module Control.Eff.Logic.NDet.Bench where
 
 import Control.Eff
-import qualified Control.Eff.NdetEff as E
+import qualified Control.Eff.Logic.NDet as E
 
 import Data.List (sort)
 -- import Control.Monad.Identity
@@ -155,12 +155,12 @@ testc2 = ww_answer == sort (run_cps test_ww)
 -- run_eff = run . E.makeChoice
 
 -- More direct interpreter
--- makeChoiceA :: Eff (E.NdetEff ': r) a -> Eff r [a]
+-- makeChoiceA :: Eff (E.NDet ': r) a -> Eff r [a]
 -- makeChoiceA = handle_relay (\x -> x `seq` return [x] ) $ \m k -> case m of
 --     E.MZero -> return []
 --     E.MPlus -> liftM2 (++) (k True) (k False)
 
-run_eff :: Eff '[E.NdetEff] Int -> [Int]
+run_eff :: Eff '[E.NDet] Int -> [Int]
 run_eff = run . E.makeChoiceA
 
 teste2 = ww_answer == sort (run_eff test_ww)
@@ -181,7 +181,7 @@ instance Alternative Count where
   Count m1@Just{} n1 <|> Count _ n2 = Count m1 (n1+n2)
   _ <|> m2 = m2
 
-run_effc :: Eff '[E.NdetEff] Int -> Int
+run_effc :: Eff '[E.NDet] Int -> Int
 run_effc m = let Count _ n = run . E.makeChoiceA $ m in n
 
   

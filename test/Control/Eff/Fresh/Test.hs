@@ -19,8 +19,8 @@ testGroups = [ $(testGroupGenerator) ]
 case_Fresh_tfresh' :: Assertion
 case_Fresh_tfresh' = do
   ((), actual) <- catchOutput tfresh'
-  assertEqual "Fresh: test"
-    (unlines ["Fresh 0", "Fresh 1"]) actual
+  assertOutput "Fresh: test"
+    ["Fresh 0", "Fresh 1"] actual
   where
     tfresh' = runTrace $ runFresh' 0 $ do
       n <- fresh

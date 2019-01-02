@@ -20,6 +20,7 @@ import Control.Eff.Extend
 import Control.Monad.Base
 import Control.Monad.Trans.Control
 
+import Data.Function (fix)
 
 -- There are three possible implementations
 -- The first one uses State Fresh where
@@ -41,9 +42,10 @@ withFresh :: Monad m => a -> Int -> m (a, Int)
 withFresh x s = return (x, s)
 
 -- | Given a continuation and requests, respond to them
-instance Handle Fresh (Int -> r) where
-  handle k Fresh s = k s (s + 1)
-  handle k (Replace i) _ = k () i
+instance Handle Fresh r a (Int -> k) where
+  handle step q req s = case req of
+    Fresh     -> step (q ^$ s) (s+1)
+    Replace i -> step (q ^$ ()) i
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -69,7 +71,7 @@ runFresh' :: Int -> Eff (Fresh ': r) w -> Eff r w
 runFresh' s m = fst `fmap` runFreshReturn s m
 
 runFreshReturn :: Int -> Eff (Fresh ': r) w -> Eff r (w,Int)
-runFreshReturn s m = handle_relay withFresh m s
+runFreshReturn s m = fix (handle_relay withFresh) m s
 
 {-
 -- Finally, the worst implementation but the one that answers
