@@ -9,7 +9,7 @@ module Control.Eff.Extend
   ( -- * The effect monad
     Eff(..)
   , run
-  , eff, impurePrj, impureDecomp
+  , eff
     -- * Lifting operations
   , Lift(..), Lifted, LiftedBase
   , lift, runLift
@@ -41,8 +41,7 @@ module Control.Eff.Extend
   , comp
   , (^|>)
   , qComp
-  , qComps, (^|$^)
-  , (~^), qThen, andThen
+  , qComps
   )
 where
 

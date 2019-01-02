@@ -68,11 +68,7 @@ singleK :: Arr r a b -> Arrs r a b
 singleK k = Arrs (tsingleton k)
 {-# RULES
 "singleK/qApp" [~2] forall q. singleK (qApp q) = q
-"singleK/^$" [~2] forall q. singleK (q ^$) = q
  #-}
-{-# INLINE (~^) #-}
-(~^) :: Arr r a b -> Arrs r a b
-(~^) k = singleK k
 
 -- | Application to the `generalized effectful function' @Arrs r b w@, i.e.,
 -- convert 'Arrs' to 'Arr'
@@ -147,46 +143,16 @@ eff _ g (E q u) = g q u
 bind :: Arr r a b -> Eff r a -> Eff r b
 bind k e = eff k (E . (^|> k)) e       -- just accumulates continuations
 
--- | Case analysis for impure computations for 'Eff' datatype. This
--- uses 'decomp'.
-{-# INLINE impureDecomp #-}
-impureDecomp :: (Arrs (t ': r) v a -> t v -> b)
-             -> (Arrs (t ': r) v a -> Union r v -> b)
-             -> Arrs (t ': r) v a -> Union (t ': r) v -> b
-impureDecomp h rest q u = either (rest q) (h q) (decomp u)
--- | Case analysis for impure computations for 'Eff' datatype. This
--- uses 'prj'.
-{-# INLINE impurePrj #-}
-impurePrj :: Member t r
-          => (Arrs r v a -> t v -> b)
-          -> (Arrs r v a -> Union r v -> b)
-          -> Arrs r v a -> Union r v -> b
-impurePrj h def q u = maybe (def q u) (h q) (prj u)
-
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComp #-}
 qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h (g ^$ a)
-{-# INLINABLE qThen #-}
-qThen :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
-qThen = flip qComp
-
--- | Compose and then apply to function. This is a common pattern when
--- processing requests. Different options of @f@ allow us to handle or
--- relay the request and continue on.
-{-# INLINE andThen #-}
-andThen :: ((b -> c) -> t) -> (Eff r w -> c)
-        -> Arrs r b w -> t
-andThen f next = f . (qThen next)
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
 qComps g h = singleK $ qComp g h
-{-# INLINABLE (^|$^) #-}
-(^|$^) :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
-(^|$^) = qComps
 
 instance Functor (Eff r) where
   {-# INLINE fmap #-}
@@ -234,8 +200,7 @@ run (Val x) = x
 run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
--- | Abstract the recursive 'relay' pattern, i.e., "somebody else's
--- problem".
+-- | Abstract the recursive 'relay' pattern, i.e., "somebody else's problem".
 class Relay k r where
   relay :: (v -> k) -> Union r v -> k
 instance Relay (Eff r w) r where
@@ -248,7 +213,7 @@ instance Relay k r => Relay (s -> k) r where
 -- | Respond to requests of type @t@. The handlers themselves are expressed in
 -- open-recursion style.
 class Handle t r a k where
-  handle :: (Eff r a -> k) -- ^ recursive knot
+  handle :: (Eff r a -> k) -- ^ untied recursive knot
          -> Arrs r v a -- ^ coroutine awaiting response
          -> t v -- ^ request
          -> k
@@ -265,7 +230,7 @@ class Handle t r a k where
   -- 'Data.OpenUnion' implementation.
   handle_relay :: r ~ (t ': r') => Relay k r'
                => (a -> k) -- ^ return
-               -> (Eff r a -> k) -- ^ recursive knot
+               -> (Eff r a -> k) -- ^ untied recursive knot
                -> Eff r a -> k
   handle_relay ret step m = eff ret
                             (\q u -> case u of
@@ -281,13 +246,13 @@ class Handle t r a k where
   --
   -- There are three different ways in which we may want to alter behaviour:
   --
-  -- 1] __Before__: This work should be done before 'respond_relay' is called.
+  -- 1. __Before__: This work should be done before 'respond_relay' is called.
   --
-  -- 2] __During__: This work should be done by altering the handler being
+  -- 2. __During__: This work should be done by altering the handler being
   -- passed to 'respond_relay'. This allows us to modify the requests "in
   -- flight".
   --
-  -- 3] __After__: This work should be done be altering the @ret@ being passed
+  -- 3. __After__: This work should be done be altering the @ret@ being passed
   -- to 'respond_relay'. This allows us to overwrite changes or discard them
   -- altogether. If this seems magical, note that we have the flexibility of
   -- altering the target domain @k@. Specifically, the explicit domain
@@ -295,7 +260,7 @@ class Handle t r a k where
   -- manipulate it directly.
   respond_relay :: Member t r => Relay k r
                 => (a -> k) -- ^ return
-                -> (Eff r a -> k) -- ^ recursive knot
+                -> (Eff r a -> k) -- ^ untied recursive knot
                 -> Eff r a -> k
   respond_relay ret step m = eff ret
                              (\q u -> case u of
@@ -309,7 +274,7 @@ class Handle t r a k where
 handle_relay' :: r ~ (t ': r') => Relay k r'
               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
               -> (a -> k) -- ^ return
-              -> (Eff r a -> k) -- ^ recursive knot
+              -> (Eff r a -> k) -- ^ untied recursive knot
               -> Eff r a -> k
 handle_relay' hdl ret step m = eff ret
                                     (\q u -> case u of
