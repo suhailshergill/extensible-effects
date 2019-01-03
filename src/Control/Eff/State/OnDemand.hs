@@ -108,7 +108,7 @@ runStateR s (Val x) = S.withState x s
 runStateR s (E q u) = case u of
   U0 (Tell w) -> handle loop q (S.Put w) s
   U1 (U0 Ask) -> handle loop q S.Get s
-  U1 (U1 u') -> relay (qComp q loop) u' s
+  U1 (U1 u') -> relay loop q u' s
   where loop = flip runStateR
 
 -- | Backwards state

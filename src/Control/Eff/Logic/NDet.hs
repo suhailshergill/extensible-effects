@@ -171,7 +171,7 @@ makeChoiceA_manual m = loop m [] where
   loop (E q u) jq    = case decomp u of
     Right MZero -> next loop jq
     Right MPlus -> loop (k True) (k False : jq)
-    Left  u0    -> relay (loop . k) u0 jq
+    Left  u0    -> relayK (loop . k) u0 jq
     where
       k = (q ^$)
 
@@ -204,7 +204,7 @@ msplit'_manual m' = loop m' [] where
     U0' MZero -> next loop jq
     -- try left options; add right to job queue
     U0' MPlus -> loop (k True) (k False : jq)
-    _         -> relay (loop . k) u jq
+    _         -> relayK (loop . k) u jq
     where
       k x = q ^$ x
 
@@ -224,6 +224,6 @@ instance Member NDet r => Call r where
     loop (E q (U1 u)) jq = case u of
         U0' MZero -> nxt jq                            -- (C1)
         U0' MPlus -> nxt (left q : right q : jq)       -- (C3)
-        _         -> relay (loop . (q ^$)) u jq        -- (C4)
+        _         -> relay loop q u jq                 -- (C4)
 
     nxt jq = list mzero loop jq

@@ -140,4 +140,4 @@ runStateR !s m = loop m s
    loop (E q u) = case u of
      U0 (Tell w) -> handle loop q (Put w)
      U1 (U0 Ask) -> handle loop q Get
-     U1 (U1 u') -> relay (qComp q loop) u'
+     U1 (U1 u') -> relay loop q u'

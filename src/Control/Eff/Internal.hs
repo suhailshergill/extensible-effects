@@ -202,13 +202,18 @@ run (E _ union) =
 
 -- | Abstract the recursive 'relay' pattern, i.e., "somebody else's problem".
 class Relay k r where
-  relay :: (v -> k) -> Union r v -> k
+  relayK :: (v -> k) -> Union r v -> k
+  {-# INLINE relay #-}
+  relay :: (Eff r' b -> k) -- ^ untied recursive knot
+         -> Arrs r' v b -> Union r v -> k
+  relay step q u = relayK (qComp q step) u
+
 instance Relay (Eff r w) r where
-  {-# INLINABLE relay #-}
-  relay q u = E (singleK q) u
+  {-# INLINABLE relayK #-}
+  relayK k u = E (singleK k) u
 instance Relay k r => Relay (s -> k) r where
-  {-# INLINABLE relay #-}
-  relay q u s = relay (\x -> q x s) u
+  {-# INLINABLE relayK #-}
+  relayK k u s = relayK (\x -> k x s) u
 
 -- | Respond to requests of type @t@. The handlers themselves are expressed in
 -- open-recursion style.
@@ -235,7 +240,7 @@ class Handle t r a k where
   handle_relay ret step m = eff ret
                             (\q u -> case u of
                                 U0 x -> handle step q x
-                                U1 u' -> relay (qComp q step) u')
+                                U1 u' -> relay step q u')
                             m
   -- | Intercept the request and possibly respond to it, but leave it
   -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
@@ -265,7 +270,7 @@ class Handle t r a k where
   respond_relay ret step m = eff ret
                              (\q u -> case u of
                                  U0' x -> handle @t step q x
-                                 _     -> relay (qComp q step) u)
+                                 _     -> relay step q u)
                              m
 
 -- | A less commonly needed variant with an explicit handler (instead
@@ -279,7 +284,7 @@ handle_relay' :: r ~ (t ': r') => Relay k r'
 handle_relay' hdl ret step m = eff ret
                                     (\q u -> case u of
                                         U0 x -> hdl step q x
-                                        U1 u' -> relay (qComp q step) u')
+                                        U1 u' -> relay step q u')
                                     m
 
 -- | Variant with an explicit handler (instead of @Handle t r a k@
@@ -293,7 +298,7 @@ respond_relay' :: Member t r => Relay k r
 respond_relay' hdl ret step m = eff ret
                                 (\q u -> case u of
                                     U0' x -> hdl step q x
-                                    _     -> relay (qComp q step) u)
+                                    _     -> relay step q u)
                                 m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
