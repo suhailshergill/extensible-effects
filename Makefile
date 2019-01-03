@@ -22,7 +22,8 @@ test: build
 
 .PHONY: bench
 bench:
-	$(STACK_CMD) bench --benchmark-arguments="-o docs/benchmarks.html"
+	$(STACK_CMD) bench --benchmark-arguments="state error st-error --regress cycles:iters -o docs/benchmarks.html"
+	$(STACK_CMD) bench --benchmark-arguments="pyth --regress cycles:iters -o docs/benchmarks_nondeterminism.html"
 
 .PHONY: perf
 perf:
