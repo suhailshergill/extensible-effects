@@ -43,11 +43,11 @@ main = defaultMain [
                                           , bench "eff" $ whnf mainMax1_Eff 10000
                                           ]
                       ]
-  , bgroup "pyth" [ bgroup "ndet" [ bench "mtl" $ whnf mainN_MTL 20
-                                  , bench "eff" $ whnf mainN_Eff 20
+  , bgroup "pyth" [ bgroup "ndet" [ bench "mtl" $ whnf mainN_MTL 100
+                                  , bench "eff" $ whnf mainN_Eff 100
                                   ]
-                  , bgroup "ndet : st" [ bench "mtl" $ nf mainNS_MTL 15
-                                       , bench "eff" $ nf mainNS_Eff 15
+                  , bgroup "ndet : st" [ bench "mtl" $ nf mainNS_MTL 100
+                                       , bench "eff" $ nf mainNS_Eff 100
                                        ]
                   ]
   ]
