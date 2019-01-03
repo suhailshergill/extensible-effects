@@ -6,6 +6,9 @@
 [![Stories in Ready](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=ready&title=Ready)](http://waffle.io/suhailshergill/extensible-effects)
 [![Stories in progress](https://badge.waffle.io/suhailshergill/extensible-effects.png?label=in%20progress&title=In%20progress)](http://waffle.io/suhailshergill/extensible-effects)
 
+[![State and Error benchmarks](https://img.shields.io/badge/benchmarks-State%20%7C%20Error-orange.svg)](http://suhailshergill.github.io/extensible-effects/benchmarks.html)
+[![Nondeterminism benchmarks](https://img.shields.io/badge/benchmarks-Non--determinism-orange.svg)](http://suhailshergill.github.io/extensible-effects/benchmarks_nondeterminism.html)
+
 *Implement effectful computations in a modular way!*
 
 The main monad of this package is `Eff` from `Control.Eff`.
