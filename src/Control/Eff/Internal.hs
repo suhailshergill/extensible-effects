@@ -200,7 +200,9 @@ run (Val x) = x
 run (E _ union) =
   union `seq` error "extensible-effects: the impossible happened!"
 
--- | Abstract the recursive 'relay' pattern, i.e., "somebody else's problem".
+-- | Abstract the recursive 'relay' pattern, i.e., "somebody else's
+-- problem". The result is an effectful computation (with possibly some inputs)
+-- of effect-type @r@.
 class Relay k r where
   relayK :: (v -> k) -> Union r v -> k
   {-# INLINE relay #-}
