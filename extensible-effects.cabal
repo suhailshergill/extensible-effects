@@ -122,6 +122,7 @@ library
                        , ScopedTypeVariables
                        , TupleSections
                        , Trustworthy
+                       , TypeApplications
                        , TypeOperators
                        , UndecidableInstances
 
