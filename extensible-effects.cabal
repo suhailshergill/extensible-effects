@@ -66,8 +66,8 @@ library
   exposed-modules:     Control.Eff
                        Control.Eff.Coroutine
                        Control.Eff.Example
+                       Control.Eff.Example.Fresh
                        Control.Eff.Exception
-                       Control.Eff.Fresh
                        Control.Eff.Logic.Core
                        Control.Eff.Logic.NDet
                        Control.Eff.Operational
@@ -154,8 +154,8 @@ test-suite extensible-effects-tests
                 , Control.Eff.Test
                 , Control.Eff.Coroutine.Test
                 , Control.Eff.Example.Test
+                , Control.Eff.Example.Fresh.Test
                 , Control.Eff.Exception.Test
-                , Control.Eff.Fresh.Test
                 , Control.Eff.Logic.NDet.Bench
                 , Control.Eff.Logic.NDet.Test
                 , Control.Eff.Logic.Test

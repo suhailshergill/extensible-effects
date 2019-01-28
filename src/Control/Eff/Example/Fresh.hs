@@ -8,11 +8,11 @@
 {-# LANGUAGE DataKinds #-}
 {-# LANGUAGE Safe #-}
 -- | Create unique Enumerable values.
-module Control.Eff.Fresh( Fresh (Fresh)
-                        , withFresh
-                        , fresh
-                        , runFresh'
-                        ) where
+module Control.Eff.Example.Fresh( Fresh (Fresh)
+                                , withFresh
+                                , fresh
+                                , runFresh'
+                                ) where
 
 import Control.Eff
 import Control.Eff.Extend

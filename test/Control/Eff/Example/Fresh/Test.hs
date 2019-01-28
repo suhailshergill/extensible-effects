@@ -3,11 +3,11 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 
-module Control.Eff.Fresh.Test (testGroups) where
+module Control.Eff.Example.Fresh.Test (testGroups) where
 
 import Test.HUnit hiding (State)
 import Control.Eff
-import Control.Eff.Fresh
+import Control.Eff.Example.Fresh
 import Control.Eff.Trace
 import Utils
 
