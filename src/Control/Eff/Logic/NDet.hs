@@ -80,7 +80,7 @@ right q = q ^$ False
 -- explicit that we rely on @f@ to have enough room to store all possibilities.
 instance Alternative f => Handle NDet r a (Eff r' (f w)) where
   handle _ _ MZero = return empty
-  handle step q MPlus = liftM2 (<|>) (step $ left q) (step $ right q)
+  handle h q MPlus = liftM2 (<|>) (h $ left q) (h $ right q)
 
 instance Member NDet r => Alternative (Eff r) where
   empty = mzero
@@ -137,11 +137,11 @@ makeChoiceA0 = fix (handle_relay withNDet)
 
 -- | More performant handler; uses reified job queue
 instance Alternative f => Handle NDet r a ([Eff r a] -> Eff r' (f w)) where
-  handle step _ MZero jq = next step jq
-  handle step q MPlus jq = next step (left q : right q : jq)
+  handle h _ MZero jq = next h jq
+  handle h q MPlus jq = next h (left q : right q : jq)
 -- instance Handle NDet r a (k -> [Eff r a] -> k) where
---   handle step _ MZero z jq = list z (flip step z) jq
---   handle step q MPlus z jq = list z (flip step z) (left q : right q : jq)
+--   handle h _ MZero z jq = list z (flip h z) jq
+--   handle h q MPlus z jq = list z (flip h z) (left q : right q : jq)
 
 {-# INLINE next #-}
 -- | Progressing the cursor in a reified job queue.

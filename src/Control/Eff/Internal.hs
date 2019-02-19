@@ -206,9 +206,9 @@ run (E _ union) =
 class Relay k r where
   relayK :: (v -> k) -> Union r v -> k
   {-# INLINE relay #-}
-  relay :: (Eff r' b -> k) -- ^ untied recursive knot
+  relay :: (Eff r' b -> k) -- ^ handler reference
          -> Arrs r' v b -> Union r v -> k
-  relay step q u = relayK (qComp q step) u
+  relay h q u = relayK (qComp q h) u
 
 instance Relay (Eff r w) r where
   {-# INLINABLE relayK #-}
@@ -217,13 +217,31 @@ instance Relay k r => Relay (s -> k) r where
   {-# INLINABLE relayK #-}
   relayK k u s = relayK (\x -> k x s) u
 
--- | Respond to requests of type @t@. The handlers themselves are expressed in
--- open-recursion style.
+-- | Respond to requests of type @t@. Usually for each effect @t@, we have to
+-- define an instance of the 'Handle' class, which encapsulates how we respond
+-- to such requests.
+--
+-- These are expressed in open-recursive (or "shallow") style, i.e., with an
+-- explicit handler reference. This class abstracts a common pattern when
+-- implementing effects.
+--
+-- These are the "shallow handlers" of @Kammar, Ohad, Sam Lindley, and Nicolas
+-- Oury. "Handlers in action." ACM SIGPLAN Notices. Vol. 48. No. 9. ACM, 2013.@
+-- They are "shallow" because "each handler only handles one step of a
+-- computation, in contrast to Plotkin and Pretnar’s deep handlers."  These
+-- handlers can be converted into "deep handlers" via the application of a
+-- fixpoint operator.
 class Handle t r a k where
-  handle :: (Eff r a -> k) -- ^ untied recursive knot
-         -> Arrs r v a -- ^ coroutine awaiting response
-         -> t v -- ^ request
-         -> k
+  -- | Define a single step of computation for the handler, i.e., define how to
+  -- "handle" the effectful request.
+  --
+  -- A handler is a function which accepts an effectful computation as an
+  -- argument. A "single step" includes responding to the awaiting coroutine and
+  -- passing the result to the handler reference.
+  handle :: (Eff r a -> k) -- ^ handler reference
+         -> Arrs r v a -- ^ coroutine awaiting response from request
+         -> t v -- ^ effect request
+         -> k -- ^ the result type after effect is handled
 
   -- | A convenient pattern: given a request (in an open union), either handle
   -- it (using default Handler) or relay it.
@@ -237,12 +255,12 @@ class Handle t r a k where
   -- 'Data.OpenUnion' implementation.
   handle_relay :: r ~ (t ': r') => Relay k r'
                => (a -> k) -- ^ return
-               -> (Eff r a -> k) -- ^ untied recursive knot
+               -> (Eff r a -> k) -- ^ handler reference
                -> Eff r a -> k
-  handle_relay ret step m = eff ret
+  handle_relay ret h m = eff ret
                             (\q u -> case u of
-                                U0 x -> handle step q x
-                                U1 u' -> relay step q u')
+                                U0 x -> handle h q x
+                                U1 u' -> relay h q u')
                             m
   -- | Intercept the request and possibly respond to it, but leave it
   -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
@@ -267,29 +285,29 @@ class Handle t r a k where
   -- manipulate it directly.
   respond_relay :: Member t r => Relay k r
                 => (a -> k) -- ^ return
-                -> (Eff r a -> k) -- ^ untied recursive knot
+                -> (Eff r a -> k) -- ^ handler reference
                 -> Eff r a -> k
-  respond_relay ret step m = eff ret
+  respond_relay ret h m = eff ret
                              (\q u -> case u of
-                                 U0' x -> handle @t step q x
-                                 _     -> relay step q u)
+                                 U0' x -> handle @t h q x
+                                 _     -> relay h q u)
                              m
 
--- | A less commonly needed variant with an explicit handler (instead
--- of @Handle t r a k@ constraint).
+-- | A less commonly needed variant with an explicit handle argument (instead of
+-- @Handle t r a k@ constraint).
 {-# INLINE handle_relay' #-}
 handle_relay' :: r ~ (t ': r') => Relay k r'
               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
               -> (a -> k) -- ^ return
-              -> (Eff r a -> k) -- ^ untied recursive knot
+              -> (Eff r a -> k) -- ^ handler reference
               -> Eff r a -> k
-handle_relay' hdl ret step m = eff ret
+handle_relay' hdl ret h m = eff ret
                                     (\q u -> case u of
-                                        U0 x -> hdl step q x
-                                        U1 u' -> relay step q u')
+                                        U0 x -> hdl h q x
+                                        U1 u' -> relay h q u')
                                     m
 
--- | Variant with an explicit handler (instead of @Handle t r a k@
+-- | Variant with an explicit handle argument (instead of @Handle t r a k@
 -- constraint).
 {-# INLINE respond_relay' #-}
 respond_relay' :: Member t r => Relay k r
@@ -297,10 +315,10 @@ respond_relay' :: Member t r => Relay k r
                -> (a -> k) -- ^ return
                -> (Eff r a -> k) -- ^ recursive knot
                -> Eff r a -> k
-respond_relay' hdl ret step m = eff ret
+respond_relay' hdl ret h m = eff ret
                                 (\q u -> case u of
-                                    U0' x -> hdl step q x
-                                    _     -> relay step q u)
+                                    U0' x -> hdl h q x
+                                    _     -> relay h q u)
                                 m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
@@ -331,19 +349,19 @@ lift = send . Lift
 
 -- | Handle lifted requests by running them sequentially
 instance Monad m => Handle (Lift m) r a (m k) where
-  handle step q (Lift x) = x >>= (step . (q ^$))
+  handle h q (Lift x) = x >>= (h . (q ^$))
 
 -- | The handler of Lift requests. It is meant to be terminal: we only
 -- allow a single Lifted Monad. Note, too, how this is different from
 -- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift m = fix step m
+runLift m = fix h m
   where
-    step :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
-    step next m' = eff return
-                   (\q u -> case u of
-                       U0' x -> handle next q x
-                       _     -> error "Impossible: Nothing to relay!")
+    h :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
+    h self m' = eff return
+                (\q u -> case u of
+                    U0' x -> handle self q x
+                    _     -> error "Impossible: Nothing to relay!")
                    m'
 
 -- | Catching of dynamic exceptions
@@ -352,12 +370,12 @@ runLift m = fix step m
 catchDynE :: forall e a r.
              (Lifted IO r, Exc.Exception e) =>
              Eff r a -> (e -> Eff r a) -> Eff r a
-catchDynE m eh = fix (respond_relay' h return) m
+catchDynE m eh = fix (respond_relay' hdl return) m
  where
    -- Polymorphic local binding: signature is needed
-   h :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
-   h step q (Lift em) = lift (Exc.try em) >>= either eh k
-     where k = step . (q ^$)
+   hdl :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
+   hdl h q (Lift em) = lift (Exc.try em) >>= either eh k
+     where k = h . (q ^$)
 
 -- | You need this when using 'catchesDynE'.
 data HandlerDynE r a =

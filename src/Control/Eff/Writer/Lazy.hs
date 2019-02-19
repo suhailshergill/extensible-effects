@@ -56,7 +56,7 @@ withWriter x empty _append = return (x, empty)
 -- | Given a value to write, and a callback (which includes empty and
 -- append), respond to requests.
 instance Monad m => Handle (Writer w) r a (b -> (w -> b -> b) -> m (a, b)) where
-  handle step q (Tell w) e append = step (q ^$ ()) e append >>=
+  handle h q (Tell w) e append = h (q ^$ ()) e append >>=
     \(x, l) -> return (x, w `append` l)
 
 instance ( MonadBase m m
@@ -75,10 +75,10 @@ tell w = send $ Tell w
 
 -- | Transform the state being produced.
 censor :: forall w a r. Member (Writer w) r => (w -> w) -> Eff r a -> Eff r a
-censor f = fix (respond_relay' h return)
+censor f = fix (respond_relay' hdl return)
   where
-    h :: (Eff r b -> Eff r b) -> Arrs r v b -> Writer w v -> Eff r b
-    h step q (Tell w) = tell (f w) >>= \x -> step (q ^$ x)
+    hdl :: (Eff r b -> Eff r b) -> Arrs r v b -> Writer w v -> Eff r b
+    hdl h q (Tell w) = tell (f w) >>= \x -> h (q ^$ x)
 
 
 -- | Handle Writer requests, using a user-provided function to accumulate

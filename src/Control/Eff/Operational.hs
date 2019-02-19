@@ -37,8 +37,8 @@ withOperational x _ = return x
 -- | Given a continuation and a program, interpret it
 -- Usually, we have @r ~ [Program f : r']@
 instance Handle (Program f) r a (Intrprtr f r' -> Eff r' a) where
-  handle step q (Singleton instr) i = (runIntrprtr i) instr >>=
-    \x -> step (q ^$ x) i
+  handle h q (Singleton instr) i = (runIntrprtr i) instr >>=
+    \x -> h (q ^$ x) i
 
 -- | Lift a value to a monad.
 singleton :: (Member (Program instr) r) => instr a -> Eff r a

@@ -43,9 +43,9 @@ withFresh x s = return (x, s)
 
 -- | Given a continuation and requests, respond to them
 instance Handle Fresh r a (Int -> k) where
-  handle step q req s = case req of
-    Fresh     -> step (q ^$ s) (s+1)
-    Replace i -> step (q ^$ ()) i
+  handle h q req s = case req of
+    Fresh     -> h (q ^$ s) (s+1)
+    Replace i -> h (q ^$ ()) i
 
 instance ( MonadBase m m
          , LiftedBase m r

@@ -53,9 +53,9 @@ withState x s = return (x, s)
 
 -- | Handle 'State s' requests
 instance Handle (State s) r a (s -> k) where
-  handle step q sreq s = case sreq of
-    Get    -> step (q ^$ s) s
-    Put s' -> step (q ^$ ()) s'
+  handle h q sreq s = case sreq of
+    Get    -> h (q ^$ s) s
+    Put s' -> h (q ^$ ()) s'
 
 instance ( MonadBase m m
          , LiftedBase m r
