@@ -252,7 +252,7 @@ class Handle t r a k where
   -- effectlist @r@).
   --
   -- Note that we can only handle the leftmost effect type (a consequence of the
-  -- 'Data.OpenUnion' implementation.
+  -- 'Data.OpenUnion' implementation).
   handle_relay :: r ~ (t ': r') => Relay k r'
                => (a -> k) -- ^ return
                -> (Eff r a -> k) -- ^ handler reference
@@ -273,16 +273,17 @@ class Handle t r a k where
   --
   -- 1. __Before__: This work should be done before 'respond_relay' is called.
   --
-  -- 2. __During__: This work should be done by altering the handler being
-  -- passed to 'respond_relay'. This allows us to modify the requests "in
-  -- flight".
-  --
-  -- 3. __After__: This work should be done be altering the @ret@ being passed
+  -- 2. __After__: This work should be done be altering the @ret@ being passed
   -- to 'respond_relay'. This allows us to overwrite changes or discard them
   -- altogether. If this seems magical, note that we have the flexibility of
   -- altering the target domain @k@. Specifically, the explicit domain
   -- representation gives us access to the "effect" realm allowing us to
   -- manipulate it directly.
+  -- For an example of 1 and 2, see 'Control.Eff.State.Strict.transactionState'.
+  --
+  -- 3. __During__: This work should be done by altering the handler being
+  -- passed to 'respond_relay'. This allows us to modify the requests "in
+  -- flight". For an example, see 'Control.Eff.Writer.Strict.censor'.
   respond_relay :: Member t r => Relay k r
                 => (a -> k) -- ^ return
                 -> (Eff r a -> k) -- ^ handler reference
