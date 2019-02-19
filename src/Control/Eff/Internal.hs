@@ -230,7 +230,9 @@ instance Relay k r => Relay (s -> k) r where
 -- They are "shallow" because "each handler only handles one step of a
 -- computation, in contrast to Plotkin and Pretnar’s deep handlers."  These
 -- handlers can be converted into "deep handlers" via the application of a
--- fixpoint operator.
+-- fixpoint operator. Specifically, if the "handler reference" argument in
+-- 'handle_relay' and 'respond_relay' are fed by tying-the-knot (via a fixpoint
+-- operator) the resultant is a "deep handler".
 class Handle t r a k where
   -- | Define a single step of computation for the handler, i.e., define how to
   -- "handle" the effectful request.
