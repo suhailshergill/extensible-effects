@@ -248,8 +248,8 @@ class Handle t r a k where
   --
   -- "Handle" implies that all requests of type @t@ are dealt with, i.e., @k@
   -- (the response type) doesn't have @t@ as part of its effect list. The @Relay
-  -- k r@ constraint ensures that @k@ is an effectful computation (with
-  -- effectlist @r@).
+  -- k r'@ constraint ensures that @k@ is an effectful computation (with
+  -- effect-list @r'@).
   --
   -- Note that we can only handle the leftmost effect type (a consequence of the
   -- 'Data.OpenUnion' implementation).
@@ -298,7 +298,7 @@ class Handle t r a k where
 -- @Handle t r a k@ constraint).
 {-# INLINE handle_relay' #-}
 handle_relay' :: r ~ (t ': r') => Relay k r'
-              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handle
               -> (a -> k) -- ^ return
               -> (Eff r a -> k) -- ^ handler reference
               -> Eff r a -> k
@@ -312,9 +312,9 @@ handle_relay' hdl ret h m = eff ret
 -- constraint).
 {-# INLINE respond_relay' #-}
 respond_relay' :: Member t r => Relay k r
-               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handler
+               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handle
                -> (a -> k) -- ^ return
-               -> (Eff r a -> k) -- ^ recursive knot
+               -> (Eff r a -> k) -- ^ handler reference
                -> Eff r a -> k
 respond_relay' hdl ret h m = eff ret
                                 (\q u -> case u of
