@@ -233,6 +233,16 @@ instance Relay k r => Relay (s -> k) r where
 -- fixpoint operator. Specifically, if the "handler reference" argument in
 -- 'handle_relay' and 'respond_relay' are fed by tying-the-knot (via a fixpoint
 -- operator) the resultant is a "deep handler".
+--
+-- The 'Handle' class, thus, is quite flexible and allows us to express both
+-- shallow and deep handlers. This flexibility makes it easier to write more
+-- performant handlers. Specifically, it's fairly straightforward to express
+-- handlers which require an intermediate reified data structure. This is
+-- possible since the handler result-type @k@ is a type variable and can be of
+-- the form @d1 -> k1@ where @d1@ is an intermediate data structure. For a
+-- concrete example of this, see 'Control.Eff.Logic.NDet.makeChoiceA' (vs the
+-- naive and slow 'Control.Eff.Logic.NDet.makeChoiceA0'; and the equally
+-- performant, but verbose 'Control.Eff.Logic.NDet.makeChoiceA_manual').
 class Handle t r a k where
   -- | Define a single step of computation for the handler, i.e., define how to
   -- "handle" the effectful request.
