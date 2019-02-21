@@ -219,30 +219,35 @@ instance Relay k r => Relay (s -> k) r where
 
 -- | Respond to requests of type @t@. Usually for each effect @t@, we have to
 -- define an instance of the 'Handle' class, which encapsulates how we respond
--- to such requests.
+-- to such requests. This class abstracts a common pattern when implementing
+-- effects.
 --
--- These are expressed in open-recursive (or "shallow") style, i.e., with an
--- explicit handler reference. This class abstracts a common pattern when
--- implementing effects.
+-- The 'Handle' class allows us to express the handler logic in an
+-- open-recursive (or "shallow") style, i.e., given an explicit handler
+-- reference we define how to respond to requests of type @t@. Finally the knot
+-- is tied via the application of a fixpoint operator, resulting in a handler
+-- for our effect.
 --
--- These are the "shallow handlers" of @Kammar, Ohad, Sam Lindley, and Nicolas
--- Oury. "Handlers in action." ACM SIGPLAN Notices. Vol. 48. No. 9. ACM, 2013.@
--- They are "shallow" because "each handler only handles one step of a
--- computation, in contrast to Plotkin and Pretnar’s deep handlers."  These
--- handlers can be converted into "deep handlers" via the application of a
--- fixpoint operator. Specifically, if the "handler reference" argument in
--- 'handle_relay' and 'respond_relay' are fed by tying-the-knot (via a fixpoint
--- operator) the resultant is a "deep handler".
+-- In other words, we begin by describing how to respond to effect requests via
+-- "shallow handlers" of @Kammar, Ohad, Sam Lindley, and Nicolas Oury. "Handlers
+-- in action." ACM SIGPLAN Notices. Vol. 48. No. 9. ACM, 2013.@ They are
+-- "shallow" because "each handler only handles one step of a computation, in
+-- contrast to Plotkin and Pretnar’s deep handlers."  We then convert these into
+-- "deep handlers" via the application of a fixpoint operator. Specifically, the
+-- "handler reference" argument in 'handle_relay' and 'respond_relay' are fed by
+-- tying-the-knot (via the application of 'Data.Function.fix') resulting in a
+-- "deep handler". It is this "deep handler" that users of the effect
+-- call/invoke.
 --
--- The 'Handle' class, thus, is quite flexible and allows us to express both
--- shallow and deep handlers. This flexibility makes it easier to write more
--- performant handlers. Specifically, it's fairly straightforward to express
--- handlers which require an intermediate reified data structure. This is
--- possible since the handler result-type @k@ is a type variable and can be of
--- the form @d1 -> k1@ where @d1@ is an intermediate data structure. For a
--- concrete example of this, see 'Control.Eff.Logic.NDet.makeChoiceA' (vs the
--- naive and slow 'Control.Eff.Logic.NDet.makeChoiceA0'; and the equally
--- performant, but verbose 'Control.Eff.Logic.NDet.makeChoiceA_manual').
+-- The open-recursiveness (of "shallow handlers") awards greater flexibility via
+-- delayed knot-tying and makes it easier to write more performant
+-- handlers. Specifically, it's fairly straightforward to express handlers which
+-- require an intermediate reified data structure. This is possible since the
+-- handler result-type @k@ is a type variable and can be of the form @d1 -> k1@
+-- where @d1@ is an intermediate data structure. For a concrete example of this,
+-- see 'Control.Eff.Logic.NDet.makeChoiceA' (vs the naive and slow
+-- 'Control.Eff.Logic.NDet.makeChoiceA0'; and the equally performant, but
+-- verbose 'Control.Eff.Logic.NDet.makeChoiceA_manual').
 class Handle t r a k where
   -- | Define a single step of computation for the handler, i.e., define how to
   -- "handle" the effectful request.
