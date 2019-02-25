@@ -225,8 +225,8 @@ instance Relay k r => Relay (s -> k) r where
 -- The 'Handle' class allows us to express the handler logic in an
 -- open-recursive (or "shallow") style, i.e., given an explicit handler
 -- reference we define how to respond to requests of type @t@. Finally the knot
--- is tied via the application of a fixpoint operator, resulting in a handler
--- for our effect.
+-- is tied via the application of a fixpoint operator, resulting in a "deep"
+-- handler for our effect.
 --
 -- In other words, we begin by describing how to respond to effect requests via
 -- "shallow handlers" of @Kammar, Ohad, Sam Lindley, and Nicolas Oury. "Handlers
