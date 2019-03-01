@@ -89,18 +89,14 @@ library
                        Data.FTCQueue
                        Control.Eff.Logic.Experimental
 
-  default-extensions:  NoMonomorphismRestriction
-                     , MonoLocalBinds
+  default-extensions:  DataKinds
                      , FlexibleContexts
                      , FlexibleInstances
                      , GADTs
                      , MultiParamTypeClasses
-                     , RankNTypes
-                     , ScopedTypeVariables
-                     , DataKinds
-                     , TypeOperators
                      , PolyKinds
-                     , KindSignatures
+                     , RankNTypes
+                     , TypeOperators
   -- LANGUAGE extensions used by modules in this package.
   other-extensions:    BangPatterns
                        , CPP
