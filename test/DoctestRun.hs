@@ -7,7 +7,16 @@ runDocTest = do
   putStrLn ""
   putStrLn ""
   putStrLn "Doc Test..."
-  doctest ["-i", "-XFlexibleContexts", "-XMultiParamTypeClasses", "-XFlexibleInstances", "-XGADTs", "-XScopedTypeVariables",
-           "-isrc", "src/Control/Eff/QuickStart.hs"]
+  doctest [ -- pass default-extensions to ghc
+    "-XDataKinds"
+    , "-XFlexibleContexts"
+    , "-XFlexibleInstances"
+    , "-XGADTs"
+    , "-XMultiParamTypeClasses"
+    , "-XPolyKinds"
+    , "-XRankNTypes"
+    , "-XTypeOperators"
+    , "src/"
+    ]
   putStrLn "Doc Test OK"
   putStrLn ""
