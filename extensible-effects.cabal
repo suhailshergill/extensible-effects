@@ -83,6 +83,7 @@ library
                        Data.OpenUnion
                        Control.Eff.QuickStart
                        Control.Eff.Extend
+                       Control.Eff.Extend.Tutorial
 
   -- Modules included in this library but not exported.
   other-modules:       Control.Eff.Internal
