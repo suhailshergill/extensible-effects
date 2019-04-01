@@ -27,6 +27,7 @@ module Control.Eff.Extend
   , Handle(..)
   , Relay(..)
   , handle_relay', respond_relay'
+  , handle_nat_lifted', handle_nat'
   , raise
   , send
   -- * Arrow types and compositions
