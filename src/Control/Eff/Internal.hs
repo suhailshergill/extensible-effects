@@ -275,10 +275,10 @@ class Handle t r a k where
                -> (Eff r a -> k) -- ^ handler reference
                -> Eff r a -> k
   handle_relay ret h m = eff ret
-                            (\q u -> case u of
-                                U0 x -> handle h q x
-                                U1 u' -> relay h q u')
-                            m
+                         (\q u -> case u of
+                             U0 x -> handle h q x
+                             U1 u' -> relay h q u')
+                         m
   -- | Intercept the request and possibly respond to it, but leave it
   -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
   -- computation (with effectlist @r@). As such, the effect type @t@ will show
@@ -306,10 +306,10 @@ class Handle t r a k where
                 -> (Eff r a -> k) -- ^ handler reference
                 -> Eff r a -> k
   respond_relay ret h m = eff ret
-                             (\q u -> case u of
-                                 U0' x -> handle @t h q x
-                                 _     -> relay h q u)
-                             m
+                          (\q u -> case u of
+                              U0' x -> handle @t h q x
+                              _     -> relay h q u)
+                          m
 
 -- | A less commonly needed variant with an explicit handle argument (instead of
 -- @Handle t r a k@ constraint).
@@ -320,10 +320,30 @@ handle_relay' :: r ~ (t ': r') => Relay k r'
               -> (Eff r a -> k) -- ^ handler reference
               -> Eff r a -> k
 handle_relay' hdl ret h m = eff ret
-                                    (\q u -> case u of
-                                        U0 x -> hdl h q x
-                                        U1 u' -> relay h q u')
-                                    m
+                            (\q u -> case u of
+                                U0 x -> hdl h q x
+                                U1 u' -> relay h q u')
+                            m
+
+-- | Handle an effect @t@ via a "lifted" natural transformation to @m@. This is
+-- useful when defining handlers which do some kind of @IO@ action. For example,
+-- see 'Control.Eff.Trace.runTrace''.
+{-# INLINE handle_nat_lifted' #-}
+handle_nat_lifted' :: Lifted m r
+             => (forall v. t v -> m v) -- ^ natural transformation
+             -> (Eff (t : r) a -> Eff r a) -- ^ handler reference
+             -> Eff (t : r) a -> Eff r a
+handle_nat_lifted' f h m = handle_relay' (\h' q req -> lift (f req) >>= (qComp q h')) pure h m
+
+-- | Handle an effect @t@ via a natural transformation to @m@. When @m@ is @IO@,
+-- 'handle_nat_lifted' might be preferable instead.
+{-# INLINE handle_nat' #-}
+handle_nat' :: Member m r
+            => (forall v. t v -> m v) -- ^ natural transformation
+            -> (Eff (t : r) a -> Eff r a) -- ^ handler reference
+            -> Eff (t : r) a -> Eff r a
+handle_nat' f h m = handle_relay' (\h' q req -> send (f req) >>= (qComp q h')) pure h m
+
 
 -- | Variant with an explicit handle argument (instead of @Handle t r a k@
 -- constraint).
@@ -334,10 +354,10 @@ respond_relay' :: Member t r => Relay k r
                -> (Eff r a -> k) -- ^ handler reference
                -> Eff r a -> k
 respond_relay' hdl ret h m = eff ret
-                                (\q u -> case u of
-                                    U0' x -> hdl h q x
-                                    _     -> relay h q u)
-                                m
+                             (\q u -> case u of
+                                 U0' x -> hdl h q x
+                                 _     -> relay h q u)
+                             m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
