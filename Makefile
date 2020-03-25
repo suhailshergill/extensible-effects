@@ -1,7 +1,7 @@
 GHCS = 8.4.4 8.6.5 8.8.3
 
 # default ghc-version for targets, can be overwritten by make-
-GHC = 8.6.5
+GHC = 8.8.3
 STACK_YAML_ARG = --stack-yaml=stack/stack-$(GHC).yaml
 STACK_PERF_DIR = --work-dir=.stack-work-profile
 
