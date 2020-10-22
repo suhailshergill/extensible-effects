@@ -34,11 +34,7 @@ trace = send . Trace
 -- | Run a computation producing Traces.
 -- Directly handle the IO request: a terminal handler
 runTrace :: Eff '[Trace] w -> IO w
-runTrace = fix h where
-  h next = eff return
-           (\q u -> case u of
-               U0 x -> handle next q x
-               _    -> error "Impossible: Nothing to relay!")
+runTrace = fix (handle_terminal return)
 
 -- | Handle the trace request via natural transformation to @Lifted IO@. The
 -- trace handler no longer has to be terminal (since @Lift IO@ will be).

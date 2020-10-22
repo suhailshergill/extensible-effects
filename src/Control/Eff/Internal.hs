@@ -217,6 +217,9 @@ instance Relay k r => Relay (s -> k) r where
   {-# INLINABLE relayK #-}
   relayK k u s = relayK (\x -> k x s) u
 
+-- | Type synonym for functions written in open-recursive style.
+type Open s = s -> s
+
 -- | Respond to requests of type @t@. Usually for each effect @t@, we have to
 -- define an instance of the 'Handle' class, which encapsulates how we respond
 -- to such requests. This class abstracts a common pattern when implementing
@@ -279,6 +282,17 @@ class Handle t r a k where
                              U0 x -> handle h q x
                              U1 u' -> relay h q u')
                          m
+
+  -- | When we only have one effect we don't need to concern ourselves with
+  -- relaying.
+  handle_terminal :: r ~ '[t]
+                  => (a -> k) -- ^ value handler
+                  -> Open (Eff r a -> k)
+  handle_terminal valh self = eff valh
+                              (\q u -> case u of
+                                  U0 x -> handle self q x
+                                  _ -> error "Impossible: Nothing to relay!")
+
   -- | Intercept the request and possibly respond to it, but leave it
   -- unhandled. The @Relay k r@ constraint ensures that @k@ is an effectful
   -- computation (with effectlist @r@). As such, the effect type @t@ will show
@@ -310,6 +324,9 @@ class Handle t r a k where
                               U0' x -> handle @t h q x
                               _     -> relay h q u)
                           m
+
+-- so idea is that by composing open-recursive functions you can achieve
+-- specializaiton. there is an example with factorial method.
 
 -- | A less commonly needed variant with an explicit handle argument (instead of
 -- @Handle t r a k@ constraint).
@@ -393,14 +410,7 @@ instance Monad m => Handle (Lift m) r a (m k) where
 -- allow a single Lifted Monad. Note, too, how this is different from
 -- other handlers.
 runLift :: Monad m => Eff '[Lift m] w -> m w
-runLift m = fix h m
-  where
-    h :: Monad m => (Eff '[Lift m] w -> m w) -> Eff '[Lift m] w -> m w
-    h self m' = eff return
-                (\q u -> case u of
-                    U0' x -> handle self q x
-                    _     -> error "Impossible: Nothing to relay!")
-                   m'
+runLift m = fix (handle_terminal return) m
 
 -- | Catching of dynamic exceptions
 -- See the problem in
