@@ -80,8 +80,8 @@ right q = q ^$ False
 -- | Given a callback and 'NDet' requests respond to them. Note that this makes
 -- explicit that we rely on @f@ to have enough room to store all possibilities.
 instance Alternative f => Handle NDet r a (Eff r' (f w)) where
-  handle _ _ MZero = return empty
-  handle h q MPlus = liftM2 (<|>) (h $ left q) (h $ right q)
+  handle _ _ MZero = return empty                            -- (L1)
+  handle h q MPlus = liftM2 (<|>) (h $ left q) (h $ right q) -- (L4 due to MonadPlus implementation)
 
 instance Member NDet r => Alternative (Eff r) where
   empty = mzero
@@ -107,13 +107,14 @@ instance Member NDet r => MonadPlus (Eff r) where
   mzero = send MZero
   -- | Applying L2 and L3
 #if __GLASGOW_HASKELL__ < 804
-  mplus (E _ u) m2 | Just MZero <- prj u = m2
-  mplus m1 (E _ u) | Just MZero <- prj u = m1
+  mplus (E _ u) m2 | Just MZero <- prj u = m2 -- (L2)
+  mplus m1 (E _ u) | Just MZero <- prj u = m1 -- (L3)
 #else
-  mplus (E _ (U0' MZero)) m2 = m2
-  mplus m1 (E _ (U0' MZero)) = m1
+  mplus (E _ (U0' MZero)) m2 = m2             -- (L2)
+  mplus m1 (E _ (U0' MZero)) = m1             -- (L3)
 #endif
   mplus m1 m2 = send MPlus >>= \x -> if x then m1 else m2
+  -- (L4 given handler responds deterministically)
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -130,7 +131,7 @@ choose :: Member NDet r => [a] -> Eff r a
 choose lst = msum $ map return lst
 
 -- | An interpreter: The following is very simple, but leaks a lot of memory The
--- cause probably is mapping every failure to empty It takes then a lot of timne
+-- cause probably is mapping every failure to empty It takes then a lot of time
 -- and space to store those empty. When there aren't a lot of failures, this is
 -- comparable to 'makeChoiceA'.
 makeChoiceA0 :: Alternative f => Eff (NDet ': r) a -> Eff r (f a)
@@ -138,8 +139,8 @@ makeChoiceA0 = fix (handle_relay withNDet)
 
 -- | More performant handler; uses reified job queue
 instance Alternative f => Handle NDet r a ([Eff r a] -> Eff r' (f w)) where
-  handle h _ MZero jq = next h jq
-  handle h q MPlus jq = next h (left q : right q : jq)
+  handle h _ MZero jq = next h jq                      -- (L1)
+  handle h q MPlus jq = next h (left q : right q : jq) -- (L4 due to Monadplus implementation)
 -- instance Handle NDet r a (k -> [Eff r a] -> k) where
 --   handle h _ MZero z jq = list z (flip h z) jq
 --   handle h q MPlus z jq = list z (flip h z) (left q : right q : jq)
