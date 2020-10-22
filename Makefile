@@ -16,6 +16,8 @@ build:
 	$(STACK_CMD) build
 
 .PHONY: test
+# https://github.com/commercialhaskell/stack/issues/793#issuecomment-156501026
+test: export LC_ALL=C.UTF-8
 test: build
 	$(STACK_CMD) test --test-arguments="-a 1000 \
 			--maximum-unsuitable-generated-tests=100000 --color"
