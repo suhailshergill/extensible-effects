@@ -137,7 +137,7 @@ eff :: (a -> b)
 eff f _ (Val a) = f a
 eff _ g (E q u) = g q u
 
--- | The usual 'bind' fnuction with arguments flipped. This is a
+-- | The usual 'bind' function with arguments flipped. This is a
 -- common pattern for Eff.
 {-# INLINE bind #-}
 bind :: Arr r a b -> Eff r a -> Eff r b
@@ -274,14 +274,13 @@ class Handle t r a k where
   -- Note that we can only handle the leftmost effect type (a consequence of the
   -- 'Data.OpenUnion' implementation).
   handle_relay :: r ~ (t ': r') => Relay k r'
-               => (a -> k) -- ^ return
-               -> (Eff r a -> k) -- ^ handler reference
-               -> Eff r a -> k
-  handle_relay ret h m = eff ret
-                         (\q u -> case u of
-                             U0 x -> handle h q x
-                             U1 u' -> relay h q u')
-                         m
+               => (a -> k) -- ^ value handler
+               -> Open (Eff r a -> k)
+  handle_relay valh self m = eff valh
+                            (\q u -> case u of
+                                U0 x -> handle self q x
+                                U1 u' -> relay self q u')
+                            m
 
   -- | When we only have one effect we don't need to concern ourselves with
   -- relaying.
@@ -316,14 +315,13 @@ class Handle t r a k where
   -- passed to 'respond_relay'. This allows us to modify the requests "in
   -- flight". For an example, see 'Control.Eff.Writer.Strict.censor'.
   respond_relay :: Member t r => Relay k r
-                => (a -> k) -- ^ return
-                -> (Eff r a -> k) -- ^ handler reference
-                -> Eff r a -> k
-  respond_relay ret h m = eff ret
-                          (\q u -> case u of
-                              U0' x -> handle @t h q x
-                              _     -> relay h q u)
-                          m
+                => (a -> k) -- ^ value handler
+                -> Open (Eff r a -> k)
+  respond_relay valh self m = eff valh
+                             (\q u -> case u of
+                                 U0' x -> handle @t self q x
+                                 _     -> relay self q u)
+                             m
 
 -- so idea is that by composing open-recursive functions you can achieve
 -- specializaiton. there is an example with factorial method.
@@ -332,49 +330,45 @@ class Handle t r a k where
 -- @Handle t r a k@ constraint).
 {-# INLINE handle_relay' #-}
 handle_relay' :: r ~ (t ': r') => Relay k r'
-              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handle
-              -> (a -> k) -- ^ return
-              -> (Eff r a -> k) -- ^ handler reference
-              -> Eff r a -> k
-handle_relay' hdl ret h m = eff ret
-                            (\q u -> case u of
-                                U0 x -> hdl h q x
-                                U1 u' -> relay h q u')
-                            m
+              => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ effect handler
+              -> (a -> k) -- ^ value handler
+              -> Open (Eff r a -> k)
+handle_relay' hdl valh self m = eff valh
+                               (\q u -> case u of
+                                   U0 x -> hdl self q x
+                                   U1 u' -> relay self q u')
+                               m
 
 -- | Handle an effect @t@ via a "lifted" natural transformation to @m@. This is
 -- useful when defining handlers which do some kind of @IO@ action. For example,
 -- see 'Control.Eff.Trace.runTrace''.
 {-# INLINE handle_nat_lifted' #-}
 handle_nat_lifted' :: Lifted m r
-             => (forall v. t v -> m v) -- ^ natural transformation
-             -> (Eff (t : r) a -> Eff r a) -- ^ handler reference
-             -> Eff (t : r) a -> Eff r a
-handle_nat_lifted' f h m = handle_relay' (\h' q req -> lift (f req) >>= (qComp q h')) pure h m
+                   => (forall v. t v -> m v) -- ^ natural transformation
+                   -> Open (Eff (t : r) a -> Eff r a)
+handle_nat_lifted' f self m = handle_relay' (\h q req -> lift (f req) >>= (qComp q h)) pure self m
 
 -- | Handle an effect @t@ via a natural transformation to @m@. When @m@ is @IO@,
 -- 'handle_nat_lifted' might be preferable instead.
 {-# INLINE handle_nat' #-}
 handle_nat' :: Member m r
             => (forall v. t v -> m v) -- ^ natural transformation
-            -> (Eff (t : r) a -> Eff r a) -- ^ handler reference
-            -> Eff (t : r) a -> Eff r a
-handle_nat' f h m = handle_relay' (\h' q req -> send (f req) >>= (qComp q h')) pure h m
+            -> Open (Eff (t : r) a -> Eff r a)
+handle_nat' f self m = handle_relay' (\h q req -> send (f req) >>= (qComp q h)) pure self m
 
 
 -- | Variant with an explicit handle argument (instead of @Handle t r a k@
 -- constraint).
 {-# INLINE respond_relay' #-}
 respond_relay' :: Member t r => Relay k r
-               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ handle
-               -> (a -> k) -- ^ return
-               -> (Eff r a -> k) -- ^ handler reference
-               -> Eff r a -> k
-respond_relay' hdl ret h m = eff ret
-                             (\q u -> case u of
-                                 U0' x -> hdl h q x
-                                 _     -> relay h q u)
-                             m
+               => (forall v. (Eff r a -> k) -> Arrs r v a -> t v -> k) -- ^ effect handler
+               -> (a -> k) -- ^ value handler
+               -> Open (Eff r a -> k)
+respond_relay' hdl valh self m = eff valh
+                                (\q u -> case u of
+                                    U0' x -> hdl self q x
+                                    _     -> relay self q u)
+                                m
 
 -- | Embeds a less-constrained 'Eff' into a more-constrained one. Analogous to
 -- MTL's 'lift'.
