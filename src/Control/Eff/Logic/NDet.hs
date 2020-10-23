@@ -139,11 +139,20 @@ makeChoiceA0 = fix (handle_relay withNDet)
 
 -- | More performant handler; uses reified job queue
 instance Alternative f => Handle NDet r a ([Eff r a] -> Eff r' (f w)) where
-  handle h _ MZero jq = next h jq                      -- (L1)
-  handle h q MPlus jq = next h (left q : right q : jq) -- (L4 due to Monadplus implementation)
+  -- handle h _ MZero jq = next h jq                      -- (L1)
+  -- handle h q MPlus jq = next h (left q : right q : jq) -- (L4 due to Monadplus implementation)
+  handle = mkNDetHandle (return empty)
 -- instance Handle NDet r a (k -> [Eff r a] -> k) where
 --   handle h _ MZero z jq = list z (flip h z) jq
 --   handle h q MPlus z jq = list z (flip h z) (left q : right q : jq)
+
+mkNDetHandle :: k
+             -> (Eff r a -> [Eff r a] -> k)
+             -> Arrs r v a -> NDet v
+             -> [Eff r a] -> k
+mkNDetHandle z h _ MZero jq = list z h jq                      -- (L1)
+mkNDetHandle z h q MPlus jq = list z h (left q : right q : jq) -- (L4 due to
+                              -- MonadPlus implementation)
 
 {-# INLINE next #-}
 -- | Progressing the cursor in a reified job queue.
@@ -221,11 +230,12 @@ msplit'_manual m' = loop m' [] where
 -- but not non-determinism
 instance Member NDet r => Call r where
   call m = loop m [] where
-    loop (Val x) jq = return x `mplus` nxt jq          -- (C2)
-    loop (E _ (U0 (Exc CutFalse))) _ = nxt []          -- drop jq (F2)
+    loop (Val x) jq = return x `mplus` nxt jq  -- (C2)
+    loop (E _ (U0 (Exc CutFalse))) _ = nxt []  -- drop jq (F2)
     loop (E q (U1 u)) jq = case u of
-        U0' MZero -> nxt jq                            -- (C1)
-        U0' MPlus -> nxt (left q : right q : jq)       -- (C3)
-        _         -> relay loop q u jq                 -- (C4)
+      U0' x -> mkNDetHandle mzero loop q x jq  -- (C1 via MZero case and C3 via MPlus)
+      -- U0' MZero -> nxt jq                      -- (C1)
+      -- U0' MPlus -> nxt (left q : right q : jq) -- (C3)
+      _         -> relay loop q u jq           -- (C4)
 
     nxt jq = list mzero loop jq
