@@ -42,7 +42,7 @@ module Control.Eff.Extend
   , ident
   , comp
   , (^|>)
-  , qComp
+  , qComp, (<.>)
   , qComps
   )
 where

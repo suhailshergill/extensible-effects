@@ -149,6 +149,11 @@ qComp :: Arrs r a b -> (Eff r b -> k) -> (a -> k)
 -- qComp g h = (h . (g `qApp`))
 qComp g h = \a -> h (g ^$ a)
 
+-- | Syntactic sugar for 'qComp'
+{-# INLINE [2] (<.>) #-}
+(<.>) :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
+h <.> g = qComp g h
+
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
 qComps :: Arrs r a b -> (Eff r b -> Eff r' c) -> Arrs r' a c
