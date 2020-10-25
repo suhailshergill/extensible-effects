@@ -106,7 +106,7 @@ instance Handle Arith r a (Eff r' Integer) where
     Lit x -> pure x
     Add   -> k (+)
     Min   -> k Prelude.min
-    where k = qComp q h
+    where k = h <.> q
 
 -- | The handler
 runArith :: Eff (Arith ': r) Integer -> Eff r Integer

@@ -213,7 +213,7 @@ class Relay k r where
   {-# INLINE relay #-}
   relay :: (Eff r' b -> k) -- ^ handler reference
          -> Arrs r' v b -> Union r v -> k
-  relay h q u = relayK (qComp q h) u
+  relay h q u = relayK (h<.>q) u
 
 instance Relay (Eff r w) r where
   {-# INLINABLE relayK #-}
@@ -351,7 +351,7 @@ handle_relay' hdl valh self m = eff valh
 handle_nat_lifted' :: Lifted m r
                    => (forall v. t v -> m v) -- ^ natural transformation
                    -> Open (Eff (t : r) a -> Eff r a)
-handle_nat_lifted' f self m = handle_relay' (\h q req -> lift (f req) >>= (qComp q h)) pure self m
+handle_nat_lifted' f self m = handle_relay' (\h q req -> lift (f req) >>= h<.>q) pure self m
 
 -- | Handle an effect @t@ via a natural transformation to @m@. When @m@ is @IO@,
 -- 'handle_nat_lifted' might be preferable instead.
@@ -359,7 +359,7 @@ handle_nat_lifted' f self m = handle_relay' (\h q req -> lift (f req) >>= (qComp
 handle_nat' :: Member m r
             => (forall v. t v -> m v) -- ^ natural transformation
             -> Open (Eff (t : r) a -> Eff r a)
-handle_nat' f self m = handle_relay' (\h q req -> send (f req) >>= (qComp q h)) pure self m
+handle_nat' f self m = handle_relay' (\h q req -> send (f req) >>= h<.>q) pure self m
 
 
 -- | Variant with an explicit handle argument (instead of @Handle t r a k@
@@ -403,7 +403,7 @@ lift = send . Lift
 
 -- | Handle lifted requests by running them sequentially
 instance Monad m => Handle (Lift m) r a (m k) where
-  handle h q (Lift x) = x >>= (h . (q ^$))
+  handle h q (Lift x) = x >>= h<.>q
 
 -- | The handler of Lift requests. It is meant to be terminal: we only
 -- allow a single Lifted Monad. Note, too, how this is different from
@@ -422,7 +422,7 @@ catchDynE m eh = fix (respond_relay' hdl return) m
    -- Polymorphic local binding: signature is needed
    hdl :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
    hdl h q (Lift em) = lift (Exc.try em) >>= either eh k
-     where k = h . (q ^$)
+     where k = h <.> q
 
 -- | You need this when using 'catchesDynE'.
 data HandlerDynE r a =

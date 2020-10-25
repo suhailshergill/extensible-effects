@@ -38,10 +38,10 @@ data OnDemandState s v where
 -- | Given a continuation, respond to requests
 instance Handle (OnDemandState s) r a (s -> k) where
   handle h q sreq s = case sreq of
-    Get     -> h (q ^$ s) s
-    Put s'  -> h (q ^$ ()) s'
+    Get     -> (h<.>q) s s
+    Put s'  -> (h<.>q) () s'
     Delay m -> let ~(x, s') = run $ (fix (handle_relay S.withState)) m s
-                              in h (q ^$ x) s'
+                              in (h<.>q) x s'
 
 instance ( MonadBase m m
          , LiftedBase m r
@@ -130,7 +130,7 @@ runStateBack0 m =
      Right (Delay m1) -> let ~(x,s1) = go m1 s0 in k x s1
      Left _ -> error "Impossible happened: Nothing to relay!"
      where
-       k = qComp q go
+       k = go <.> q
 
 -- | Another implementation, exploring Haskell's laziness to make putAttr
 -- also technically inherited, to accumulate the sequence of
@@ -143,9 +143,9 @@ runStateBack m =
  where
    go :: Eff '[OnDemandState s] a -> ([s],[s]) -> Eff '[] (a,([s],[s]))
    go = fix (handle_relay' hdl S.withState)
-   hdl h q Get s0@(sg, _) = h (q ^$ head sg) s0
-   hdl h q (Put s1) (sg, sp) = h (q ^$ ()) (tail sg,sp++[s1])
-   hdl h q (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in h (q ^$ x) s1
+   hdl h q Get s0@(sg, _) = (h<.>q) (head sg) s0
+   hdl h q (Put s1) (sg, sp) = (h<.>q) () (tail sg,sp++[s1])
+   hdl h q (Delay m1) s0 = let ~(x,s1) = run $ go m1 s0 in (h<.>q) x s1
 
 -- ^ A different notion of backwards is realized if we change the Put handler
 -- slightly. How?

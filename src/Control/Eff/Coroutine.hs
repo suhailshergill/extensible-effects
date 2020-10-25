@@ -46,7 +46,7 @@ withCoroutine :: Monad m => b -> m (Y r w a)
 withCoroutine = const $ return Done
 -- | Given a continuation and a request, respond to it
 instance Handle (Yield a b) (Yield a b : r) w (Eff r (Y r b a)) where
-  handle h q (Yield a) = return $ Y (h . (q ^$)) a
+  handle h q (Yield a) = return $ Y (h<.>q) a
 
 -- | Launch a thread and report its status
 runC :: Eff (Yield a b ': r) w -> Eff r (Y r b a)

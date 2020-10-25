@@ -38,7 +38,7 @@ withOperational x _ = return x
 -- Usually, we have @r ~ [Program f : r']@
 instance Handle (Program f) r a (Intrprtr f r' -> Eff r' a) where
   handle h q (Singleton instr) i = (runIntrprtr i) instr >>=
-    \x -> h (q ^$ x) i
+    \x -> (h<.>q) x i
 
 -- | Lift a value to a monad.
 singleton :: (Member (Program instr) r) => instr a -> Eff r a

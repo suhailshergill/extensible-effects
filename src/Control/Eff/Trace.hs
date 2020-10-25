@@ -25,7 +25,7 @@ withTrace = return
 
 -- | Given a callback and request, respond to it
 instance Handle Trace r a (IO k) where
-  handle h q (Trace s) = putStrLn s >> h (q ^$ ())
+  handle h q (Trace s) = putStrLn s >> (h<.>q) ()
 
 -- | Print a string as a trace.
 trace :: Member Trace r => String -> Eff r ()

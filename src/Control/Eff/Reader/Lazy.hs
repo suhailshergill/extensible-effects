@@ -55,7 +55,7 @@ withReader x _ = return x
 -- | Given a value to read, and a callback, how to respond to
 -- requests.
 instance Handle (Reader e) r a (e -> k) where
-  handle h q Ask e = h (q ^$ e) e
+  handle h q Ask e = (h<.>q) e e
 
 -- | Get the current value from a Reader.
 -- The signature is inferred (when using NoMonomorphismRestriction).
