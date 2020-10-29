@@ -401,8 +401,9 @@ type LiftedBase m r = ( SetMember Lift (Lift m) r
 lift :: Lifted m r => m a -> Eff r a
 lift = send . Lift
 
--- | Handle lifted requests by running them sequentially
-instance Monad m => Handle (Lift m) r a (m k) where
+-- | Handle lifted requests by running them sequentially. We constrain the
+-- instance to be defined only when @Lift m@ is the terminal effect-type.
+instance Monad m => Handle (Lift m) '[Lift m] a (m k) where
   handle h q (Lift x) = x >>= h<.>q
 
 -- | The handler of Lift requests. It is meant to be terminal: we only
