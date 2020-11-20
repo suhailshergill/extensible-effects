@@ -10,6 +10,7 @@ import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Exception
 import Control.Eff.Writer.Strict
+import Control.Eff.State.Strict
 #if __GLASGOW_HASKELL__ < 710
 import Data.Monoid
 #endif
@@ -99,3 +100,67 @@ case_Exception1_monadBaseControl =
   where
     act = doThing $ do _ <- throwError "Fail"
                        return "Success"
+
+
+
+incr :: Member (State Integer) r => Eff r ()
+incr = get >>= \x -> put (x + 1)
+
+decr :: '[State Integer, Fail] <:: r => Eff r ()
+decr = do
+  x <- get
+  if x > 0 then put (x - 1) else die
+
+tripleDecr, tripleDecrTx, tripleDecrLocal :: '[State Integer, Fail] <:: r => Eff r ()
+tripleDecr = prog catchError decr
+tripleDecrTx = prog catchError (mkTx decr)
+tripleDecrLocal = prog (catchError . mkTx) decr
+
+mkTx = transactionState (TxState :: TxState Integer)
+prog catch d = d >> catch (d >> d) return
+
+tripleDecr_eval1 :: Eff '[State Integer, Fail] () -> Either () ((), Integer)
+tripleDecr_eval1 = run . runError . (runState (2::Integer))
+tripleDecr_eval2 :: Eff '[Fail, State Integer] () -> (Either () (), Integer)
+tripleDecr_eval2 = run . (runState (2::Integer)) . runError
+
+case_scope_global =
+  (Right ((), (0::Integer)) @=? tripleDecr_eval1 tripleDecr)
+  >> (Right ((), (0::Integer)) @=? tripleDecr_eval1 (mkTx tripleDecr))
+  >> (Right ((), (0::Integer)) @=? tripleDecr_eval1 tripleDecrTx)
+  >> ((Right (), (0::Integer)) @=? tripleDecr_eval2 tripleDecr)
+  >> ((Right (), (0::Integer)) @=? tripleDecr_eval2 (mkTx tripleDecr))
+  >> ((Right (), (0::Integer)) @=? tripleDecr_eval2 tripleDecrTx)
+
+-- So it seems no matter what I do, I only get global scope, and not local.
+-- How is this different from Control.Eff.Test, where I am able to get local
+-- scope using transactionState?
+-- One difference is that it's using catchDynE vs catchError
+
+-- catchError m h = fix (respond_relay' (\_ _ (Exc e) -> h e) return) m
+
+-- catchDynE m eh = fix (respond_relay' hdl return) m
+--  where
+--    -- Polymorphic local binding: signature is needed
+--    hdl :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
+--    hdl h q (Lift em) = lift (Exc.try em) >>= either eh k
+--      where k = h . (q ^$)
+
+case_scope_local =
+  (Right ((), (1::Integer)) @=? tripleDecr_eval1 tripleDecrLocal)
+
+-- Ha! finally it works!! In order for catchError to scope State, we need to
+-- catchError ==> catchError . (transactionState TxState)
+
+-- Lesson: We need to implement non-algebraic effects as:
+-- 1. Manually pass them around as arguments, or
+-- 2. Typeclasses (similar to 1), or
+-- 3. Higher-order effects
+-- 4. Via scoped syntax
+
+-- catchError :: Member (Exc e) r => Eff r a -> (e -> Eff r a) -> Eff r a
+-- transactionState :: Member (State s) r => TxState s -> Eff r a -> Eff r a
+
+-- Challenges
+-- 2. What type variables should the typeclass be indexed on, and how to convey
+-- the intended meaning (scope vs not) at use-site?
