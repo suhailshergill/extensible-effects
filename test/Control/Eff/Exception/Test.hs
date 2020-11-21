@@ -3,6 +3,7 @@
 {-# LANGUAGE ScopedTypeVariables #-}
 {-# LANGUAGE TemplateHaskell #-}
 {-# LANGUAGE CPP #-}
+{-# LANGUAGE TypeApplications #-}
 
 module Control.Eff.Exception.Test (testGroups) where
 
@@ -103,21 +104,22 @@ case_Exception1_monadBaseControl =
 
 
 
-incr :: Member (State Integer) r => Eff r ()
-incr = get >>= \x -> put (x + 1)
 
 decr :: '[State Integer, Fail] <:: r => Eff r ()
 decr = do
   x <- get
   if x > 0 then put (x - 1) else die
+incr :: Member (State Integer) r => Eff r ()
+incr = get >>= \x -> put (x + 1)
 
-tripleDecr, tripleDecrTx, tripleDecrLocal :: '[State Integer, Fail] <:: r => Eff r ()
-tripleDecr = prog catchError decr
-tripleDecrTx = prog catchError (mkTx decr)
-tripleDecrLocal = prog (catchError . mkTx) decr
+tripleDecr, tripleDecrTx, tripleDecrLocal, tripleDecrIncrLocal :: '[State Integer, Fail] <:: r => Eff r ()
+tripleDecr = prog catchError decr return
+tripleDecrTx = prog catchError (mkTx decr) return
+tripleDecrLocal = prog (catchError . mkTx) decr return
+tripleDecrIncrLocal = prog ((catchError @()) . mkTx) decr (\_ -> incr)
 
 mkTx = transactionState (TxState :: TxState Integer)
-prog catch d = d >> catch (d >> d) return
+prog catch d r = d >> catch (d >> d) r
 
 tripleDecr_eval1 :: Eff '[State Integer, Fail] () -> Either () ((), Integer)
 tripleDecr_eval1 = run . runError . (runState (2::Integer))
@@ -132,31 +134,30 @@ case_scope_global =
   >> ((Right (), (0::Integer)) @=? tripleDecr_eval2 (mkTx tripleDecr))
   >> ((Right (), (0::Integer)) @=? tripleDecr_eval2 tripleDecrTx)
 
--- So it seems no matter what I do, I only get global scope, and not local.
--- How is this different from Control.Eff.Test, where I am able to get local
--- scope using transactionState?
--- One difference is that it's using catchDynE vs catchError
-
--- catchError m h = fix (respond_relay' (\_ _ (Exc e) -> h e) return) m
-
--- catchDynE m eh = fix (respond_relay' hdl return) m
---  where
---    -- Polymorphic local binding: signature is needed
---    hdl :: (Eff r a -> Eff r a) -> Arrs r v a -> Lift IO v -> Eff r a
---    hdl h q (Lift em) = lift (Exc.try em) >>= either eh k
---      where k = h . (q ^$)
+-- Lesson: For algebraic operations, order of handlers alters semantics. For
+-- non-algebraic operations, semantics are fixed by the handlers (and not their
+-- specific order). We see how 'tripleDecr_eval1' and 'tripleDecr_eval2' yield
+-- similar results (modulo types).
 
 case_scope_local =
   (Right ((), (1::Integer)) @=? tripleDecr_eval1 tripleDecrLocal)
+  >> (Right ((), (2::Integer)) @=? tripleDecr_eval1 tripleDecrIncrLocal)
+  >> ((Right (), (1::Integer)) @=? tripleDecr_eval2 tripleDecrLocal)
+  >> ((Right (), (2::Integer)) @=? tripleDecr_eval2 tripleDecrIncrLocal)
 
--- Ha! finally it works!! In order for catchError to scope State, we need to
+-- Ha! finally we get different scoping semantics when we modify 'catch'
 -- catchError ==> catchError . (transactionState TxState)
 
--- Lesson: We need to implement non-algebraic effects as:
+-- Lesson: Non-algebraic operations (currently) require
+-- redefinition/modification in order to alter their scoping semantics.
+
+-- Lesson: For non-algebraic constructs (i.e., those that couple scoping with
+-- semantics, in the sense that these operations don't commute with '>>='), we
+-- need to:
 -- 1. Manually pass them around as arguments, or
--- 2. Typeclasses (similar to 1), or
--- 3. Higher-order effects
--- 4. Via scoped syntax
+-- 2. Implement via Typeclasses (similar to 1), or
+-- 3. Implement via Higher-order effects
+-- 4. Implement via Via scoped syntax
 
 -- catchError :: Member (Exc e) r => Eff r a -> (e -> Eff r a) -> Eff r a
 -- transactionState :: Member (State s) r => TxState s -> Eff r a -> Eff r a
