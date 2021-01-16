@@ -25,6 +25,7 @@ module Control.Eff.Exception ( Exc (..)
                             , liftMaybe
                             , liftMaybeM
                             , ignoreFail
+                            , Catch'(..), GlobalScope(..)
                             ) where
 
 import Control.Eff
@@ -96,6 +97,22 @@ runFail = fmap (either (const Nothing) Just) . runError
 catchError :: Member (Exc e) r =>
         Eff r a -> (e -> Eff r a) -> Eff r a
 catchError m h = fix (respond_relay' (\_ _ (Exc e) -> h e) return) m
+
+class Catch' exc repr (r :: [* -> *]) (a :: *) where
+  catch' :: repr r a -> (exc -> repr r a) -> repr r a
+
+newtype GlobalScope r a = GlobalScope { globalScope :: Eff r a }
+instance Functor (GlobalScope r) where
+  fmap f (GlobalScope x) = GlobalScope $ fmap f x
+instance Applicative (GlobalScope r) where
+  pure = GlobalScope . Val
+  (GlobalScope mf) <*> (GlobalScope e) = GlobalScope $ mf <*> e
+instance Monad (GlobalScope r) where
+  return = pure
+  (GlobalScope m) >>= f = GlobalScope $ m >>= (globalScope . f)
+
+instance Member (Exc e) r => Catch' e GlobalScope r a where
+  catch' m h = GlobalScope $ catchError (globalScope m) (globalScope . h)
 
 -- | Add a default value (i.e. failure handler) to a fallible computation.
 -- This hides the fact that a failure happened.

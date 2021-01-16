@@ -166,6 +166,7 @@ test-suite extensible-effects-tests
                 , Control.Eff.Writer.Lazy.Test
                 , Control.Eff.Writer.Strict.Test
                 , DoctestRun
+                , Control.Eff.Scope
 
   ghc-options: -Wall
   if impl(ghc >= 8.0)

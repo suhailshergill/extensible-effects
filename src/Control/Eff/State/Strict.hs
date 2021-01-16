@@ -15,6 +15,7 @@ module Control.Eff.State.Strict where
 
 import Control.Eff
 import Control.Eff.Extend
+import Control.Eff.Exception
 
 import Control.Eff.Writer.Strict
 import Control.Eff.Reader.Strict
@@ -112,6 +113,12 @@ evalState !s = fmap fst . runState s
 execState :: s -> Eff (State s ': r) a -> Eff r s
 execState !s = fmap snd . runState s
 {-# INLINE execState #-}
+
+newtype LocalStateScope s r a = LocalStateScope { localStateScope :: Member (State s) r => Eff r a }
+instance (Member (State s) r, Catch' e GlobalScope r a) => Catch' e (LocalStateScope s) r a where
+  catch' m h = LocalStateScope . globalScope $ catch' m' h' where
+    m' = GlobalScope (transactionState (TxState :: TxState s) (localStateScope m))
+    h' = GlobalScope . localStateScope . h
 
 -- | An encapsulated State handler, for transactional semantics
 -- The global state is updated only if the transactionState finished

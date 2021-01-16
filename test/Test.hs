@@ -15,6 +15,7 @@ import qualified Control.Eff.State.Strict.Test
 import qualified Control.Eff.Trace.Test
 import qualified Control.Eff.Writer.Lazy.Test
 import qualified Control.Eff.Writer.Strict.Test
+import qualified Control.Eff.Scope
 import DoctestRun (runDocTest)
 
 main :: IO ()
@@ -39,3 +40,4 @@ testGroups = []
              ++ Control.Eff.Trace.Test.testGroups
              ++ Control.Eff.Writer.Lazy.Test.testGroups
              ++ Control.Eff.Writer.Strict.Test.testGroups
+             ++ Control.Eff.Scope.testGroups
