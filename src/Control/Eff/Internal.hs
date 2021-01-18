@@ -153,6 +153,7 @@ qComp g h = \a -> h (g ^$ a)
 {-# INLINE [2] (<.>) #-}
 (<.>) :: (Eff r b -> k) -> Arrs r a b -> (a -> k)
 h <.> g = qComp g h
+infixl 2 <.>
 
 -- | Compose effectful arrows (and possibly change the effect!)
 {-# INLINE qComps #-}
