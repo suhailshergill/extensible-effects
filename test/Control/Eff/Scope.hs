@@ -6,12 +6,14 @@
 {-# LANGUAGE CPP #-}
 {-# LANGUAGE TypeApplications #-}
 {-# LANGUAGE AllowAmbiguousTypes #-}
+{-# LANGUAGE PartialTypeSignatures #-}
 
 module Control.Eff.Scope where
 
 import Test.HUnit hiding (State)
 import Control.Eff
 import Control.Eff.Extend hiding (eff)
+import qualified Control.Eff.Extend as E
 import Control.Eff.Exception
 import Control.Eff.Writer.Strict
 import Control.Eff.State.Strict
@@ -41,6 +43,7 @@ tripleDecrLocal = prog (catchError . mkTx) decr return
 tripleDecrIncrLocal = prog ((catchError @()) . mkTx) decr (\_ -> incr)
 
 mkTx = transactionState (TxState :: TxState Integer)
+prog :: Monad m => (m b1 -> t -> m b2) -> m b1 -> t -> m b2
 prog catch d r = d >> catch (d >> d) r
 prog2 :: Monad (repr r) => Catch' e repr r a
       => repr r a -> (e -> repr r a) -> repr r a
@@ -264,3 +267,91 @@ effh m ret self = undefined
 
 sendHO :: t m v -> (u r m v, q m v a)
 sendHO = undefined
+
+
+--newtype Throw e v = Throw e
+-- data Catch e v where
+--   Catch :: (r ~ ((Throw e) ': r')) => Eff r x -> (e -> Eff r x) -> Catch e (Eff r x)
+
+-- FIXME: HC5 doesn't work without allowing explicit access to r' below
+data Catch e r v where
+  Catch :: Member (Exc e) r => Eff r x -> (e -> Eff r x) -> Catch e r (Eff r x)
+
+-- catch_req type gets inferred
+catch_req :: Member (Catch e r1) r2
+          => Member (Exc e) r1
+          => Eff r1 x -> (e -> Eff r1 x)
+          -> Eff r2 (Eff r1 x)
+catch_req m eh = send (Catch m eh)
+
+-- NOTE the need for return type to be 'Either'. It is necessitated by HC1.
+-- also handle_catch signature needs signature. Limits of GHC type inference.
+handle_catch :: Open (Eff ((Catch e (Exc e ': r)) ': r) (Eff ((Exc e ': r)) a) -> Eff r (Either e a))
+handle_catch self (Val x) = case x of
+  Val a -> Val (Right a)
+  E _ (U0 (Exc e)) -> Val (Left e) -- HC1. FIXME: Could this be statically
+                                   -- eliminated? Would adding a scoped
+                                   -- constructor for Eff help? But then what if
+                                   -- we need yet another level?
+  E q (U1 u) -> relay self (qComps q Val) u
+handle_catch self (E q (U0 (Catch m eh))) = case m of
+  Val a -> (self<.>q) (Val a)
+  E _ (U0 (Exc e)) -> (self<.>q) (eh e) -- HC4
+  E q' (U1 u') -> relayK (self<.>q<.>q') u' -- HC5
+handle_catch self (E q (U1 u)) = relay self q u
+
+-- FIXME: handling either of Exc or State before Catch means that inner level
+-- isn't simply an "Eff r a", but something more complex. How can handle_catch
+-- made to accommodate these cases? Or would each outer effect linearization
+-- require a different handle_catch?
+--
+-- NOTE: We have State at two levels. How do we merge them? How we choose to
+-- merge the two states is the essence of the conundrum posed by the tripleDecr
+-- program.
+tripleDecrNested :: [Catch () r1, Exc (), State Integer] <:: r2
+                 => [Exc (), State Integer] <:: r1
+                 => Eff r2 (Eff r1 ())
+tripleDecrNested = decr >> (catch_req (decr >> decr) return)
+-- NOTE: interestingly, using prog doesn't generate the signature that we
+-- want. it generates:
+--
+-- tripleDecrNested :: Member (Catch () r') r'
+--                  => Member (State Integer) r')
+--                  => Eff (Exc () : r') (Eff (Exc () : r') ())
+
+{-
+prog :: Monad m => (m b1 -> t -> m b2) -> m b1 -> t -> m b2
+prog catch d r = d >> catch (d >> d) r
+-}
+
+-- TODO: specify a way to thread handle_catch through other handlers. Something like:
+--
+-- handle_catch3 :: Monad c
+--                => Open (Eff ((Catch e (Exc e ': r)) ': r) (c (Eff ((Exc e ': r)) a)) -> Eff r (c a))
+--
+-- Perhaps 'c' shouldn't be a Monad. It's some sort of context. Perhaps Functor
+-- is all we can say about it? One is reminded of 'handle' from Handlers in
+-- Scope: 
+--
+-- handle :: (Monad m, Monad n, Functor c)
+--        => c () -> (forall x. c (m x) -> n (c x)) -> (sig m a -> sig n (c a))
+
+tripleDecrNested_res = runError $ tripleDecrNested
+{-
+tripleDecr_eval1 :: Eff '[State Integer, Fail] () -> Either () ((), Integer)
+tripleDecr_eval1 = run . runError . (runState (2::Integer))
+case_scope_global =
+  (Right ((), (0::Integer)) @=? tripleDecr_eval1 tripleDecr)
+-}
+
+-- class HandleScope t r a k where
+--   -- | Define a single step of computation for the handler, i.e., define how to
+--   -- "handle" the effectful request.
+--   --
+--   -- A handler is a function which accepts an effectful computation as an
+--   -- argument. A "single step" includes responding to the awaiting coroutine and
+--   -- passing the result to the handler reference.
+--   handle_scope :: (Eff r a -> k) -- ^ handler reference
+--                -> Arrs r v a -- ^ coroutine awaiting response from request
+--                -> t v -- ^ effect request
+--                -> k -- ^ the result type after effect is handled
